@@ -2,27 +2,23 @@
 using MelonLoader.Utils;
 using System.IO.Compression;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
+using Mono.Cecil;
 
 [assembly: MelonInfo(typeof(MelonModUpdater.Core), "MelonModUpdater", "1.0.0", "HAHOOS", null)]
 [assembly: MelonPriority(-100)]
 
 namespace MelonModUpdater
 {
-    public class Core : MelonPlugin
+    internal class Core : MelonPlugin
     {
         /// <summary>
         /// Path of the Temporary Files folder in UserData
         /// </summary>
         public string tempFilesPath = "";
 
-        public override void OnInitializeMelon()
-        {
-        }
-
-        public async Task<ModData> GetModData(string downloadLink)
+        internal async Task<ModData> GetModData(string downloadLink)
         {
             if (downloadLink == null)
             {
@@ -102,80 +98,29 @@ namespace MelonModUpdater
             return null;
         }
 
-        public static FileType GetFileTypeFromAssembly(Assembly assembly)
+        internal static FileType GetFileTypeFromAssembly(Assembly assembly)
         {
-            FileType fType = FileType.Other;
-            foreach (Type type in assembly.GetTypes().Where(x => x.IsClass && !x.IsAbstract))
+#nullable enable
+            MelonInfoAttribute? infoAttribute = assembly.GetCustomAttribute<MelonInfoAttribute>();
+
+            if (infoAttribute != null)
             {
-                if (type.IsSubclassOf(typeof(MelonMod)))
-                {
-                    fType = FileType.MelonMod;
-                    return fType;
-                }
-                else if (type.IsSubclassOf(typeof(MelonPlugin)))
-                {
-                    fType = FileType.MelonPlugin;
-                    return fType;
-                }
+                return infoAttribute.SystemType == typeof(MelonMod) ? FileType.MelonMod : FileType.MelonPlugin;
             }
-            return fType;
+#nullable disable
+
+            return FileType.Other;
         }
 
 #nullable enable
 
-        public MelonInfoAttribute? GetMelonInfo(Assembly assembly)
+        internal static MelonInfoAttribute? GetMelonInfo(Assembly assembly)
 #nullable disable
         {
             var melonInfo = assembly.GetCustomAttribute<MelonInfoAttribute>();
             if (melonInfo != null)
                 return melonInfo;
-            else
-            {
-                foreach (Type type in assembly.GetTypes().Where(x => x.IsClass && !x.IsAbstract))
-                {
-                    LoggerInstance.Msg(type.FullName);
-                    if (type.Name == "BuildInfo" || type.Name == "AssemblyInfo")
-                    {
-                        try
-                        {
-                            string Name = (string)type.GetProperty("Name").GetValue(type, null);
-                            MelonLogger.Msg($"Name: {Name}");
-                            string Author = (string)type.GetProperty("Author").GetValue(type, null);
-                            MelonLogger.Msg($"Author: {Name}");
-                            string Version = (string)type.GetProperty("Version").GetValue(type, null);
-                            MelonLogger.Msg($"Version: {Name}");
-                            string Link = (string)type.GetProperty("URL").GetValue(type, null);
-                            MelonLogger.Msg($"URL: {Name}");
-                            if (string.IsNullOrEmpty(Link))
-                            {
-                                Link = (string)type.GetProperty("DownloadLink").GetValue(type, null);
-                                MelonLogger.Msg($"DownloadLink: {Name}");
-                            }
-
-                            return new MelonInfoAttribute(typeof(Core), Name, Version, Author, Link);
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggerInstance.Error($"Could not get necessary properties when creating MelonInfoAttribute\n{ex.Message}\n{ex.StackTrace}");
-                            return null;
-                        }
-                    }
-                }
-            }
             return null;
-        }
-
-        private Assembly? LoadAssembly(string path)
-        {
-            // The load context needs access to the .Net "core" assemblies...
-            string[] runtimeAssemblies = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
-            var paths = new List<string>(runtimeAssemblies);
-            paths.Add(Path.Combine(MelonEnvironment.UserLibsDirectory, "System.Reflection.Metadata.dll"));
-            var resolver = new PathAssemblyResolver(paths);
-            using (var mlc = new MetadataLoadContext(resolver))
-            {
-                return mlc.LoadFromByteArray(File.ReadAllBytes(path));
-            }
         }
 
         public override async void OnPreInitialization()
@@ -187,182 +132,203 @@ namespace MelonModUpdater
 
             tempFilesPath = tempDir.FullName;
 
+            Dictionary<string, int> priority = [];
+
             string modDirectory = MelonEnvironment.ModsDirectory;
-            string[] files = Directory.GetFiles(modDirectory);
+            AssemblyLoadContext assemblyLoadContext = null;
+            List<string> files = [.. Directory.GetFiles(modDirectory, "*.dll")];
+            files.ForEach(x =>
+            {
+                assemblyLoadContext = new AssemblyLoadContext("MelonModUpdater_PriorityCheck", true);
+                Assembly assembly = assemblyLoadContext.LoadFromAssemblyPath(x);
+                if (assembly != null)
+                {
+                    MelonPriorityAttribute priorityAttribute = assembly.GetCustomAttribute<MelonPriorityAttribute>();
+                    priority.Add(x, priorityAttribute != null ? priorityAttribute.Priority : 0);
+                }
+                assemblyLoadContext.Unload();
+            });
+
+            files.Sort(delegate (string x, string y)
+            {
+                if (x == null && y == null) return 0;
+                else if (x == null) return -1;
+                else if (y == null) return 1;
+                else
+                {
+                    if (!priority.ContainsKey(x)) return -1;
+                    if (!priority.ContainsKey(y)) return 1;
+                    var xPriority = priority[x];
+                    var yPriority = priority[y];
+                    return xPriority.CompareTo(yPriority);
+                }
+            });
 
             LoggerInstance.Msg("\x1b[34;1m-----------\x1b[0m");
             foreach (string path in files)
             {
-                await Task.Delay(50);
-                if (path.EndsWith(".dll"))
+                string fileName = Path.GetFileName(path);
+                LoggerInstance.Msg($"Checking \x1b[31m{fileName}\x1b[0m");
+                Assembly file = null;
+                try
                 {
-                    string fileName = Path.GetFileName(path);
-                    LoggerInstance.Msg($"Checking \x1b[31m{fileName}\x1b[0m");
-                    AssemblyLoadContext assemblyLoadContext = null;
-                    Assembly file = null;
-                    MetadataLoadContext context = null;
-                    try
+                    assemblyLoadContext = new AssemblyLoadContext("MelonModUpdater_AssemblyLoader", true);
+                    file = assemblyLoadContext.LoadFromAssemblyPath(path);
+
+                    file.GetReferencedAssemblies().ToList().ForEach((assembly) =>
                     {
-                        //assemblyLoadContext = new AssemblyLoadContext("MelonModUpdater_AssemblyLoader", true);
-                        //file = assemblyLoadContext.LoadFromAssemblyPath(path);
-                        file = LoadAssembly(path);
-                    }
-                    catch (Exception ex)
+                        assemblyLoadContext.LoadFromAssemblyName(assembly);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    LoggerInstance.Error($"Unable to load assembly\n{ex.Message}\n{ex.StackTrace}");
+                    continue;
+                }
+                if (file != null)
+                {
+                    FileType fileType = GetFileTypeFromAssembly(file);
+                    if (fileType != FileType.Other)
                     {
-                        LoggerInstance.Error($"Unable to load assembly\n{ex.Message}\n{ex.StackTrace}");
-                        continue;
-                    }
-                    if (file != null)
-                    {
-                        FileType fileType = GetFileTypeFromAssembly(file);
-                        if (fileType == FileType.MelonMod)
+                        LoggerInstance.Msg("File Type");
+                        var melonAssemblyInfo = GetMelonInfo(file);
+                        if (melonAssemblyInfo != null)
                         {
-                            LoggerInstance.Msg("File Type");
-                            var melonAssemblyInfo = GetMelonInfo(file);
-                            if (melonAssemblyInfo != null)
+                            var data = await GetModData(melonAssemblyInfo.DownloadLink);
+                            if (data != null)
                             {
-                                var data = await GetModData(melonAssemblyInfo.DownloadLink);
-                                if (data != null)
+                                ModVersion currentVersion = ModVersion.GetFromString(melonAssemblyInfo.Version);
+                                if (currentVersion != null && data.LatestVersion != null)
                                 {
-                                    ModVersion currentVersion = ModVersion.GetFromString(melonAssemblyInfo.Version);
-                                    if (currentVersion != null && data.LatestVersion != null)
+                                    bool? needsUpdate = ModVersion.CompareVersions(data.LatestVersion, currentVersion);
+                                    if (needsUpdate != null && needsUpdate == true)
                                     {
-                                        bool? needsUpdate = ModVersion.CompareVersions(data.LatestVersion, currentVersion);
-                                        if (needsUpdate != null && needsUpdate == true)
+                                        LoggerInstance.Msg($"A new version \x1b[32mv{data.LatestVersion}\x1b[0m is available, meanwhile the current version is \u001b[32m{currentVersion}\u001b[0m, updating");
+                                        LoggerInstance.Msg("Downloading file");
+                                        using var httpClient = new HttpClient();
+                                        using var response = await httpClient.GetAsync(data.DownloadFileURI, HttpCompletionOption.ResponseHeadersRead);
+
+                                        FileStream downloadedFile = null;
+                                        var filePath = Path.Combine(tempFilesPath, data.IsZIP ? $"{fileName}.zip" : $"{fileName}.dll");
+
+                                        try
                                         {
-                                            LoggerInstance.Msg($"A new version \x1b[32mv{data.LatestVersion}\x1b[0m is available, meanwhile the current version is \u001b[32m{currentVersion}\u001b[0m, updating");
-                                            LoggerInstance.Msg("Downloading file");
-                                            using var httpClient = new HttpClient();
-                                            using var response = await httpClient.GetAsync(data.DownloadFileURI, HttpCompletionOption.ResponseHeadersRead);
+                                            response.EnsureSuccessStatusCode();
+                                            using var ms = await response.Content.ReadAsStreamAsync();
+                                            using var fs = File.Create(filePath);
+                                            await ms.CopyToAsync(fs);
+                                            fs.Flush();
+                                            downloadedFile = fs;
+                                            LoggerInstance.Msg($"Successfully downloaded the latest version of \x1b[32m{melonAssemblyInfo.Name}\x1b[0m");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            LoggerInstance.Error($"Failed to download file through link\n{ex.Message}\n{ex.StackTrace}");
+                                            downloadedFile.Dispose();
+                                            downloadedFile = null;
+                                        }
 
-                                            FileStream downloadedFile = null;
-                                            var filePath = Path.Combine(tempFilesPath, data.IsZIP ? $"{fileName}.zip" : $"{fileName}.dll");
-
-                                            try
+                                        if (downloadedFile != null)
+                                        {
+                                            //context.Dispose();
+                                            assemblyLoadContext.Unload();
+                                            if (data.IsZIP)
                                             {
-                                                response.EnsureSuccessStatusCode();
-                                                using var ms = await response.Content.ReadAsStreamAsync();
-                                                using var fs = File.Create(filePath);
-                                                await ms.CopyToAsync(fs);
-                                                fs.Flush();
-                                                downloadedFile = fs;
-                                                LoggerInstance.Msg($"Successfully downloaded the latest version of \x1b[32m{melonAssemblyInfo.Name}\x1b[0m");
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                LoggerInstance.Error($"Failed to download file through link\n{ex.Message}\n{ex.StackTrace}");
-                                                downloadedFile.Dispose();
-                                                downloadedFile = null;
-                                            }
-
-                                            if (downloadedFile != null)
-                                            {
-                                                context.Dispose();
-                                                if (data.IsZIP)
+                                                LoggerInstance.Msg("File is a ZIP file, extracting files...");
+                                                try
                                                 {
-                                                    LoggerInstance.Msg("File is a ZIP file, extracting files...");
-                                                    try
+                                                    string extractPath = Path.Combine(tempFilesPath, melonAssemblyInfo.Name.Replace(" ", "-"));
+                                                    ZipFile.ExtractToDirectory(filePath, extractPath);
+                                                    LoggerInstance.Msg("Successfully extracted files!");
+                                                    LoggerInstance.Msg("Installing content to MelonLoader");
+                                                    await downloadedFile.DisposeAsync();
+                                                    var extractedFiles = Directory.GetFiles(extractPath).ToList();
+                                                    Directory.GetDirectories(extractPath).ToList().ForEach((x) => extractedFiles.Add(x));
+                                                    foreach (string extPath in extractedFiles)
                                                     {
-                                                        string extractPath = Path.Combine(tempFilesPath, melonAssemblyInfo.Name.Replace(" ", "-"));
-                                                        ZipFile.ExtractToDirectory(filePath, extractPath);
-                                                        LoggerInstance.Msg("Successfully extracted files!");
-                                                        LoggerInstance.Msg("Installing content to MelonLoader");
-                                                        await downloadedFile.DisposeAsync();
-                                                        var extractedFiles = Directory.GetFiles(extractPath).ToList();
-                                                        Directory.GetDirectories(extractPath).ToList().ForEach((x) => extractedFiles.Add(x));
-                                                        foreach (string extPath in extractedFiles)
+                                                        if (!Path.HasExtension(extPath))
                                                         {
-                                                            if (!Path.HasExtension(extPath))
+                                                            if (Path.GetFileName(extPath) == "Mods")
                                                             {
-                                                                if (Path.GetFileName(extPath) == "Mods")
+                                                                foreach (var fPath in Directory.GetFiles(extPath))
                                                                 {
-                                                                    foreach (var fPath in Directory.GetFiles(extPath))
-                                                                    {
-                                                                        var fFile = assemblyLoadContext.LoadFromAssemblyPath(fPath);
+                                                                    var fFile = assemblyLoadContext.LoadFromAssemblyPath(fPath);
 
-                                                                        FileType _fileType = GetFileTypeFromAssembly(fFile);
-                                                                        if (_fileType == FileType.MelonMod)
+                                                                    FileType _fileType = GetFileTypeFromAssembly(fFile);
+                                                                    if (_fileType == FileType.MelonMod)
+                                                                    {
+                                                                        try
                                                                         {
-                                                                            try
-                                                                            {
-                                                                                File.Delete(path);
-                                                                                File.Move(fPath, path);
-                                                                            }
-                                                                            catch (Exception ex)
-                                                                            {
-                                                                                LoggerInstance.Error($"An unexpected error occurred while replacing old version with new version\n{ex.Message}\n{ex.StackTrace}");
-                                                                                Directory.Delete(extractPath, true);
-                                                                                File.Delete(filePath);
-                                                                            }
+                                                                            File.Delete(path);
+                                                                            File.Move(fPath, path);
                                                                         }
-                                                                        else
+                                                                        catch (Exception ex)
                                                                         {
-                                                                            LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
+                                                                            LoggerInstance.Error($"An unexpected error occurred while replacing old version with new version\n{ex.Message}\n{ex.StackTrace}");
+                                                                            Directory.Delete(extractPath, true);
+                                                                            File.Delete(filePath);
                                                                         }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
                                                                     }
                                                                 }
                                                             }
-                                                            else if (Path.GetExtension(extPath) == ".dll")
+                                                        }
+                                                        else if (Path.GetExtension(extPath) == ".dll")
+                                                        {
+                                                            Assembly extFile = System.Reflection.Assembly.LoadFile(extPath);
+                                                            FileType _fileType = GetFileTypeFromAssembly(extFile);
+                                                            if (_fileType != FileType.Other)
                                                             {
-                                                                Assembly extFile = System.Reflection.Assembly.LoadFile(extPath);
-                                                                FileType _fileType = GetFileTypeFromAssembly(extFile);
-                                                                if (_fileType != FileType.Other)
-                                                                {
-                                                                    LoggerInstance.Msg("Moving file " + Path.GetFileName(extPath));
-                                                                    // Right now it only predicts its a mod
-                                                                    File.Move(extPath, Path.Combine(MelonEnvironment.ModsDirectory, fileName));
-                                                                }
-                                                                else
-                                                                {
-                                                                    LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
-                                                                }
+                                                                LoggerInstance.Msg("Moving file " + Path.GetFileName(extPath));
+                                                                // Right now it only predicts its a mod
+                                                                File.Move(extPath, Path.Combine(MelonEnvironment.ModsDirectory, fileName));
+                                                            }
+                                                            else
+                                                            {
+                                                                LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
                                                             }
                                                         }
-                                                        Directory.Delete(extractPath, true);
-                                                        File.Delete(filePath);
                                                     }
-                                                    catch (Exception ex)
+                                                    Directory.Delete(extractPath, true);
+                                                    File.Delete(filePath);
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    LoggerInstance.Error($"An exception occurred while extracting files from a ZIP file\n{ex.Message}\n{ex.StackTrace}");
+                                                    File.Delete(filePath);
+                                                    foreach (var path_ in Directory.GetFiles(tempFilesPath))
                                                     {
-                                                        LoggerInstance.Error($"An exception occurred while extracting files from a ZIP file\n{ex.Message}\n{ex.StackTrace}");
-                                                        File.Delete(filePath);
-                                                        foreach (var path_ in Directory.GetFiles(tempFilesPath))
-                                                        {
-                                                            File.Delete(path_);
-                                                        }
+                                                        File.Delete(path_);
                                                     }
                                                 }
-                                                LoggerInstance.Msg($"Successfully updated {melonAssemblyInfo.Name} from \x1b[32;1mv{currentVersion} --> v{data.LatestVersion}\x1b[0m");
                                             }
-                                            else
-                                            {
-                                                LoggerInstance.Error("Downloaded file is empty, unable to update mod");
-                                            }
+                                            LoggerInstance.Msg($"Successfully updated {melonAssemblyInfo.Name} from \x1b[32;1mv{currentVersion} --> v{data.LatestVersion}\x1b[0m");
                                         }
                                         else
                                         {
-                                            LoggerInstance.Msg("\x1b[32mVersion is up-to-date!\x1b[0m");
+                                            LoggerInstance.Error("Downloaded file is empty, unable to update mod");
                                         }
+                                    }
+                                    else
+                                    {
+                                        LoggerInstance.Msg("\x1b[32mVersion is up-to-date!\x1b[0m");
                                     }
                                 }
                             }
-                            else
-                            {
-                                LoggerInstance.Warning($"{fileName} does not seem to be a MelonLoader Mod");
-                            }
                         }
-                        context.Dispose();
+                        else
+                        {
+                            LoggerInstance.Warning($"{fileName} does not seem to be a MelonLoader Mod");
+                        }
                     }
-                    LoggerInstance.Msg("\x1b[34;1m-----------\x1b[0m");
+                    //context.Dispose();
+                    assemblyLoadContext.Unload();
                 }
+                LoggerInstance.Msg("\x1b[34;1m-----------\x1b[0m");
             }
-        }
-
-        private Assembly Resolving(AssemblyLoadContext context, AssemblyName name)
-        {
-            string assemblyPath = $"{MelonEnvironment.ModsDirectory}\\{name.Name}.dll";
-            if (assemblyPath != null)
-                return context.LoadFromAssemblyPath(assemblyPath);
-            return null;
         }
     }
 }

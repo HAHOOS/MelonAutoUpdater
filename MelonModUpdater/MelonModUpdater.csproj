@@ -14,14 +14,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 
-	<ItemGroup>			
-		<Reference Include="System.Reflection.Metadata">
-		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\UserLibs\System.Reflection.Metadata.dll</HintPath>
-		</Reference>			
-		<Reference Include="System.Reflection.MetadataLoadContext">
-		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\UserLibs\System.Reflection.MetadataLoadContext.dll</HintPath>
-		</Reference>		
-		
+	<ItemGroup>				
 		<Reference Include="Tomlet">
 		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
 		</Reference>
