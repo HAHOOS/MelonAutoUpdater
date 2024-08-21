@@ -8,9 +8,19 @@ namespace MelonAutoUpdater
 {
     public class ModData
     {
+        /// <summary>
+        /// Latest version available online of a mod
+        /// </summary>
         public ModVersion LatestVersion { get; internal set; }
+
+        /// <summary>
+        /// The URI to download the latest version of a mod
+        /// </summary>
         public Uri DownloadFileURI { get; internal set; }
 
+        /// <summary>
+        /// Indicates if file is a ZIP
+        /// </summary>
         public bool IsZIP { get; internal set; }
     }
 
@@ -69,6 +79,9 @@ namespace MelonAutoUpdater
         }
     }
 
+    /// <summary>
+    /// Type of file, either MelonMod, MelonPlugin or Other
+    /// </summary>
     public enum FileType
     {
         MelonMod = 1,
