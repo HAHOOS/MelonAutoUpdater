@@ -4,19 +4,62 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
-using Mono.Cecil;
 
-[assembly: MelonInfo(typeof(MelonModUpdater.Core), "MelonModUpdater", "1.0.0", "HAHOOS", null)]
+[assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonModUpdater", "1.0.0", "HAHOOS", null)]
 [assembly: MelonPriority(-100)]
 
-namespace MelonModUpdater
+namespace MelonAutoUpdater
 {
     internal class Core : MelonPlugin
     {
         /// <summary>
         /// Path of the Temporary Files folder in UserData
         /// </summary>
-        public string tempFilesPath = "";
+        internal string tempFilesPath = "";
+
+        internal string mainFolderPath = "";
+
+        #region Melon Preferences
+
+        public MelonPreferences_Category category { get; private set; }
+
+        public MelonPreferences_Entry entry_ignore { get; private set; }
+        public MelonPreferences_Entry entry_priority { get; private set; }
+        public MelonPreferences_Entry entry_enabled { get; private set; }
+
+        private void SetupPreferences()
+        {
+            category = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
+            category.SetFilePath(Path.Combine(mainFolderPath, "config.cfg"));
+
+            entry_ignore = category.CreateEntry<List<string>>("IgnoreList", new(), "Ignore List",
+                description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
+            entry_priority = category.CreateEntry<List<string>>("PriorityList", new(), "Priority List",
+                description: "List of all names of Mods & Plugins that will be updated first");
+            entry_enabled = category.CreateEntry<bool>("Enabled", true, "Enabled",
+                description: "If true, Mods & Plugins will update on every start");
+
+            LoggerInstance.Msg("Successfully set up Melon Preferences!");
+        }
+
+        private T? GetPreferenceValue<T>(MelonPreferences_Entry entry)
+        {
+            if (entry != null && entry.BoxedValue != null)
+            {
+                try
+                {
+                    return (T)entry.BoxedValue;
+                }
+                catch (InvalidCastException)
+                {
+                    LoggerInstance.Error($"Preference '{entry.DisplayName}' is of incorrect type, please go to UserData/MelonAutoUpdater/config.cfg to fix");
+                    return default(T);
+                }
+            }
+            return default(T);
+        }
+
+        #endregion Melon Preferences
 
         internal async Task<ModData> GetModData(string downloadLink)
         {
@@ -125,20 +168,45 @@ namespace MelonModUpdater
 
         public override async void OnPreInitialization()
         {
-            LoggerInstance.Msg("Melon Initialized.");
             LoggerInstance.Msg("Creating folders in UserData");
-            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(MelonEnvironment.UserDataDirectory, "MelonUpdater"));
+            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(MelonEnvironment.UserDataDirectory, "MelonAutoUpdater"));
             DirectoryInfo tempDir = mainDir.CreateSubdirectory("TemporaryFiles");
 
             tempFilesPath = tempDir.FullName;
+            mainFolderPath = mainDir.FullName;
+
+            LoggerInstance.Msg("Setup Melon Preferences");
+
+            SetupPreferences();
 
             Dictionary<string, int> priority = [];
 
             string modDirectory = MelonEnvironment.ModsDirectory;
+
             AssemblyLoadContext assemblyLoadContext = null;
+
             List<string> files = [.. Directory.GetFiles(modDirectory, "*.dll")];
+
+            List<string> ignore = GetPreferenceValue<List<string>>(entry_ignore);
+            List<string> topPriority = GetPreferenceValue<List<string>>(entry_priority);
+            bool enabled = GetPreferenceValue<bool>(entry_enabled);
+
+            if (!enabled)
+            {
+                LoggerInstance.Msg("Plugin disabled in preferences, aborting..");
+                return;
+            }
+
             files.ForEach(x =>
             {
+                if (ignore != null && ignore.Count > 0)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(x);
+                    if (ignore.Contains(fileName))
+                    {
+                        LoggerInstance.Msg($"{fileName} is in ignore list, removing from update list");
+                    }
+                }
                 assemblyLoadContext = new AssemblyLoadContext("MelonModUpdater_PriorityCheck", true);
                 Assembly assembly = assemblyLoadContext.LoadFromAssemblyPath(x);
                 if (assembly != null)
@@ -156,6 +224,11 @@ namespace MelonModUpdater
                 else if (y == null) return 1;
                 else
                 {
+                    var xFileName = Path.GetFileNameWithoutExtension(x);
+                    var yFileName = Path.GetFileNameWithoutExtension(y);
+                    if (topPriority.Contains(xFileName)) return -1;
+                    if (topPriority.Contains(yFileName)) return 1;
+
                     if (!priority.ContainsKey(x)) return -1;
                     if (!priority.ContainsKey(y)) return 1;
                     var xPriority = priority[x];
