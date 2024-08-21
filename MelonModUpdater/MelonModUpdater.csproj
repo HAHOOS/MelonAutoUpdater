@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>disable</Nullable>
+		<RootNamespace>MelonModUpdater</RootNamespace>
+		<LangVersion>default</LangVersion>
+		<IsPackable>false</IsPackable>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<AssemblyName>MelonModUpdater</AssemblyName>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>			
+		<Reference Include="System.Reflection.Metadata">
+		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\UserLibs\System.Reflection.Metadata.dll</HintPath>
+		</Reference>			
+		<Reference Include="System.Reflection.MetadataLoadContext">
+		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\UserLibs\System.Reflection.MetadataLoadContext.dll</HintPath>
+		</Reference>		
+		
+		<Reference Include="Tomlet">
+		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
+		</Reference>
+
+		<Reference Include="MelonLoader">
+			<HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\MelonLoader\net6\MelonLoader.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<PropertyGroup>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="Core.cs" />
+		<Compile Include="ModData.cs" />
+	</ItemGroup>
+	
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins&quot;" />
+	</Target>
+</Project>
