@@ -1,6 +1,8 @@
 ﻿using MelonLoader;
 using MelonLoader.Utils;
+using System.Globalization;
 using System.IO.Compression;
+using System.Net;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
@@ -27,14 +29,17 @@ namespace MelonAutoUpdater
         public MelonPreferences_Entry entry_priority { get; private set; }
         public MelonPreferences_Entry entry_enabled { get; private set; }
 
+        /// <summary>
+        /// Setup Preferences
+        /// </summary>
         private void SetupPreferences()
         {
             category = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             category.SetFilePath(Path.Combine(mainFolderPath, "config.cfg"));
 
-            entry_ignore = category.CreateEntry<List<string>>("IgnoreList", new(), "Ignore List",
+            entry_ignore = category.CreateEntry<List<string>>("IgnoreList", [], "Ignore List",
                 description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
-            entry_priority = category.CreateEntry<List<string>>("PriorityList", new(), "Priority List",
+            entry_priority = category.CreateEntry<List<string>>("PriorityList", [], "Priority List",
                 description: "List of all names of Mods & Plugins that will be updated first");
             entry_enabled = category.CreateEntry<bool>("Enabled", true, "Enabled",
                 description: "If true, Mods & Plugins will update on every start");
@@ -42,7 +47,7 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg("Successfully set up Melon Preferences!");
         }
 
-        private T? GetPreferenceValue<T>(MelonPreferences_Entry entry)
+        private T GetPreferenceValue<T>(MelonPreferences_Entry entry)
         {
             if (entry != null && entry.BoxedValue != null)
             {
@@ -61,6 +66,45 @@ namespace MelonAutoUpdater
 
         #endregion Melon Preferences
 
+        // If you are wondering, this is from StackOverflow, although a bit edited, im just a bit lazy
+        /// <summary>
+        /// Checks for internet connection
+        /// </summary>
+        /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 10000)</param>
+        /// <param name="url">URL of the website used to check for connection (Default: null, url selected in code depending on country)</param>
+        /// <returns>If true, there's internet connection, otherwise not</returns>
+        public static async Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = null)
+        {
+            try
+            {
+                url ??= CultureInfo.InstalledUICulture switch
+                {
+                    { Name: var n } when n.StartsWith("fa") => // Iran
+                        "http://www.aparat.com",
+                    { Name: var n } when n.StartsWith("zh") => // China
+                        "http://www.baidu.com",
+                    _ =>
+                        "http://www.gstatic.com/generate_204",
+                };
+
+                var request = new HttpClient
+                {
+                    Timeout = TimeSpan.FromMilliseconds(timeoutMs)
+                };
+                using var response = await request.GetAsync(url);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Get data about the mod from a downloadLink
+        /// </summary>
+        /// <param name="downloadLink">Download Link, possibly included in the MelonInfoAttribute</param>
+        /// <returns>If found, returns a ModData object which includes the latest version of the mod online, the download link and if the file is a ZIP file or not</returns>
         internal async Task<ModData> GetModData(string downloadLink)
         {
             if (downloadLink == null)
@@ -141,6 +185,11 @@ namespace MelonAutoUpdater
             return null;
         }
 
+        /// <summary>
+        /// Check if Assembly is a MelonMod, a MelonPlugin or something else
+        /// </summary>
+        /// <param name="assembly">Assembly of the file to check</param>
+        /// <returns>A FileType, either MelonMod, MelonPlugin or Other</returns>
         internal static FileType GetFileTypeFromAssembly(Assembly assembly)
         {
 #nullable enable
@@ -157,6 +206,11 @@ namespace MelonAutoUpdater
 
 #nullable enable
 
+        /// <summary>
+        /// Retrieve information from the MelonInfoAttribute in an Assembly
+        /// </summary>
+        /// <param name="assembly">Assembly to get the attribute from</param>
+        /// <returns>If present, returns a MelonInfoAttribute</returns>
         internal static MelonInfoAttribute? GetMelonInfo(Assembly assembly)
 #nullable disable
         {
@@ -179,11 +233,16 @@ namespace MelonAutoUpdater
 
             SetupPreferences();
 
+            bool internetCheck = await CheckForInternetConnection();
+            if (!internetCheck)
+            {
+                LoggerInstance.Msg("It seems like there is no internet, aborting..");
+                return;
+            }
+
             Dictionary<string, int> priority = [];
 
             string modDirectory = MelonEnvironment.ModsDirectory;
-
-            AssemblyLoadContext assemblyLoadContext = null;
 
             List<string> files = [.. Directory.GetFiles(modDirectory, "*.dll")];
 
@@ -197,7 +256,8 @@ namespace MelonAutoUpdater
                 return;
             }
 
-            files.ForEach(x =>
+            string[] fileNameIgnore = [];
+            files.ForEach(async x =>
             {
                 if (ignore != null && ignore.Count > 0)
                 {
@@ -205,17 +265,23 @@ namespace MelonAutoUpdater
                     if (ignore.Contains(fileName))
                     {
                         LoggerInstance.Msg($"{fileName} is in ignore list, removing from update list");
+                        fileNameIgnore.Append(fileName);
+                        return;
                     }
                 }
-                assemblyLoadContext = new AssemblyLoadContext("MelonModUpdater_PriorityCheck", true);
-                Assembly assembly = assemblyLoadContext.LoadFromAssemblyPath(x);
+                Assembly assembly = System.Reflection.Assembly.Load(File.ReadAllBytes(x));
                 if (assembly != null)
                 {
                     MelonPriorityAttribute priorityAttribute = assembly.GetCustomAttribute<MelonPriorityAttribute>();
+
                     priority.Add(x, priorityAttribute != null ? priorityAttribute.Priority : 0);
+                    priorityAttribute = null;
+                    LoggerInstance.Msg("Adding priority in " + Path.GetFileName(x));
+                    await Task.Delay(1000);
                 }
-                assemblyLoadContext.Unload();
             });
+
+            files.RemoveAll(x => fileNameIgnore.Contains(x));
 
             files.Sort(delegate (string x, string y)
             {
@@ -245,13 +311,7 @@ namespace MelonAutoUpdater
                 Assembly file = null;
                 try
                 {
-                    assemblyLoadContext = new AssemblyLoadContext("MelonModUpdater_AssemblyLoader", true);
-                    file = assemblyLoadContext.LoadFromAssemblyPath(path);
-
-                    file.GetReferencedAssemblies().ToList().ForEach((assembly) =>
-                    {
-                        assemblyLoadContext.LoadFromAssemblyName(assembly);
-                    });
+                    file = System.Reflection.Assembly.Load(File.ReadAllBytes(path));
                 }
                 catch (Exception ex)
                 {
@@ -303,8 +363,6 @@ namespace MelonAutoUpdater
 
                                         if (downloadedFile != null)
                                         {
-                                            //context.Dispose();
-                                            assemblyLoadContext.Unload();
                                             if (data.IsZIP)
                                             {
                                                 LoggerInstance.Msg("File is a ZIP file, extracting files...");
@@ -325,7 +383,7 @@ namespace MelonAutoUpdater
                                                             {
                                                                 foreach (var fPath in Directory.GetFiles(extPath))
                                                                 {
-                                                                    var fFile = assemblyLoadContext.LoadFromAssemblyPath(fPath);
+                                                                    var fFile = System.Reflection.Assembly.Load(File.ReadAllBytes(fPath));
 
                                                                     FileType _fileType = GetFileTypeFromAssembly(fFile);
                                                                     if (_fileType == FileType.MelonMod)
@@ -397,8 +455,7 @@ namespace MelonAutoUpdater
                             LoggerInstance.Warning($"{fileName} does not seem to be a MelonLoader Mod");
                         }
                     }
-                    //context.Dispose();
-                    assemblyLoadContext.Unload();
+                    await Task.Delay(250);
                 }
                 LoggerInstance.Msg("\x1b[34;1m-----------\x1b[0m");
             }
