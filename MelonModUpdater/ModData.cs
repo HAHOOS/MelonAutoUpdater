@@ -17,11 +17,6 @@ namespace MelonAutoUpdater
         /// The URI to download the latest version of a mod
         /// </summary>
         public Uri DownloadFileURI { get; internal set; }
-
-        /// <summary>
-        /// Indicates if file is a ZIP
-        /// </summary>
-        public bool IsZIP { get; internal set; }
     }
 
     public class ModVersion
