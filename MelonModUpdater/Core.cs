@@ -4,11 +4,19 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonModUpdater", "1.0.0", "HAHOOS", null)]
 [assembly: MelonPriority(-100)]
+[assembly: MelonID("272b5cba-0b4c-4d0a-b6b6-ba2bfbb7c716")]
+[assembly: AssemblyTitle("MelonModUpdater")]
+[assembly: AssemblyVersion("1.0.0")]
+[assembly: AssemblyFileVersion("1.0.0")]
+[assembly: AssemblyDescription("A MelonLoader Plugin that automatically updates mods & plugins!")]
+[assembly: AssemblyCompany("HAHOOS")]
+[assembly: Guid("272b5cba-0b4c-4d0a-b6b6-ba2bfbb7c716")]
 
 namespace MelonAutoUpdater
 {
