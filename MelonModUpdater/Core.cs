@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
+using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
@@ -325,43 +326,11 @@ namespace MelonAutoUpdater
             return null;
         }
 
-        // Note to self: Don't use async
-        public override void OnPreModsLoaded()
+        internal void CheckDirectory(string directory)
         {
-            LoggerInstance.Msg("Creating folders in UserData");
-            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(MelonEnvironment.UserDataDirectory, "MelonAutoUpdater"));
-            DirectoryInfo tempDir = mainDir.CreateSubdirectory("TemporaryFiles");
-            DirectoryInfo backupDir = mainDir.CreateSubdirectory("Backups");
-
-            tempFilesPath = tempDir.FullName;
-            mainFolderPath = mainDir.FullName;
-            backupFolderPath = backupDir.FullName;
-
-            LoggerInstance.Msg("Clearing possibly left temporary files");
-
-            List<string> tempPaths = [.. Directory.GetFiles(tempFilesPath)];
-            tempPaths.AddRange(Directory.GetDirectories(tempFilesPath));
-
-            foreach (System.IO.FileInfo file in tempDir.GetFiles()) file.Delete();
-            foreach (System.IO.DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
-
-            LoggerInstance.Msg("Setup Melon Preferences");
-
-            SetupPreferences();
-
-            Task<bool> internetCheck = CheckForInternetConnection();
-            internetCheck.Wait();
-            if (!internetCheck.Result)
-            {
-                LoggerInstance.Msg("It seems like there is no internet, aborting..");
-                return;
-            }
-
             Dictionary<string, int> priority = [];
 
-            string modDirectory = MelonEnvironment.ModsDirectory;
-
-            List<string> files = [.. Directory.GetFiles(modDirectory, "*.dll")];
+            List<string> files = [.. Directory.GetFiles(directory, "*.dll")];
 
             List<string> ignore = GetPreferenceValue<List<string>>(entry_ignore);
             List<string> topPriority = GetPreferenceValue<List<string>>(entry_priority);
@@ -423,6 +392,7 @@ namespace MelonAutoUpdater
                 {
                     LoggerInstance.Msg("File Type");
                     var melonAssemblyInfo = GetMelonInfo(path);
+                    string assemblyName = (string)melonAssemblyInfo.Name.Clone();
                     if (melonAssemblyInfo != null)
                     {
                         var data = GetModData(melonAssemblyInfo.DownloadLink);
@@ -477,88 +447,153 @@ namespace MelonAutoUpdater
                                     if (downloadedFile != null)
                                     {
                                         bool threwError = false;
+                                        int failed = 0;
+                                        int success = 0;
                                         if (Path.GetExtension(pathToSave) == ".zip")
                                         {
                                             LoggerInstance.Msg("File is a ZIP file, extracting files...");
+                                            string extractPath = Path.Combine(tempFilesPath, melonAssemblyInfo.Name.Replace(" ", "-"));
                                             try
                                             {
-                                                string extractPath = Path.Combine(tempFilesPath, melonAssemblyInfo.Name.Replace(" ", "-"));
                                                 ZipFile.ExtractToDirectory(pathToSave, extractPath);
                                                 LoggerInstance.Msg("Successfully extracted files!");
                                                 LoggerInstance.Msg("Installing content to MelonLoader");
                                                 var disposeTask = downloadedFile.DisposeAsync();
                                                 disposeTask.AsTask().Wait();
-                                                var extractedFiles = Directory.GetFiles(extractPath).ToList();
-                                                Directory.GetDirectories(extractPath).ToList().ForEach((x) => extractedFiles.Add(x));
-                                                foreach (string extPath in extractedFiles)
-                                                {
-                                                    if (Directory.Exists(extPath))
-                                                    {
-                                                        if (Path.GetFileName(extPath) == "Mods")
-                                                        {
-                                                            foreach (var fPath in Directory.GetFiles(extPath))
-                                                            {
-                                                                FileType _fileType = GetFileType(fPath);
-                                                                if (_fileType == FileType.MelonMod)
-                                                                {
-                                                                    try
-                                                                    {
-                                                                        LoggerInstance.Msg($"Replacing {Path.GetFileName(path)} with {Path.GetFileName(fPath)}");
-                                                                        File.Replace(fPath, path, Path.Combine(backupFolderPath, $"{melonAssemblyInfo.Name}-{melonAssemblyInfo.Version}.dll"));
-                                                                    }
-                                                                    catch (Exception ex)
-                                                                    {
-                                                                        LoggerInstance.Error($"An unexpected error occurred while replacing old version with new version\n{ex.Message}\n{ex.StackTrace}");
-                                                                        threwError = true;
-                                                                        Directory.Delete(extractPath, true);
-                                                                        File.Delete(pathToSave);
-                                                                    }
-                                                                }
-                                                                else
-                                                                {
-                                                                    LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    else if (Path.GetExtension(extPath) == ".dll")
-                                                    {
-                                                        FileType _fileType = GetFileType(extPath);
-                                                        if (_fileType == FileType.MelonMod)
-                                                        {
-                                                            LoggerInstance.Msg("Moving mod file " + Path.GetFileName(extPath));
-                                                            File.Move(extPath, Path.Combine(MelonEnvironment.ModsDirectory, fileName));
-                                                        }
-                                                        else if (_fileType == FileType.MelonPlugin)
-                                                        {
-                                                            LoggerInstance.Msg("Moving plugin file " + Path.GetFileName(extPath));
-                                                            string pluginPath = Path.Combine(MelonEnvironment.PluginsDirectory, fileName);
-                                                            File.Move(extPath, Path.Combine(MelonEnvironment.PluginsDirectory, fileName));
-                                                            MelonAssembly.LoadMelonAssembly(pluginPath);
-                                                            LoggerInstance.Warning("WARNING: The plugin might not work properly due to the fact it was loaded at a later time");
-                                                        }
-                                                        else
-                                                        {
-                                                            LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
-                                                        }
-                                                    }
-                                                }
-                                                Directory.Delete(extractPath, true);
-                                                File.Delete(pathToSave);
                                             }
                                             catch (Exception ex)
                                             {
                                                 threwError = true;
                                                 LoggerInstance.Error($"An exception occurred while extracting files from a ZIP file\n{ex.Message}\n{ex.StackTrace}");
                                                 File.Delete(pathToSave);
-                                                foreach (var path_ in Directory.GetFiles(tempFilesPath))
+                                                DirectoryInfo tempDir = new DirectoryInfo(tempFilesPath);
+                                                foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
+                                                foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
+                                            }
+                                            var extractedFiles = Directory.GetFiles(extractPath).ToList();
+                                            Directory.GetDirectories(extractPath).ToList().ForEach((x) => extractedFiles.Add(x));
+                                            foreach (string extPath in extractedFiles)
+                                            {
+                                                if (Directory.Exists(extPath))
                                                 {
-                                                    File.Delete(path_);
+                                                    foreach (var fPath in Directory.GetFiles(extPath))
+                                                    {
+                                                        FileType _fileType = GetFileType(fPath);
+                                                        if (_fileType == FileType.MelonMod)
+                                                        {
+                                                            try
+                                                            {
+                                                                LoggerInstance.Msg("Installing mod file " + Path.GetFileName(fPath));
+                                                                string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(fPath));
+                                                                if (!File.Exists(_path)) File.Move(fPath, _path);
+                                                                else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                                                                success += 1;
+                                                                LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(fPath));
+                                                            }
+                                                            catch (Exception ex)
+                                                            {
+                                                                LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                                                                failed += 1;
+                                                            }
+                                                        }
+                                                        else if (_fileType == FileType.MelonPlugin)
+                                                        {
+                                                            try
+                                                            {
+                                                                LoggerInstance.Msg("Installing plugin file " + Path.GetFileName(fPath));
+                                                                string pluginPath = Path.Combine(MelonEnvironment.PluginsDirectory, fileName);
+                                                                string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(fPath));
+                                                                if (!File.Exists(_path)) File.Move(fPath, _path);
+                                                                else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                                                                var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
+                                                                LoggerInstance.Warning("WARNING: The plugin might not work properly or crash due to the fact it was loaded at a later time");
+                                                                LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(fPath));
+                                                                success += 1;
+                                                            }
+                                                            catch (Exception ex)
+                                                            {
+                                                                LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                                                                failed += 1;
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            if (Path.GetDirectoryName(extPath) == "UserLibs")
+                                                            {
+                                                                try
+                                                                {
+                                                                    LoggerInstance.Msg("Installing new library " + Path.GetFileName(fPath));
+                                                                    string _path = Path.Combine(MelonEnvironment.UserLibsDirectory, Path.GetFileName(fPath));
+                                                                    if (!File.Exists(_path)) File.Move(fPath, _path);
+                                                                    else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                                                                }
+                                                                catch (Exception ex)
+                                                                {
+                                                                    LoggerInstance.Msg($"An unexpected error occurred while installing library\n{ex.Message}\n{ex.StackTrace}");
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else if (Path.GetExtension(extPath) == ".dll")
+                                                {
+                                                    FileType _fileType = GetFileType(extPath);
+                                                    if (_fileType == FileType.MelonMod)
+                                                    {
+                                                        try
+                                                        {
+                                                            LoggerInstance.Msg("Installing mod file " + Path.GetFileName(extPath));
+                                                            string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(extPath));
+                                                            if (!File.Exists(_path)) File.Move(extPath, _path);
+                                                            else File.Replace(extPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                                                            success += 1;
+                                                            LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(extPath));
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                                                            threwError = true;
+                                                            failed += 1;
+                                                        }
+                                                    }
+                                                    else if (_fileType == FileType.MelonPlugin)
+                                                    {
+                                                        try
+                                                        {
+                                                            LoggerInstance.Msg("Installing plugin file " + Path.GetFileName(extPath));
+                                                            string pluginPath = Path.Combine(MelonEnvironment.PluginsDirectory, fileName);
+                                                            string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(extPath));
+                                                            if (!File.Exists(_path)) File.Move(extPath, _path);
+                                                            else File.Replace(extPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                                                            var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
+                                                            LoggerInstance.Warning("WARNING: The plugin might not work properly or crash due to the fact it was loaded at a later time");
+                                                            LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(extPath));
+                                                            success += 1;
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                                                            threwError = true;
+                                                            failed += 1;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
+                                                    }
                                                 }
                                             }
+                                            Directory.Delete(extractPath, true);
+                                            File.Delete(pathToSave);
                                         }
                                         LoggerInstance.Msg(
-                                            !threwError ? $"Successfully updated {melonAssemblyInfo.Name} from \x1b[32;1mv{currentVersion} --> v{data.Result.LatestVersion}\x1b[0m" : $"Failed to update {melonAssemblyInfo.Name}"
+                                            !threwError
+                                            ? $"Updated {assemblyName} from \x1b[32;1mv{currentVersion} --> v{data.Result.LatestVersion}\x1b[0m, {success}/{success + failed} installed successfully"
+                                            : $"Failed to update {assemblyName}"
                                             );
                                     }
                                     else
@@ -580,6 +615,49 @@ namespace MelonAutoUpdater
                 }
                 LoggerInstance.Msg("\x1b[34;1m-----------\x1b[0m");
             }
+        }
+
+        // Note to self: Don't use async
+        public override void OnPreInitialization()
+        {
+            LoggerInstance.Msg("Creating folders in UserData");
+            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(MelonEnvironment.UserDataDirectory, "MelonAutoUpdater"));
+            DirectoryInfo tempDir = mainDir.CreateSubdirectory("TemporaryFiles");
+            DirectoryInfo backupDir = mainDir.CreateSubdirectory("Backups");
+
+            tempFilesPath = tempDir.FullName;
+            mainFolderPath = mainDir.FullName;
+            backupFolderPath = backupDir.FullName;
+
+            LoggerInstance.Msg("Clearing possibly left temporary files");
+
+            List<string> tempPaths = [.. Directory.GetFiles(tempFilesPath)];
+            tempPaths.AddRange(Directory.GetDirectories(tempFilesPath));
+
+            foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
+            foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
+
+            LoggerInstance.Msg("Setup Melon Preferences");
+
+            SetupPreferences();
+        }
+
+        public override void OnPreModsLoaded()
+        {
+            Task<bool> internetCheck = CheckForInternetConnection();
+            internetCheck.Wait();
+            if (!internetCheck.Result)
+            {
+                LoggerInstance.Msg("It seems like there is no internet, aborting..");
+                return;
+            }
+            LoggerInstance.Msg("Checking mods...");
+            CheckDirectory(MelonEnvironment.ModsDirectory);
+            LoggerInstance.Msg("Done checking mods");
+        }
+
+        public override void OnApplicationQuit()
+        {
         }
     }
 }
