@@ -2,10 +2,8 @@
 using MelonLoader.Utils;
 using Mono.Cecil;
 using System.Globalization;
-using System.IO;
 using System.IO.Compression;
 using System.Reflection;
-using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
@@ -267,7 +265,7 @@ namespace MelonAutoUpdater
 
         internal static T? Get<T>(CustomAttribute customAttribute, int index)
         {
-            if (customAttribute.ConstructorArguments.Count <= 0) return default;
+            if (customAttribute.ConstructorArguments.Count <= 0) return default(T);
             return (T)customAttribute.ConstructorArguments[index].Value;
         }
 
@@ -344,7 +342,7 @@ namespace MelonAutoUpdater
 
             string[] fileNameIgnore = [];
             AssemblyLoadContext priorityContext = new("MelonAutoUpdater_PriorityCheck", true);
-            files.ForEach(async x =>
+            files.ForEach(x =>
             {
                 if (ignore != null && ignore.Count > 0)
                 {
