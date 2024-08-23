@@ -3,15 +3,11 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>disable</Nullable>
-		<RootNamespace>MelonAutoUpdater</RootNamespace>
 		<LangVersion>default</LangVersion>
 		<IsPackable>false</IsPackable>
-		<AssemblyVersion>1.0.0.0</AssemblyVersion>
-		<FileVersion>1.0.0.0</FileVersion>
-		<NeutralLanguage>en-US</NeutralLanguage>
-		<AssemblyName>MelonAutoUpdater</AssemblyName>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
 	</PropertyGroup>
 
 	<ItemGroup>				
@@ -32,6 +28,10 @@
 	<ItemGroup>
 		<Compile Include="Core.cs" />
 		<Compile Include="ModData.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Mono.Cecil" Version="0.11.5" />
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
