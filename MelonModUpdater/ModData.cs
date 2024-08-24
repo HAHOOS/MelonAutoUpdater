@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MelonLoader;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -32,7 +33,7 @@ namespace MelonAutoUpdater
         /// <returns>ModVersion object with values Major, Minor and Patch</returns>
         public static ModVersion GetFromString(string version)
         {
-            if (version.StartsWith("v")) version = version.Remove(0);
+            if (version.StartsWith("v")) version = version.Remove(0, 1);
             string[] split = version.Split('.');
             if (split.Length >= 3)
             {
