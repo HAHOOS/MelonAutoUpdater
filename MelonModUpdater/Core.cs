@@ -10,7 +10,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonModUpdater", "1.0.0", "HAHOOS", null)]
-[assembly: MelonPriority(-100)]
+[assembly: MelonPriority(-10000)]
 [assembly: MelonID("272b5cba-0b4c-4d0a-b6b6-ba2bfbb7c716")]
 [assembly: VerifyLoaderVersion(0, 6, 0, true)]
 [assembly: AssemblyTitle("MelonModUpdater")]
@@ -40,6 +40,16 @@ namespace MelonAutoUpdater
         /// </summary>
         internal string backupFolderPath = "";
 
+        /// <summary>
+        /// This is used to prevent from rate-limiting the API
+        /// </summary>
+        private bool disableGithubAPI = false;
+
+        /// <summary>
+        /// The time (in Unix time seconds) when the rate limit will dissapear
+        /// </summary>
+        private long githubResetDate;
+
         #region Melon Preferences
 
         /// <summary>
@@ -55,13 +65,6 @@ namespace MelonAutoUpdater
         public MelonPreferences_Entry Entry_priority { get; private set; }
         public MelonPreferences_Entry Entry_enabled { get; private set; }
         public MelonPreferences_Entry Entry_bruteCheck { get; private set; }
-
-        /// <summary>
-        /// This is used to prevent from rate-limiting the API
-        /// </summary>
-        private bool disableGithubAPI = false;
-
-        private long resetDate;
 
         /// <summary>
         /// Setup Preferences
@@ -109,7 +112,7 @@ namespace MelonAutoUpdater
 
         #endregion Melon Preferences
 
-        // If you are wondering, this is from StackOverflow, although a bit edited, im just a bit lazy
+        // If you are wondering, this is from StackOverflow, although a bit edited, I'm just a bit lazy
         /// <summary>
         /// Checks for internet connection
         /// </summary>
@@ -274,7 +277,7 @@ namespace MelonAutoUpdater
 
                 var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-                if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > resetDate) disableGithubAPI = false;
+                if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
                 if (!disableGithubAPI)
                 {
                     var response = client.GetAsync($"https://api.github.com/repos/{namespaceName}/{packageName}/releases/latest", HttpCompletionOption.ResponseContentRead);
@@ -286,7 +289,7 @@ namespace MelonAutoUpdater
                         if (remaining <= 1)
                         {
                             LoggerInstance.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
-                            resetDate = reset;
+                            githubResetDate = reset;
                             disableGithubAPI = true;
                         }
                         Task<string> body = response.Result.Content.ReadAsStringAsync();
@@ -359,8 +362,8 @@ namespace MelonAutoUpdater
                         long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
                         if (remaining <= 0)
                         {
-                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime().ToString("t")}");
-                            resetDate = reset;
+                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime():t}");
+                            githubResetDate = reset;
                             disableGithubAPI = true;
                         }
                         else
@@ -384,7 +387,7 @@ namespace MelonAutoUpdater
                 else
                 {
                     MelonLogger.Warning(
-                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(resetDate).ToLocalTime().ToString("t"));
+                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
                 }
             }
 
@@ -442,6 +445,8 @@ namespace MelonAutoUpdater
                         LoggerInstance.Error($"Latest could not be retrieved\n{ex.Message}\n{ex.StackTrace}");
                     }
 
+                    LoggerInstance.Msg("Thunderstore return");
+
                     request.Dispose();
                     response.Dispose();
                     body.Dispose();
@@ -485,7 +490,7 @@ namespace MelonAutoUpdater
             var _client = new HttpClient();
             _client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
             _client.DefaultRequestHeaders.Add("User-Agent", "MelonAutoUpdater");
-            if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > resetDate) disableGithubAPI = false;
+            if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
             if (!disableGithubAPI)
             {
                 var _response = _client.GetAsync($"https://api.github.com/repos/{author}/{name}/releases/latest", HttpCompletionOption.ResponseContentRead);
@@ -497,7 +502,7 @@ namespace MelonAutoUpdater
                     if (remaining <= 1)
                     {
                         LoggerInstance.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
-                        resetDate = reset;
+                        githubResetDate = reset;
                         disableGithubAPI = true;
                     }
                     Task<string> body = _response.Result.Content.ReadAsStringAsync();
@@ -568,9 +573,9 @@ namespace MelonAutoUpdater
                     long reset = long.Parse(_response.Result.Headers.GetValues("x-ratelimit-reset").First());
                     if (remaining <= 0)
                     {
-                        LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime().ToString("t")}");
+                        LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime():t}");
                         disableGithubAPI = true;
-                        resetDate = reset;
+                        githubResetDate = reset;
                     }
                     else
                     {
@@ -592,7 +597,7 @@ namespace MelonAutoUpdater
             else
             {
                 MelonLogger.Warning(
-                    "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(resetDate).ToLocalTime().ToString("t"));
+                    "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
             }
 
             #endregion Github;
@@ -620,9 +625,9 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Check if Assembly is a MelonMod, a MelonPlugin or something else
+        /// Check if a file on specified path is a MelonMod, a MelonPlugin or something else
         /// </summary>
-        /// <param name="assembly">Assembly of the file to check</param>
+        /// <param name="path">Path of the file to check</param>
         /// <returns>A FileType, either MelonMod, MelonPlugin or Other</returns>
         internal static FileType GetFileType(string path)
         {
@@ -661,7 +666,7 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Retrieve information from the MelonInfoAttribute in an Assembly using Mono.Cecil
+        /// Retrieve information from the MelonInfoAttribute in an file using Mono.Cecil
         /// </summary>
         /// <param name="path">Path to the assembly</param>
         /// <returns>If present, returns a MelonInfoAttribute</returns>
@@ -675,8 +680,8 @@ namespace MelonAutoUpdater
                     var _type = Get<TypeDefinition>(attr, 0);
                     Type type = _type.BaseType.Name == "MelonMod" ? typeof(MelonMod) : _type.BaseType.Name == "MelonPlugin" ? typeof(MelonPlugin) : null;
                     string Name = Get<string>(attr, 1);
-                    string Version = Get<string>(attr, 3);
-                    string Author = Get<string>(attr, 2);
+                    string Version = Get<string>(attr, 2);
+                    string Author = Get<string>(attr, 3);
                     string DownloadLink = Get<string>(attr, 4);
 
                     assembly.Dispose();
@@ -684,6 +689,7 @@ namespace MelonAutoUpdater
                     return new MelonInfoAttribute(type: type, name: Name, version: Version, author: Author, downloadLink: DownloadLink);
                 }
             }
+            assembly.Dispose();
             return null;
         }
 
@@ -695,9 +701,13 @@ namespace MelonAutoUpdater
                 if (attr.AttributeType.Name == nameof(MelonPriorityAttribute))
                 {
                     int priority = Get<int>(attr, 0);
+
+                    assembly.Dispose();
+
                     return new MelonPriorityAttribute(priority);
                 }
             }
+            assembly.Dispose();
             return null;
         }
 
@@ -714,15 +724,18 @@ namespace MelonAutoUpdater
                         int minor = Get<int>(attr, 1);
                         int patch = Get<int>(attr, 2);
                         bool isMinimum = Get<bool>(attr, 3);
+                        assembly.Dispose();
                         return new VerifyLoaderVersionAttribute(major, minor, patch, isMinimum);
                     }
                     catch (Exception)
                     {
                         string version = Get<string>(attr, 0);
+                        assembly.Dispose();
                         return new VerifyLoaderVersionAttribute(version);
                     }
                 }
             }
+            assembly.Dispose();
             return null;
         }
 
@@ -812,7 +825,7 @@ namespace MelonAutoUpdater
                             if (GetPreferenceValue<bool>(Entry_bruteCheck))
                             {
                                 LoggerInstance.Msg("Running brute check..");
-                                data = GetModDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author);
+                                data = GetModDataFromInfo(melonAssemblyInfo.Name.Replace(" ", ""), melonAssemblyInfo.Author);
                                 data.Wait();
                             }
                         }
@@ -848,8 +861,6 @@ namespace MelonAutoUpdater
                                                         _ => Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.temp"),
                                                     };
                                                 }
-                                                LoggerInstance.Msg(_contentType);
-                                                LoggerInstance.Msg(pathToSave ?? "No Path");
                                                 using var ms = response.Result.Content.ReadAsStreamAsync();
                                                 ms.Wait();
                                                 using var fs = File.Create(pathToSave);
@@ -858,7 +869,7 @@ namespace MelonAutoUpdater
                                                 fs.Flush();
                                                 downloadedFile = fs;
                                                 ms.Dispose();
-                                                LoggerInstance.Msg($"Successfully downloaded the latest version of \x1b[32m{melonAssemblyInfo.Name}\x1b[0m");
+                                                LoggerInstance.Msg($"Download successful");
                                             }
                                             catch (Exception ex)
                                             {
@@ -1059,7 +1070,7 @@ namespace MelonAutoUpdater
                                                 }
                                                 LoggerInstance.Msg(
                                                     !threwError
-                                                    ? $"Updated {assemblyName} from \x1b[32;1mv{currentVersion} --> v{data.Result.LatestVersion}\x1b[0m, {success}/{success + failed} installed successfully"
+                                                    ? $"Updated {assemblyName} from \x1b[32;1mv{currentVersion} --> v{data.Result.LatestVersion}\x1b[0m, ({success}/{success + failed}) installed successfully"
                                                     : $"Failed to update {assemblyName}"
                                                     );
                                             }
