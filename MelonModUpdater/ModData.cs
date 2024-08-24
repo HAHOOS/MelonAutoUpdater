@@ -14,9 +14,9 @@ namespace MelonAutoUpdater
         public ModVersion LatestVersion { get; internal set; }
 
         /// <summary>
-        /// The URI to download the latest version of a mod
+        /// The URLs to download the latest version of a mod
         /// </summary>
-        public Uri DownloadFileURI { get; internal set; }
+        public List<string> DownloadFileURL { get; internal set; }
     }
 
     public class ModVersion
@@ -32,6 +32,7 @@ namespace MelonAutoUpdater
         /// <returns>ModVersion object with values Major, Minor and Patch</returns>
         public static ModVersion GetFromString(string version)
         {
+            if (version.StartsWith("v")) version = version.Remove(0);
             string[] split = version.Split('.');
             if (split.Length >= 3)
             {
