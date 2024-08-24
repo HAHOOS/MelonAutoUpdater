@@ -1,10 +1,8 @@
-﻿using Harmony;
-using MelonLoader;
+﻿using MelonLoader;
 using MelonLoader.Utils;
 using Mono.Cecil;
 using System.Globalization;
 using System.IO.Compression;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
@@ -44,9 +42,16 @@ namespace MelonAutoUpdater
 
         #region Melon Preferences
 
+        /// <summary>
+        /// Main Category in Preferences
+        /// </summary>
         public MelonPreferences_Category Category { get; private set; }
 
+        /// <summary>
+        /// An entry
+        /// </summary>
         public MelonPreferences_Entry Entry_ignore { get; private set; }
+
         public MelonPreferences_Entry Entry_priority { get; private set; }
         public MelonPreferences_Entry Entry_enabled { get; private set; }
         public MelonPreferences_Entry Entry_bruteCheck { get; private set; }
@@ -96,10 +101,10 @@ namespace MelonAutoUpdater
                 catch (InvalidCastException)
                 {
                     LoggerInstance.Error($"Preference '{entry.DisplayName}' is of incorrect type, please go to UserData/MelonAutoUpdater/config.cfg to fix");
-                    return default(T);
+                    return default;
                 }
             }
-            return default(T);
+            return default;
         }
 
         #endregion Melon Preferences
@@ -147,7 +152,7 @@ namespace MelonAutoUpdater
         /// <returns>If found, returns a ModData object which includes the latest version of the mod online and the download link(s)</returns>
         internal Task<ModData> GetModData(string downloadLink)
         {
-            if (downloadLink == null)
+            if (string.IsNullOrWhiteSpace(downloadLink))
             {
                 LoggerInstance.Msg("No download link provided with mod, unable to fetch necessary information");
                 return Task.FromResult<ModData>(null);
@@ -268,11 +273,11 @@ namespace MelonAutoUpdater
                 }
 
                 var client = new HttpClient();
-                client.DefaultRequestHeaders.Add("Accept", "Accept: application/vnd.github+json");
+                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
                 if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > resetDate) disableGithubAPI = false;
                 if (!disableGithubAPI)
                 {
-                    var response = client.GetAsync($"https://api.github.com/repos/{namespaceName}/{packageName}/releases/latest");
+                    var response = client.GetAsync($"https://api.github.com/repos/{namespaceName}/{packageName}/releases/latest", HttpCompletionOption.ResponseContentRead);
                     response.Wait();
                     if (response.Result.IsSuccessStatusCode)
                     {
@@ -354,14 +359,21 @@ namespace MelonAutoUpdater
                         long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
                         if (remaining <= 0)
                         {
-                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToString("t")}");
+                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime().ToString("t")}");
                             resetDate = reset;
                             disableGithubAPI = true;
                         }
                         else
                         {
-                            LoggerInstance.Error
-                                ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
+                            if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
+                            {
+                                LoggerInstance.Warning("Github API could not find the mod/plugin");
+                            }
+                            else
+                            {
+                                LoggerInstance.Error
+                                    ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
+                            }
                         }
                         client.Dispose();
                         response.Dispose();
@@ -372,7 +384,7 @@ namespace MelonAutoUpdater
                 else
                 {
                     MelonLogger.Warning(
-                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(resetDate).ToString("t"));
+                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(resetDate).ToLocalTime().ToString("t"));
                 }
             }
 
@@ -447,8 +459,6 @@ namespace MelonAutoUpdater
                     request.Dispose();
                     response.Dispose();
                     body.Dispose();
-
-                    return Task.FromResult<ModData>(null);
                 }
             }
             else
@@ -473,23 +483,24 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg("Checking Github");
 
             var _client = new HttpClient();
-            _client.DefaultRequestHeaders.Add("Accept", "Accept: application/vnd.github+json");
+            _client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+            _client.DefaultRequestHeaders.Add("User-Agent", "MelonAutoUpdater");
             if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > resetDate) disableGithubAPI = false;
             if (!disableGithubAPI)
             {
-                var _response = _client.GetAsync($"https://api.github.com/repos/{author}/{name}/releases/latest");
+                var _response = _client.GetAsync($"https://api.github.com/repos/{author}/{name}/releases/latest", HttpCompletionOption.ResponseContentRead);
                 _response.Wait();
                 if (_response.Result.IsSuccessStatusCode)
                 {
-                    int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                    long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
+                    int remaining = int.Parse(_response.Result.Headers.GetValues("x-ratelimit-remaining").FirstOrDefault());
+                    long reset = long.Parse(_response.Result.Headers.GetValues("x-ratelimit-reset").FirstOrDefault());
                     if (remaining <= 1)
                     {
                         LoggerInstance.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
                         resetDate = reset;
                         disableGithubAPI = true;
                     }
-                    Task<string> body = response.Result.Content.ReadAsStringAsync();
+                    Task<string> body = _response.Result.Content.ReadAsStringAsync();
                     body.Wait();
                     if (body.Result != null)
                     {
@@ -552,19 +563,26 @@ namespace MelonAutoUpdater
                 }
                 else
                 {
-                    int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                    int limit = int.Parse(response.Result.Headers.GetValues("x-ratelimit-limit").First());
-                    long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
+                    int remaining = int.Parse(_response.Result.Headers.GetValues("x-ratelimit-remaining").First());
+                    int limit = int.Parse(_response.Result.Headers.GetValues("x-ratelimit-limit").First());
+                    long reset = long.Parse(_response.Result.Headers.GetValues("x-ratelimit-reset").First());
                     if (remaining <= 0)
                     {
-                        LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToString("t")}");
+                        LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime().ToString("t")}");
                         disableGithubAPI = true;
                         resetDate = reset;
                     }
                     else
                     {
-                        LoggerInstance.Error
-        ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
+                        if (_response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            LoggerInstance.Warning("Github API could not find the mod/plugin");
+                        }
+                        else
+                        {
+                            LoggerInstance.Error
+        ($"Failed to fetch package information from Github, returned {_response.Result.StatusCode} with following message:\n{_response.Result.ReasonPhrase}");
+                        }
                     }
 
                     _client.Dispose();
@@ -574,7 +592,7 @@ namespace MelonAutoUpdater
             else
             {
                 MelonLogger.Warning(
-                    "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(resetDate).ToString("t"));
+                    "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(resetDate).ToLocalTime().ToString("t"));
             }
 
             #endregion Github;
@@ -622,21 +640,9 @@ namespace MelonAutoUpdater
 
 #nullable enable
 
-        /// <summary>
-        ///
-        /// </summary>
-        public enum MelonInfoValue
-        {
-            Type = 0,
-            Name = 1,
-            Version = 2,
-            Author = 3,
-            DownloadLink = 4
-        }
-
         internal static T? Get<T>(CustomAttribute customAttribute, int index)
         {
-            if (customAttribute.ConstructorArguments.Count <= 0) return default(T);
+            if (customAttribute.ConstructorArguments.Count <= 0) return default;
             return (T)customAttribute.ConstructorArguments[index].Value;
         }
 
@@ -666,12 +672,12 @@ namespace MelonAutoUpdater
             {
                 if (attr.AttributeType.Name == nameof(MelonInfoAttribute))
                 {
-                    var _type = Get<TypeDefinition>(attr, (int)MelonInfoValue.Type);
+                    var _type = Get<TypeDefinition>(attr, 0);
                     Type type = _type.BaseType.Name == "MelonMod" ? typeof(MelonMod) : _type.BaseType.Name == "MelonPlugin" ? typeof(MelonPlugin) : null;
-                    string Name = Get<string>(attr, (int)MelonInfoValue.Name);
-                    string Author = Get<string>(attr, (int)MelonInfoValue.Author);
-                    string Version = Get<string>(attr, (int)MelonInfoValue.Version);
-                    string DownloadLink = Get<string>(attr, (int)MelonInfoValue.DownloadLink);
+                    string Name = Get<string>(attr, 1);
+                    string Version = Get<string>(attr, 3);
+                    string Author = Get<string>(attr, 2);
+                    string DownloadLink = Get<string>(attr, 4);
 
                     assembly.Dispose();
 
