@@ -5,8 +5,15 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Runtime.Loader;
 using System.Text.Json;
+
 using System.Text.RegularExpressions;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonModUpdater", "1.0.0", "HAHOOS", null)]
@@ -174,13 +181,13 @@ namespace MelonAutoUpdater
                 string namespaceName;
                 if (downloadLink.EndsWith("/"))
                 {
-                    packageName = split[^2];
-                    namespaceName = split[^3];
+                    packageName = split[split.Length - 2];
+                    namespaceName = split[split.Length - 3];
                 }
                 else
                 {
-                    packageName = split[^1];
-                    namespaceName = split[^2];
+                    packageName = split[split.Length - 1];
+                    namespaceName = split[split.Length - 2];
                 }
 
                 HttpClient request = new();
@@ -612,14 +619,12 @@ namespace MelonAutoUpdater
         /// <returns>A FileType, either MelonMod, MelonPlugin or Other</returns>
         internal static FileType GetFileType(Assembly assembly)
         {
-#nullable enable
             MelonInfoAttribute? infoAttribute = assembly.GetCustomAttribute<MelonInfoAttribute>();
 
             if (infoAttribute != null)
             {
                 return infoAttribute.SystemType == typeof(MelonMod) ? FileType.MelonMod : FileType.MelonPlugin;
             }
-#nullable disable
 
             return FileType.Other;
         }
@@ -631,19 +636,15 @@ namespace MelonAutoUpdater
         /// <returns>A FileType, either MelonMod, MelonPlugin or Other</returns>
         internal static FileType GetFileType(string path)
         {
-#nullable enable
             MelonInfoAttribute? infoAttribute = GetMelonInfo(path);
 
             if (infoAttribute != null)
             {
                 return infoAttribute.SystemType == typeof(MelonMod) ? FileType.MelonMod : infoAttribute.SystemType == typeof(MelonPlugin) ? FileType.MelonPlugin : FileType.Other;
             }
-#nullable disable
 
             return FileType.Other;
         }
-
-#nullable enable
 
         internal static T? Get<T>(CustomAttribute customAttribute, int index)
         {
@@ -657,7 +658,6 @@ namespace MelonAutoUpdater
         /// <param name="assembly">Assembly to get the attribute from</param>
         /// <returns>If present, returns a MelonInfoAttribute</returns>
         internal static MelonInfoAttribute? GetMelonInfo(Assembly assembly)
-#nullable disable
         {
             var melonInfo = assembly.GetCustomAttribute<MelonInfoAttribute>();
             if (melonInfo != null)
@@ -670,6 +670,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="path">Path to the assembly</param>
         /// <returns>If present, returns a MelonInfoAttribute</returns>
+
         internal static MelonInfoAttribute? GetMelonInfo(string path)
         {
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
@@ -961,8 +962,8 @@ namespace MelonAutoUpdater
                                                                         string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(fPath));
                                                                         if (!File.Exists(_path)) File.Move(fPath, _path);
                                                                         else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                                        var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
-                                                                        LoggerInstance.Warning("WARNING: The plugin might not work properly or crash due to the fact it was loaded at a later time");
+                                                                        //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
+                                                                        LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
                                                                         LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(fPath));
                                                                         success += 1;
                                                                     }
@@ -1047,8 +1048,8 @@ namespace MelonAutoUpdater
                                                                     string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(extPath));
                                                                     if (!File.Exists(_path)) File.Move(extPath, _path);
                                                                     else File.Replace(extPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                                    var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
-                                                                    LoggerInstance.Warning("WARNING: The plugin might not work properly or crash due to the fact it was loaded at a later time");
+                                                                    //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
+                                                                    LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
                                                                     LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(extPath));
                                                                     success += 1;
                                                                 }
