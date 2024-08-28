@@ -10,8 +10,8 @@
 Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!
 If a mod has included a download link in the assembly, the updater will pick that up and use that to get the newest version and if needed, install it.
 Currently supported links (this list will be expanded in the near future):
- - Thunderstore
- - Github
+ - [Thunderstore](https://thunderstore.io)
+ - [Github](https://github.com/)
 
 **This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet** 
 
