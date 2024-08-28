@@ -10,30 +10,24 @@
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
 		<Reference Include="Mono.Cecil">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Cecil.Mdb">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Mdb.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Cecil.Pdb">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Pdb.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Cecil.Rocks">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Rocks.dll</HintPath>
 		</Reference>
 		<Reference Include="MelonLoader">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net6\MelonLoader.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
 	<ItemGroup Label="NoFrameworkCondition">
 		<Reference Include="Tomlet">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
 		</Reference>
 	</ItemGroup>
@@ -43,31 +37,24 @@
 			<HintPath>$(GameDirectory)\MelonLoader\Managed\System.Threading.dll</HintPath>
 		</Reference>
 		<Reference Include="Rackspace.Threading">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\UserLibs\MAU\net35\Rackspace.Threading.dll</HintPath>
 		</Reference>
 		<Reference Include="System.Net.Http">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\UserLibs\MAU\net35\System.Net.Http.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Cecil">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Cecil.Mdb">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Mdb.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Cecil.Pdb">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Pdb.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Cecil.Rocks">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Rocks.dll</HintPath>
 		</Reference>
 		<Reference Include="MelonLoader">
-			<SpecificVersion>false</SpecificVersion>
 			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
 		</Reference>
 	</ItemGroup>

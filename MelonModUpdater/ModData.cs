@@ -11,9 +11,9 @@ namespace MelonAutoUpdater
         public ModVersion LatestVersion { get; internal set; }
 
         /// <summary>
-        /// The URLs to download the latest version of a mod
+        /// The URLs & to download the latest version of a mod & Content Type if provided
         /// </summary>
-        public List<string> DownloadFileURL { get; internal set; }
+        public Dictionary<string, string> DownloadFiles { get; internal set; }
     }
 
     public class ModVersion

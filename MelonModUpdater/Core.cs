@@ -12,6 +12,7 @@ using MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using MelonLoader.TinyJSON;
 using System.Threading.Tasks;
 using Semver;
+using System.Net.Mime;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "1.0.0", "HAHOOS", null)]
 [assembly: MelonPriority(-10000)]
@@ -114,13 +115,13 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Copied from MelonLoader v0.6.4 to make it work with older versions
         /// </summary>
-        internal bool IsCompatible(VerifyLoaderVersionAttribute attribute, SemVersion version)
+        internal static bool IsCompatible(VerifyLoaderVersionAttribute attribute, SemVersion version)
            => attribute.SemVer == null || version == null || (attribute.IsMinimum ? attribute.SemVer <= version : attribute.SemVer == version);
 
         /// <summary>
         /// Copied from MelonLoader v0.6.4 to make it work with older versions
         /// </summary>
-        internal bool IsCompatible(VerifyLoaderVersionAttribute attribute, string version)
+        internal static bool IsCompatible(VerifyLoaderVersionAttribute attribute, string version)
             => !SemVersion.TryParse(version, out SemVersion ver) || IsCompatible(attribute, ver);
 
         /// <summary>
@@ -129,7 +130,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="input">The stream u want to copy from</param>
         /// <param name="output">The stream u want to copy to</param>
-        internal static void CopyTo(Stream input, Stream output)
+        internal static Task<bool> CopyTo(Stream input, Stream output)
         {
             byte[] buffer = new byte[16 * 1024];
             int bytesRead;
@@ -138,6 +139,7 @@ namespace MelonAutoUpdater
             {
                 output.Write(buffer, 0, bytesRead);
             }
+            return Task.Factory.StartNew(() => true);
         }
 
         /// <summary>
@@ -290,7 +292,7 @@ namespace MelonAutoUpdater
                         return Task.Factory.StartNew<ModData>(() => new ModData()
                         {
                             LatestVersion = ModVersion.GetFromString((string)_data["latest"]["version_number"]),
-                            DownloadFileURL = new List<string>() { (string)_data["latest"]["download_url"] },
+                            DownloadFiles = new Dictionary<string, string>() { { (string)_data["latest"]["download_url"], "" } },
                         });
                     }
                     else
@@ -324,7 +326,7 @@ namespace MelonAutoUpdater
 
             #endregion Thunderstore
 
-            #region Github;
+            #region Github
 
             else if (githubRegex.Match(downloadLink).Success)
             {
@@ -345,6 +347,7 @@ namespace MelonAutoUpdater
                 }
                 HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+                client.DefaultRequestHeaders.Add("User-Agent", "MelonAutoUpdater");
                 if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
                 if (!disableGithubAPI)
                 {
@@ -366,11 +369,12 @@ namespace MelonAutoUpdater
                         {
                             var data = JSON.Load(body.Result);
                             string version = (string)data["tag_name"];
-                            List<string> downloadURLs = new List<string>();
+                            Dictionary<string, string> downloadURLs = new Dictionary<string, string>();
 
                             foreach (var file in data["assets"] as ProxyArray)
                             {
-                                downloadURLs.Add((string)file["browser_download_url"]);
+                                LoggerInstance.Msg("File: " + (string)file["browser_download_url"]);
+                                downloadURLs.Add((string)file["browser_download_url"], (string)file["content_type"]);
                             }
 
                             client.Dispose();
@@ -379,7 +383,7 @@ namespace MelonAutoUpdater
                             return Task.Factory.StartNew<ModData>(() => new ModData()
                             {
                                 LatestVersion = ModVersion.GetFromString(version),
-                                DownloadFileURL = downloadURLs,
+                                DownloadFiles = downloadURLs,
                             });
                         }
                         else
@@ -429,7 +433,7 @@ namespace MelonAutoUpdater
                 }
             }
 
-            #endregion Github;
+            #endregion Github
 
             return CreateEmptyTask<ModData>();
         }
@@ -470,7 +474,7 @@ namespace MelonAutoUpdater
                     return Task.Factory.StartNew<ModData>(() => new ModData()
                     {
                         LatestVersion = ModVersion.GetFromString((string)_data["latest"]["version_number"]),
-                        DownloadFileURL = new List<string>() { (string)_data["latest"]["download_url"] },
+                        DownloadFiles = new Dictionary<string, string>() { { (string)_data["latest"]["download_url"], "" } },
                     });
                 }
                 else
@@ -500,6 +504,22 @@ namespace MelonAutoUpdater
             #endregion Thunderstore
 
             return CreateEmptyTask<ModData>();
+        }
+
+        internal string GetPathFromContentType(string contentType, string name)
+        {
+            if (contentType == "application/zip")
+            {
+                return Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.zip");
+            }
+            else if (contentType == "application/x-msdownload")
+            {
+                return Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.dll");
+            }
+            else
+            {
+                return Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.temp");
+            }
         }
 
         /// <summary>
@@ -697,10 +717,10 @@ namespace MelonAutoUpdater
                                     {
                                         LoggerInstance.Msg($"A new version \x1b[32mv{data.Result.LatestVersion}\x1b[0m is available, meanwhile the current version is \u001b[32mv{currentVersion}\u001b[0m, updating");
                                         LoggerInstance.Msg("Downloading file(s)");
-                                        foreach (string filePath in data.Result.DownloadFileURL)
+                                        foreach (var retFile in data.Result.DownloadFiles)
                                         {
                                             var httpClient = new HttpClient();
-                                            var response = httpClient.GetAsync(filePath, HttpCompletionOption.ResponseHeadersRead);
+                                            var response = httpClient.GetAsync(retFile.Key, HttpCompletionOption.ResponseHeadersRead);
                                             response.Wait();
                                             FileStream downloadedFile = null;
                                             string pathToSave = "";
@@ -708,26 +728,19 @@ namespace MelonAutoUpdater
                                             {
                                                 response.Result.EnsureSuccessStatusCode();
                                                 string _contentType = response.Result.Content.Headers.ContentType.MediaType;
-                                                if (_contentType != null)
+                                                if (!string.IsNullOrEmpty(retFile.Value))
                                                 {
-                                                    if (_contentType == "application/zip")
-                                                    {
-                                                        pathToSave = Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.zip");
-                                                    }
-                                                    else if (_contentType == "application/x-msdownload")
-                                                    {
-                                                        pathToSave = Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.dll");
-                                                    }
-                                                    else
-                                                    {
-                                                        pathToSave = Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.temp");
-                                                    }
+                                                    pathToSave = GetPathFromContentType(retFile.Value, melonAssemblyInfo.Name);
+                                                }
+                                                else if (_contentType != null)
+                                                {
+                                                    pathToSave = GetPathFromContentType(_contentType, melonAssemblyInfo.Name);
                                                 }
 
                                                 var ms = response.Result.Content.ReadAsStreamAsync();
                                                 ms.Wait();
                                                 var fs = File.Create(pathToSave);
-                                                var copyTask = ToTask(() => CopyTo(ms.Result, fs));
+                                                var copyTask = CopyTo(ms.Result, fs);
                                                 copyTask.Wait();
                                                 fs.Flush();
                                                 downloadedFile = fs;
@@ -749,7 +762,7 @@ namespace MelonAutoUpdater
                                                 int success = 0;
                                                 if (Path.GetExtension(pathToSave) == ".zip")
                                                 {
-                                                    LoggerInstance.Msg("File is a ZIP file, extracting files...");
+                                                    LoggerInstance.Msg("Downloaded file is a ZIP file, extracting files...");
                                                     string extractPath = Path.Combine(tempFilesPath, melonAssemblyInfo.Name.Replace(" ", "-"));
                                                     try
                                                     {
@@ -932,10 +945,86 @@ namespace MelonAutoUpdater
                                                     Directory.Delete(extractPath, true);
                                                     File.Delete(pathToSave);
                                                 }
+                                                else if (Path.GetExtension(pathToSave) == ".dll")
+                                                {
+                                                    LoggerInstance.Msg("Downloaded file is a DLL file, installing content...");
+                                                    FileType _fileType = GetFileType(pathToSave);
+                                                    if (_fileType == FileType.MelonMod)
+                                                    {
+                                                        try
+                                                        {
+                                                            LoggerInstance.Msg("Installing mod file " + Path.GetFileName(pathToSave));
+                                                            var _loaderVer = GetLoaderVersionRequired(pathToSave);
+                                                            if (_loaderVer != null)
+                                                            {
+                                                                if (!IsCompatible(_loaderVer, BuildInfo.Version))
+                                                                {
+                                                                    string installString = _loaderVer.IsMinimum ? $"{_loaderVer.SemVer} or later" : $"{_loaderVer.SemVer} specifically";
+                                                                    LoggerInstance.Warning($"{Path.GetFileName(pathToSave)} ({GetMelonInfo(pathToSave).Version}), a newly downloaded mod, is not compatible with the current version of MelonLoader ({BuildInfo.Version}), for it to work you need to install {installString}.");
+                                                                    LoggerInstance.Warning($"Not installing {Path.GetFileName(pathToSave)}");
+                                                                    continue;
+                                                                }
+                                                            }
+                                                            string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(pathToSave));
+                                                            if (!File.Exists(_path)) File.Move(pathToSave, _path);
+                                                            else File.Replace(pathToSave, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                                                            success += 1;
+                                                            LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(pathToSave));
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                                                            threwError = true;
+                                                            failed += 1;
+                                                        }
+                                                    }
+                                                    else if (_fileType == FileType.MelonPlugin)
+                                                    {
+                                                        try
+                                                        {
+                                                            LoggerInstance.Msg("Installing plugin file " + Path.GetFileName(pathToSave));
+                                                            var _loaderVer = GetLoaderVersionRequired(pathToSave);
+                                                            if (_loaderVer != null)
+                                                            {
+                                                                if (!IsCompatible(_loaderVer, BuildInfo.Version))
+                                                                {
+                                                                    string installString = _loaderVer.IsMinimum ? $"{_loaderVer.SemVer} or later" : $"{_loaderVer.SemVer} specifically";
+                                                                    LoggerInstance.Warning($"{Path.GetFileName(pathToSave)} ({GetMelonInfo(pathToSave).Version}), a newly downloaded plugin, is not compatible with the current version of MelonLoader ({BuildInfo.Version}), for it to work you need to install {installString}.");
+                                                                    LoggerInstance.Warning($"Not installing {Path.GetFileName(pathToSave)}");
+                                                                    continue;
+                                                                }
+                                                            }
+                                                            string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
+                                                            string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(pathToSave));
+                                                            if (!File.Exists(_path)) File.Move(pathToSave, _path);
+                                                            else File.Replace(pathToSave, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                                                            //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
+                                                            LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
+                                                            LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(pathToSave));
+                                                            success += 1;
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                                                            threwError = true;
+                                                            failed += 1;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        LoggerInstance.Msg($"Not extracting {Path.GetFileName(pathToSave)}, because it does not have the Melon Info Attribute");
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    LoggerInstance.Warning($"An unknown file extension {Path.GetExtension(pathToSave)} was found that was not coded to be installed");
+                                                }
                                                 LoggerInstance.Msg(
-                                                    !threwError
+                                                    threwError
+                                                    ? $"Failed to update {assemblyName}"
+                                                    : success + failed > 0
                                                     ? $"Updated {assemblyName} from \x1b[32;1mv{currentVersion} --> v{data.Result.LatestVersion}\x1b[0m, ({success}/{success + failed}) installed successfully"
-                                                    : $"Failed to update {assemblyName}"
+                                                    : "No files were downloaded, update unsuccessful"
                                                     );
                                             }
                                             else
