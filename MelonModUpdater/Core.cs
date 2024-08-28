@@ -58,11 +58,6 @@ namespace MelonAutoUpdater
         internal MelonPreferences_Entry Entry_ignore { get; private set; }
 
         /// <summary>
-        /// A Melon Preferences entry of a list of mods/plugins that will be updated first if possible
-        /// </summary>
-        internal MelonPreferences_Entry Entry_priority { get; private set; }
-
-        /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin work
         /// </summary>
         internal MelonPreferences_Entry Entry_enabled { get; private set; }
@@ -82,8 +77,6 @@ namespace MelonAutoUpdater
 
             Entry_ignore = Category.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
                 description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
-            Entry_priority = Category.CreateEntry<List<string>>("PriorityList", new List<string>(), "Priority List",
-                description: "List of all names of Mods & Plugins that will be updated first");
             Entry_enabled = Category.CreateEntry<bool>("Enabled", true, "Enabled",
                 description: "If true, Mods & Plugins will update on every start");
             Entry_bruteCheck = Category.CreateEntry<bool>("BruteCheck", false, "Brute Check",
@@ -720,12 +713,9 @@ namespace MelonAutoUpdater
         /// <param name="automatic">If true, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
         internal void CheckDirectory(string directory, bool automatic = true)
         {
-            Dictionary<string, int> priority = new Dictionary<string, int>();
-
             List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
 
             List<string> ignore = GetPreferenceValue<List<string>>(Entry_ignore);
-            List<string> topPriority = GetPreferenceValue<List<string>>(Entry_priority);
             bool enabled = GetPreferenceValue<bool>(Entry_enabled);
 
             if (!enabled)
@@ -747,31 +737,8 @@ namespace MelonAutoUpdater
                         return;
                     }
                 }
-                MelonPriorityAttribute priorityAttribute = GetMelonPriority(x);
-                priority.Add(x, priorityAttribute != null ? priorityAttribute.Priority : 0);
-                LoggerInstance.Msg("Adding priority in " + Path.GetFileName(x));
             });
             files.RemoveAll(x => fileNameIgnore.Contains(x));
-
-            files.Sort(delegate (string x, string y)
-            {
-                if (x == null && y == null) return 0;
-                else if (x == null) return -1;
-                else if (y == null) return 1;
-                else
-                {
-                    var xFileName = Path.GetFileNameWithoutExtension(x);
-                    var yFileName = Path.GetFileNameWithoutExtension(y);
-                    if (topPriority.Contains(xFileName)) return -1;
-                    if (topPriority.Contains(yFileName)) return 1;
-
-                    if (!priority.ContainsKey(x)) return -1;
-                    if (!priority.ContainsKey(y)) return 1;
-                    var xPriority = priority[x];
-                    var yPriority = priority[y];
-                    return xPriority.CompareTo(yPriority);
-                }
-            });
 
             LoggerInstance.Msg("\x1b[34;1m-----------\x1b[0m");
             foreach (string path in files)
