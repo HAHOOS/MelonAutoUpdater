@@ -28,6 +28,10 @@ If enabled, when there's no download link provided with mod/plugin, it will chec
 This is not recommended as it will very easily result in this plugin being rate-limited<br/>
 **Github has a limit of 60 requests/hr, having brute check enabled will rate limit the plugin if the brute check was ran multiple times and/or you have a lot of mods**
 
+<h2 align="center">For Developers</h2>
+
+To implement auto-updating into your code mod, simply set a correct **download link** in the [MelonInfo Attribute](https://melonwiki.xyz/#/modders/attributes?id=meloninfo) and please make sure to use the [VerifyLoaderVersion Attribute](https://melonwiki.xyz/#/modders/attributes?id=verifyloaderversion) and specify on what versions of ML does the mod/plugin work
+
 <h2 align="center">Licensing & Credits</h2>
 
 MelonAutoUpdater (MAU) is licensed under the MIT License. See [LICENSE](https://github.com/HAHOOS/MelonAutoUpdater/blob/master/LICENSE.txt) for the full License.
