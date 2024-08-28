@@ -1,4 +1,8 @@
 # Melon Auto Updater
+![GitHub Release](https://img.shields.io/github/v/release/HAHOOS/MelonAutoUpdater?include_prereleases&sort=semver&display_name=tag&style=for-the-badge)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/HAHOOS/MelonAutoUpdater/total?style=for-the-badge)
+![GitHub License](https://img.shields.io/github/license/HAHOOS/MelonAutoUpdater?style=for-the-badge)
+
 Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!
 If a mod has included a download link in the assembly, the updater will pick that up and use that to get the newest version and if needed, install it.
 Currently supported links (this list will be expanded in the near future):
