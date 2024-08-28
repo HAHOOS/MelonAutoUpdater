@@ -39,8 +39,8 @@
 		<Reference Include="Rackspace.Threading">
 			<HintPath>$(GameDirectory)\UserLibs\MAU\net35\Rackspace.Threading.dll</HintPath>
 		</Reference>
-		<Reference Include="System.Net.Http">
-			<HintPath>$(GameDirectory)\UserLibs\MAU\net35\System.Net.Http.dll</HintPath>
+		<Reference Include="Net35.Http">
+			<HintPath>$(GameDirectory)\MelonLoader\Managed\Net35.Http.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Cecil">
 			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.dll</HintPath>
