@@ -50,27 +50,27 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Main Category in Preferences
         /// </summary>
-        public MelonPreferences_Category Category { get; private set; }
+        internal MelonPreferences_Category Category { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a list of mods/plugins that will not be updated
         /// </summary>
-        public MelonPreferences_Entry Entry_ignore { get; private set; }
+        internal MelonPreferences_Entry Entry_ignore { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a list of mods/plugins that will be updated first if possible
         /// </summary>
-        public MelonPreferences_Entry Entry_priority { get; private set; }
+        internal MelonPreferences_Entry Entry_priority { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin work
         /// </summary>
-        public MelonPreferences_Entry Entry_enabled { get; private set; }
+        internal MelonPreferences_Entry Entry_enabled { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not it should forcefully check the API for the mod/plugins if no download link was provided with it
         /// </summary>
-        public MelonPreferences_Entry Entry_bruteCheck { get; private set; }
+        internal MelonPreferences_Entry Entry_bruteCheck { get; private set; }
 
         /// <summary>
         /// Setup Preferences
@@ -121,13 +121,13 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Copied from MelonLoader v0.6.4 to make it work with older versions
         /// </summary>
-        public bool IsCompatible(VerifyLoaderVersionAttribute attribute, SemVersion version)
+        internal bool IsCompatible(VerifyLoaderVersionAttribute attribute, SemVersion version)
            => attribute.SemVer == null || version == null || (attribute.IsMinimum ? attribute.SemVer <= version : attribute.SemVer == version);
 
         /// <summary>
         /// Copied from MelonLoader v0.6.4 to make it work with older versions
         /// </summary>
-        public bool IsCompatible(VerifyLoaderVersionAttribute attribute, string version)
+        internal bool IsCompatible(VerifyLoaderVersionAttribute attribute, string version)
             => !SemVersion.TryParse(version, out SemVersion ver) || IsCompatible(attribute, ver);
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="input">The stream u want to copy from</param>
         /// <param name="output">The stream u want to copy to</param>
-        public static void CopyTo(Stream input, Stream output)
+        internal static void CopyTo(Stream input, Stream output)
         {
             byte[] buffer = new byte[16 * 1024];
             int bytesRead;
@@ -153,7 +153,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="action">The action that u want to convert into a task</param>
         /// <returns>A task of the provided action</returns>
-        public static Task<string> ToTask(Action action)
+        internal static Task<string> ToTask(Action action)
         {
             TaskCompletionSource<string> taskCompletionSource = new
                    TaskCompletionSource<string>();
@@ -176,7 +176,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <typeparam name="T">Type that will be returned in Task</typeparam>
         /// <returns>An empty Task with provided type</returns>
-        public static Task<T> CreateEmptyTask<T>()
+        internal static Task<T> CreateEmptyTask<T>()
         {
             var tcs = new TaskCompletionSource<T>();
             tcs.SetResult(default);
@@ -190,7 +190,7 @@ namespace MelonAutoUpdater
         /// <param name="zipStream">Stream of the ZIP File</param>
         /// <param name="outFolder">Path to folder which will have the content of the zip/param>
         /// <returns>A task</returns>
-        public static Task<bool> UnzipFromStream(Stream zipStream, string outFolder)
+        internal static Task<bool> UnzipFromStream(Stream zipStream, string outFolder)
         {
             using (var zipInputStream = new ZipInputStream(zipStream))
             {
@@ -225,7 +225,7 @@ namespace MelonAutoUpdater
         /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 10000)</param>
         /// <param name="url">URL of the website used to check for connection (Default: null, url selected in code depending on country)</param>
         /// <returns>If true, there's internet connection, otherwise not</returns>
-        public static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
+        internal static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
         {
             try
             {
