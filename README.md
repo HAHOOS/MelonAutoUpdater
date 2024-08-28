@@ -5,7 +5,7 @@ Currently supported links (this list will be expanded in the near future):
  - Thunderstore
  - Github
 
-**This plugin is currently in an alpha release, it lacks certain required features and compability with older versions of MelonLoader (is known to not work with MelonLoader v0.5.7).** 
+**This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet** 
 
 ## Preferences
 
