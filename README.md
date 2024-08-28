@@ -16,6 +16,18 @@ Currently supported links (this list will be expanded in the near future):
 
 **This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet** 
 
+<h2 align="center">Installation</h2>
+To install the plugin, you obviously need to have MelonLoader installed in your game.<br/>
+
+All current releases support MelonLoader 0.5.2 or later, **BUT** when installing it is important to know that:<br/>
+- For MelonLoader v0.6.0 and later, download `MAU-net6.zip` (if there are errors, it is possible that you might need to download `MAU-net32.zip` instead)
+- For MelonLoader v0.5.2-v0.5.7, download `MAU-net32.zip`
+<br/>
+
+When downloaded, extract the files from the downloaded ZIP and drag the extracted folders into the game.<br/>
+
+And now, you're done! Enjoy your mods being automatically updated! 🎉
+
 <h2 align="center">Preferences</h2>
 
 | Preference | Description |
