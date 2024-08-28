@@ -14,7 +14,7 @@ Currently supported links (this list will be expanded in the near future):
  - [Thunderstore](https://thunderstore.io)
  - [Github](https://github.com/)
 
-**This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet** 
+**This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet. It would be really appreciated if you would help me find any bugs by creating an issue in the repository if you find one** 
 
 <h2 align="center">Installation</h2>
 To install the plugin, you obviously need to have MelonLoader installed in your game.<br/>
