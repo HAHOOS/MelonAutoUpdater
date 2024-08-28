@@ -1,32 +1,19 @@
 ﻿using MelonLoader;
-using MelonLoader.Utils;
 using Mono.Cecil;
-using System.Globalization;
-using System.IO.Compression;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
-using System.Runtime.Loader;
-using System.Text.Json;
-
 using System.Text.RegularExpressions;
+using MelonAutoUpdater.Helper;
+using MelonLoader.ICSharpCode.SharpZipLib.Core;
+using MelonLoader.ICSharpCode.SharpZipLib.Zip;
+using MelonLoader.TinyJSON;
+using System.Threading.Tasks;
 
-[assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonModUpdater", "1.0.0", "HAHOOS", null)]
+[assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "1.0.0", "HAHOOS", null)]
 [assembly: MelonPriority(-10000)]
-[assembly: MelonID("272b5cba-0b4c-4d0a-b6b6-ba2bfbb7c716")]
-[assembly: VerifyLoaderVersion(0, 6, 0, true)]
-[assembly: AssemblyTitle("MelonModUpdater")]
-[assembly: AssemblyProduct("MelonModUpdater")]
-[assembly: AssemblyVersion("1.0.0")]
-[assembly: AssemblyFileVersion("1.0.0")]
-[assembly: AssemblyDescription("A MelonLoader Plugin that automatically updates mods & plugins!")]
-[assembly: AssemblyCompany("HAHOOS")]
-[assembly: Guid("272b5cba-0b4c-4d0a-b6b6-ba2bfbb7c716")]
 
 namespace MelonAutoUpdater
 {
@@ -53,7 +40,7 @@ namespace MelonAutoUpdater
         private bool disableGithubAPI = false;
 
         /// <summary>
-        /// The time (in Unix time seconds) when the rate limit will dissapear
+        /// The time (in Unix time seconds) when the rate limit will disappear
         /// </summary>
         private long githubResetDate;
 
@@ -65,12 +52,23 @@ namespace MelonAutoUpdater
         public MelonPreferences_Category Category { get; private set; }
 
         /// <summary>
-        /// An entry
+        /// A Melon Preferences entry of a list of mods/plugins that will not be updated
         /// </summary>
         public MelonPreferences_Entry Entry_ignore { get; private set; }
 
+        /// <summary>
+        /// A Melon Preferences entry of a list of mods/plugins that will be updated first if possible
+        /// </summary>
         public MelonPreferences_Entry Entry_priority { get; private set; }
+
+        /// <summary>
+        /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin work
+        /// </summary>
         public MelonPreferences_Entry Entry_enabled { get; private set; }
+
+        /// <summary>
+        /// A Melon Preferences entry of a boolean value indicating whether or not it should forcefully check the API for the mod/plugins if no download link was provided with it
+        /// </summary>
         public MelonPreferences_Entry Entry_bruteCheck { get; private set; }
 
         /// <summary>
@@ -81,9 +79,9 @@ namespace MelonAutoUpdater
             Category = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             Category.SetFilePath(Path.Combine(mainFolderPath, "config.cfg"));
 
-            Entry_ignore = Category.CreateEntry<List<string>>("IgnoreList", [], "Ignore List",
+            Entry_ignore = Category.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
                 description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
-            Entry_priority = Category.CreateEntry<List<string>>("PriorityList", [], "Priority List",
+            Entry_priority = Category.CreateEntry<List<string>>("PriorityList", new List<string>(), "Priority List",
                 description: "List of all names of Mods & Plugins that will be updated first");
             Entry_enabled = Category.CreateEntry<bool>("Enabled", true, "Enabled",
                 description: "If true, Mods & Plugins will update on every start");
@@ -119,6 +117,94 @@ namespace MelonAutoUpdater
 
         #endregion Melon Preferences
 
+        /// <summary>
+        /// Copy a stream to a new one<br/>
+        /// Made to work with net35
+        /// </summary>
+        /// <param name="input">The stream u want to copy from</param>
+        /// <param name="output">The stream u want to copy to</param>
+        public static void CopyTo(Stream input, Stream output)
+        {
+            byte[] buffer = new byte[16 * 1024];
+            int bytesRead;
+
+            while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                output.Write(buffer, 0, bytesRead);
+            }
+        }
+
+        /// <summary>
+        /// Transform function (or action) to a task<br/>
+        /// Made to work with net35
+        /// </summary>
+        /// <param name="action">The action that u want to convert into a task</param>
+        /// <returns>A task of the provided action</returns>
+        public static Task<string> ToTask(Action action)
+        {
+            TaskCompletionSource<string> taskCompletionSource = new
+                   TaskCompletionSource<string>();
+            string result = null;
+            try
+            {
+                Task.Factory.StartNew(() => action());
+            }
+            catch (Exception ex)
+            {
+                result = ex.Message;
+            }
+            taskCompletionSource.SetResult(result);
+            return taskCompletionSource.Task;
+        }
+
+        /// <summary>
+        /// Create's an empty task, so you can return null with tasks<br/>
+        /// Made to work with net35
+        /// </summary>
+        /// <typeparam name="T">Type that will be returned in Task</typeparam>
+        /// <returns>An empty Task with provided type</returns>
+        public static Task<T> CreateEmptyTask<T>()
+        {
+            var tcs = new TaskCompletionSource<T>();
+            tcs.SetResult(default);
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Unzip a file from stream<br/>
+        /// Made to work with net35
+        /// </summary>
+        /// <param name="zipStream">Stream of the ZIP File</param>
+        /// <param name="outFolder">Path to folder which will have the content of the zip/param>
+        /// <returns>A task</returns>
+        public static Task<bool> UnzipFromStream(Stream zipStream, string outFolder)
+        {
+            using (var zipInputStream = new ZipInputStream(zipStream))
+            {
+                while (zipInputStream.GetNextEntry() is ZipEntry zipEntry)
+                {
+                    var entryFileName = zipEntry.Name;
+
+                    var buffer = new byte[4096];
+
+                    var fullZipToPath = Path.Combine(outFolder, entryFileName);
+                    var directoryName = Path.GetDirectoryName(fullZipToPath);
+
+                    if (directoryName.Length > 0)
+                        Directory.CreateDirectory(directoryName);
+                    if (Path.GetFileName(fullZipToPath).Length == 0)
+                    {
+                        continue;
+                    }
+                    using (FileStream streamWriter = File.Create(fullZipToPath))
+                    {
+                        StreamUtils.Copy(zipInputStream, streamWriter, buffer);
+                    }
+                }
+            }
+            return Task.Factory.StartNew(() => true);
+        }
+
         // If you are wondering, this is from StackOverflow, although a bit edited, I'm just a bit lazy
         /// <summary>
         /// Checks for internet connection
@@ -126,31 +212,21 @@ namespace MelonAutoUpdater
         /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 10000)</param>
         /// <param name="url">URL of the website used to check for connection (Default: null, url selected in code depending on country)</param>
         /// <returns>If true, there's internet connection, otherwise not</returns>
-        public static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = null)
+        public static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
         {
             try
             {
-                url ??= CultureInfo.InstalledUICulture switch
-                {
-                    { Name: var n } when n.StartsWith("fa") => // Iran
-                        "http://www.aparat.com",
-                    { Name: var n } when n.StartsWith("zh") => // China
-                        "http://www.baidu.com",
-                    _ =>
-                        "http://www.gstatic.com/generate_204",
-                };
-
                 var request = new HttpClient
                 {
                     Timeout = TimeSpan.FromMilliseconds(timeoutMs)
                 };
-                using var response = request.GetAsync(url);
+                var response = request.GetAsync(url);
                 response.Wait();
-                return Task.FromResult(true);
+                return Task.Factory.StartNew<bool>(() => response.Result.IsSuccessStatusCode);
             }
             catch
             {
-                return Task.FromResult(false);
+                return Task.Factory.StartNew<bool>(() => false);
             }
         }
 
@@ -162,14 +238,14 @@ namespace MelonAutoUpdater
         /// <returns>If found, returns a ModData object which includes the latest version of the mod online and the download link(s)</returns>
         internal Task<ModData> GetModData(string downloadLink)
         {
-            if (string.IsNullOrWhiteSpace(downloadLink))
+            if (string.IsNullOrEmpty(downloadLink))
             {
                 LoggerInstance.Msg("No download link provided with mod, unable to fetch necessary information");
-                return Task.FromResult<ModData>(null);
+                return CreateEmptyTask<ModData>();
             }
 
-            Regex ThunderstoreFind_Regex = new(@"https?:\/\/(?:.+\.)?thunderstore\.io|http?:\/\/(?:.+\.)?thunderstore\.io");
-            Regex githubRegex = new(@"(?=http:\/\/|https:\/\/)?github.com\/");
+            Regex ThunderstoreFind_Regex = new Regex(@"https?:\/\/(?:.+\.)?thunderstore\.io|http?:\/\/(?:.+\.)?thunderstore\.io");
+            Regex githubRegex = new Regex(@"(?=http:\/\/|https:\/\/)?github.com\/");
 
             #region Thunderstore
 
@@ -190,7 +266,7 @@ namespace MelonAutoUpdater
                     namespaceName = split[split.Length - 2];
                 }
 
-                HttpClient request = new();
+                HttpClient request = new HttpClient();
                 Task<HttpResponseMessage> response = request.GetAsync($"https://thunderstore.io/api/experimental/package/{namespaceName}/{packageName}/");
                 response.Wait();
                 if (response.Result.IsSuccessStatusCode)
@@ -199,36 +275,16 @@ namespace MelonAutoUpdater
                     body.Wait();
                     if (body.Result != null)
                     {
-                        Dictionary<string, JsonElement> data;
-                        try
-                        {
-                            data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(body.Result);
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggerInstance.Error($"An unexpected error occurred while deserializing response\n{ex.Message}\n{ex.StackTrace}");
-                            return Task.FromResult<ModData>(null);
-                        }
-                        Dictionary<string, JsonElement> latest = null;
-                        try
-                        {
-                            JsonElement d = data["latest"];
-                            var deserialize = d.Deserialize<Dictionary<string, JsonElement>>();
-                            latest = deserialize;
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggerInstance.Error($"Latest could not be retrieved\n{ex.Message}\n{ex.StackTrace}");
-                        }
+                        var _data = JSON.Load(body.Result);
 
                         request.Dispose();
                         response.Dispose();
                         body.Dispose();
 
-                        return Task.FromResult(new ModData()
+                        return Task.Factory.StartNew<ModData>(() => new ModData()
                         {
-                            LatestVersion = ModVersion.GetFromString(latest["version_number"].GetString()),
-                            DownloadFileURL = [latest["download_url"].GetString()],
+                            LatestVersion = ModVersion.GetFromString((string)_data["latest"]["version_number"]),
+                            DownloadFileURL = new List<string>() { (string)_data["latest"]["download_url"] },
                         });
                     }
                     else
@@ -239,7 +295,7 @@ namespace MelonAutoUpdater
                         response.Dispose();
                         body.Dispose();
 
-                        return Task.FromResult<ModData>(null);
+                        return CreateEmptyTask<ModData>();
                     }
                 }
                 else
@@ -256,7 +312,7 @@ namespace MelonAutoUpdater
                     request.Dispose();
                     response.Dispose();
 
-                    return Task.FromResult<ModData>(null);
+                    return CreateEmptyTask<ModData>();
                 }
             }
 
@@ -273,16 +329,15 @@ namespace MelonAutoUpdater
                 string namespaceName;
                 if (downloadLink.EndsWith("/"))
                 {
-                    packageName = split[^2];
-                    namespaceName = split[^3];
+                    packageName = split[split.Length - 2];
+                    namespaceName = split[split.Length - 3];
                 }
                 else
                 {
-                    packageName = split[^1];
-                    namespaceName = split[^2];
+                    packageName = split[split.Length - 1];
+                    namespaceName = split[split.Length - 2];
                 }
-
-                var client = new HttpClient();
+                HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
                 if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
                 if (!disableGithubAPI)
@@ -303,49 +358,19 @@ namespace MelonAutoUpdater
                         body.Wait();
                         if (body.Result != null)
                         {
-                            Dictionary<string, JsonElement> data;
-                            try
-                            {
-                                data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(body.Result);
-                            }
-                            catch (Exception ex)
-                            {
-                                LoggerInstance.Error($"An unexpected error occurred while deserializing response\n{ex.Message}\n{ex.StackTrace}");
-                                return Task.FromResult<ModData>(null);
-                            }
-                            string version = data["tag_name"].GetString();
-                            Dictionary<string, JsonElement> assets = null;
-                            try
-                            {
-                                JsonElement d = data["assets"];
-                                var deserialize = d.Deserialize<Dictionary<string, JsonElement>>();
-                                assets = deserialize;
-                            }
-                            catch (Exception ex)
-                            {
-                                LoggerInstance.Error($"Assets could not be retrieved\n{ex.Message}\n{ex.StackTrace}");
-                            }
+                            var data = JSON.Load(body.Result);
+                            string version = (string)data["tag_name"];
+                            List<string> downloadURLs = new List<string>();
 
-                            List<string> downloadURLs = [];
-
-                            foreach (var file in assets)
+                            foreach (var file in data["assets"] as ProxyArray)
                             {
-                                try
-                                {
-                                    JsonElement d = file.Value;
-                                    var deserialize = d.Deserialize<Dictionary<string, JsonElement>>();
-                                    downloadURLs.Add(deserialize["browser_download_url"].GetString());
-                                }
-                                catch (Exception ex)
-                                {
-                                    LoggerInstance.Error($"File could not be retrieved\n{ex.Message}\n{ex.StackTrace}");
-                                }
+                                downloadURLs.Add((string)file["browser_download_url"]);
                             }
 
                             client.Dispose();
                             response.Dispose();
                             body.Dispose();
-                            return Task.FromResult(new ModData()
+                            return Task.Factory.StartNew<ModData>(() => new ModData()
                             {
                                 LatestVersion = ModVersion.GetFromString(version),
                                 DownloadFileURL = downloadURLs,
@@ -359,7 +384,7 @@ namespace MelonAutoUpdater
                             response.Dispose();
                             body.Dispose();
 
-                            return Task.FromResult<ModData>(null);
+                            return CreateEmptyTask<ModData>();
                         }
                     }
                     else
@@ -369,7 +394,7 @@ namespace MelonAutoUpdater
                         long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
                         if (remaining <= 0)
                         {
-                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime():t}");
+                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
                             githubResetDate = reset;
                             disableGithubAPI = true;
                         }
@@ -388,19 +413,19 @@ namespace MelonAutoUpdater
                         client.Dispose();
                         response.Dispose();
 
-                        return Task.FromResult<ModData>(null);
+                        return CreateEmptyTask<ModData>();
                     }
                 }
                 else
                 {
                     MelonLogger.Warning(
-                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
+                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
                 }
             }
 
             #endregion Github;
 
-            return Task.FromResult<ModData>(null);
+            return CreateEmptyTask<ModData>();
         }
 
         /// <summary>
@@ -411,17 +436,17 @@ namespace MelonAutoUpdater
         /// <returns>If found, returns a ModData object which includes the latest version of the mod online and the download link(s)</returns>
         internal Task<ModData> GetModDataFromInfo(string name, string author)
         {
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(author))
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author))
             {
                 LoggerInstance.Msg("Either author or name is empty, unable to fetch necessary information");
-                return Task.FromResult<ModData>(null);
+                return CreateEmptyTask<ModData>();
             }
 
             #region Thunderstore
 
             LoggerInstance.Msg("Checking Thunderstore");
 
-            HttpClient request = new();
+            HttpClient request = new HttpClient();
             Task<HttpResponseMessage> response = request.GetAsync($"https://thunderstore.io/api/experimental/package/{author}/{name}/");
             response.Wait();
             if (response.Result.IsSuccessStatusCode)
@@ -430,38 +455,16 @@ namespace MelonAutoUpdater
                 body.Wait();
                 if (body.Result != null)
                 {
-                    Dictionary<string, JsonElement> data;
-                    try
-                    {
-                        data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(body.Result);
-                    }
-                    catch (Exception ex)
-                    {
-                        LoggerInstance.Error($"An unexpected error occurred while deserializing response\n{ex.Message}\n{ex.StackTrace}");
-                        return Task.FromResult<ModData>(null);
-                    }
-                    Dictionary<string, JsonElement> latest = null;
-                    try
-                    {
-                        JsonElement d = data["latest"];
-                        var deserialize = d.Deserialize<Dictionary<string, JsonElement>>();
-                        latest = deserialize;
-                    }
-                    catch (Exception ex)
-                    {
-                        LoggerInstance.Error($"Latest could not be retrieved\n{ex.Message}\n{ex.StackTrace}");
-                    }
-
-                    LoggerInstance.Msg("Thunderstore return");
+                    var _data = JSON.Load(body.Result);
 
                     request.Dispose();
                     response.Dispose();
                     body.Dispose();
 
-                    return Task.FromResult(new ModData()
+                    return Task.Factory.StartNew<ModData>(() => new ModData()
                     {
-                        LatestVersion = ModVersion.GetFromString(latest["version_number"].GetString()),
-                        DownloadFileURL = [latest["download_url"].GetString()],
+                        LatestVersion = ModVersion.GetFromString((string)_data["latest"]["version_number"]),
+                        DownloadFileURL = new List<string>() { (string)_data["latest"]["download_url"] },
                     });
                 }
                 else
@@ -516,49 +519,19 @@ namespace MelonAutoUpdater
                     body.Wait();
                     if (body.Result != null)
                     {
-                        Dictionary<string, JsonElement> data;
-                        try
-                        {
-                            data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(body.Result);
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggerInstance.Error($"An unexpected error occurred while deserializing response\n{ex.Message}\n{ex.StackTrace}");
-                            return Task.FromResult<ModData>(null);
-                        }
-                        string version = data["tag_name"].GetString();
-                        Dictionary<string, JsonElement> assets = null;
-                        try
-                        {
-                            JsonElement d = data["assets"];
-                            var deserialize = d.Deserialize<Dictionary<string, JsonElement>>();
-                            assets = deserialize;
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggerInstance.Error($"Assets could not be retrieved\n{ex.Message}\n{ex.StackTrace}");
-                        }
+                        var data = JSON.Load(body.Result);
+                        string version = (string)data["tag_name"];
+                        List<string> downloadURLs = new List<string>();
 
-                        List<string> downloadURLs = [];
-
-                        foreach (var file in assets)
+                        foreach (var file in data["assets"] as ProxyArray)
                         {
-                            try
-                            {
-                                JsonElement d = file.Value;
-                                var deserialize = d.Deserialize<Dictionary<string, JsonElement>>();
-                                downloadURLs.Add(deserialize["browser_download_url"].GetString());
-                            }
-                            catch (Exception ex)
-                            {
-                                LoggerInstance.Error($"File could not be retrieved\n{ex.Message}\n{ex.StackTrace}");
-                            }
+                            downloadURLs.Add((string)file["browser_download_url"]);
                         }
 
                         _client.Dispose();
                         _response.Dispose();
                         body.Dispose();
-                        return Task.FromResult(new ModData()
+                        return Task.Factory.StartNew<ModData>(() => new ModData()
                         {
                             LatestVersion = ModVersion.GetFromString(version),
                             DownloadFileURL = downloadURLs,
@@ -580,7 +553,7 @@ namespace MelonAutoUpdater
                     long reset = long.Parse(_response.Result.Headers.GetValues("x-ratelimit-reset").First());
                     if (remaining <= 0)
                     {
-                        LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime():t}");
+                        LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
                         disableGithubAPI = true;
                         githubResetDate = reset;
                     }
@@ -604,29 +577,12 @@ namespace MelonAutoUpdater
             else
             {
                 MelonLogger.Warning(
-                    "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
+                    "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
             }
 
             #endregion Github;
 
-            return Task.FromResult<ModData>(null);
-        }
-
-        /// <summary>
-        /// Check if Assembly is a MelonMod, a MelonPlugin or something else using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly">Path of the file to check</param>
-        /// <returns>A FileType, either MelonMod, MelonPlugin or Other</returns>
-        internal static FileType GetFileType(Assembly assembly)
-        {
-            MelonInfoAttribute? infoAttribute = assembly.GetCustomAttribute<MelonInfoAttribute>();
-
-            if (infoAttribute != null)
-            {
-                return infoAttribute.SystemType == typeof(MelonMod) ? FileType.MelonMod : FileType.MelonPlugin;
-            }
-
-            return FileType.Other;
+            return CreateEmptyTask<ModData>();
         }
 
         /// <summary>
@@ -636,7 +592,7 @@ namespace MelonAutoUpdater
         /// <returns>A FileType, either MelonMod, MelonPlugin or Other</returns>
         internal static FileType GetFileType(string path)
         {
-            MelonInfoAttribute? infoAttribute = GetMelonInfo(path);
+            MelonInfoAttribute infoAttribute = GetMelonInfo(path);
 
             if (infoAttribute != null)
             {
@@ -646,32 +602,26 @@ namespace MelonAutoUpdater
             return FileType.Other;
         }
 
-        internal static T? Get<T>(CustomAttribute customAttribute, int index)
+        /// <summary>
+        /// Get value from a custom attribute
+        /// </summary>
+        /// <typeparam name="T">Type that will be returned as value</typeparam>
+        /// <param name="customAttribute">The custom attribute you want to get value from</param>
+        /// <param name="index">Index of the value</param>
+        /// <returns>A value from the Custom Attribute with provided Type</returns>
+        internal static T Get<T>(CustomAttribute customAttribute, int index)
         {
             if (customAttribute.ConstructorArguments.Count <= 0) return default;
             return (T)customAttribute.ConstructorArguments[index].Value;
         }
 
         /// <summary>
-        /// Retrieve information from the MelonInfoAttribute in an Assembly
-        /// </summary>
-        /// <param name="assembly">Assembly to get the attribute from</param>
-        /// <returns>If present, returns a MelonInfoAttribute</returns>
-        internal static MelonInfoAttribute? GetMelonInfo(Assembly assembly)
-        {
-            var melonInfo = assembly.GetCustomAttribute<MelonInfoAttribute>();
-            if (melonInfo != null)
-                return melonInfo;
-            return null;
-        }
-
-        /// <summary>
         /// Retrieve information from the MelonInfoAttribute in an file using Mono.Cecil
         /// </summary>
-        /// <param name="path">Path to the assembly</param>
+        /// <param name="path">Path to the file</param>
         /// <returns>If present, returns a MelonInfoAttribute</returns>
 
-        internal static MelonInfoAttribute? GetMelonInfo(string path)
+        internal static MelonInfoAttribute GetMelonInfo(string path)
         {
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
             foreach (var attr in assembly.CustomAttributes)
@@ -694,7 +644,12 @@ namespace MelonAutoUpdater
             return null;
         }
 
-        internal static MelonPriorityAttribute? GetMelonPriority(string path)
+        /// <summary>
+        /// Retrieve information from the MelonPriorityAttribute in an file using Mono.Cecil
+        /// </summary>
+        /// <param name="path">Path to the file</param>
+        /// <returns>If present, returns a MelonPriorityAttribute</returns>
+        internal static MelonPriorityAttribute GetMelonPriority(string path)
         {
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
             foreach (var attr in assembly.CustomAttributes)
@@ -712,7 +667,12 @@ namespace MelonAutoUpdater
             return null;
         }
 
-        internal static VerifyLoaderVersionAttribute? GetLoaderVersionRequired(string path)
+        /// <summary>
+        /// Retrieve information from the VerifyLoaderVersionAttribute in an file using Mono.Cecil
+        /// </summary>
+        /// <param name="path">Path to the file</param>
+        /// <returns>If present, returns a VerifyLoaderVersionAttribute</returns>
+        internal static VerifyLoaderVersionAttribute GetLoaderVersionRequired(string path)
         {
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
             foreach (var attr in assembly.CustomAttributes)
@@ -740,11 +700,16 @@ namespace MelonAutoUpdater
             return null;
         }
 
+        /// <summary>
+        /// Check directory for mods & plugins that can be updated
+        /// </summary>
+        /// <param name="directory">Path to the directory</param>
+        /// <param name="automatic">If true, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
         internal void CheckDirectory(string directory, bool automatic = true)
         {
-            Dictionary<string, int> priority = [];
+            Dictionary<string, int> priority = new Dictionary<string, int>();
 
-            List<string> files = [.. Directory.GetFiles(directory, "*.dll")];
+            List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
 
             List<string> ignore = GetPreferenceValue<List<string>>(Entry_ignore);
             List<string> topPriority = GetPreferenceValue<List<string>>(Entry_priority);
@@ -756,8 +721,7 @@ namespace MelonAutoUpdater
                 return;
             }
 
-            List<string> fileNameIgnore = [];
-            AssemblyLoadContext priorityContext = new("MelonAutoUpdater_PriorityCheck", true);
+            List<string> fileNameIgnore = new List<string>();
             files.ForEach(x =>
             {
                 if (ignore != null && ignore.Count > 0)
@@ -821,7 +785,7 @@ namespace MelonAutoUpdater
                         }
                         var data = GetModData(melonAssemblyInfo.DownloadLink);
                         data.Wait();
-                        if (data.Result == null && string.IsNullOrWhiteSpace(melonAssemblyInfo.DownloadLink))
+                        if (data.Result == null && string.IsNullOrEmpty(melonAssemblyInfo.DownloadLink))
                         {
                             if (GetPreferenceValue<bool>(Entry_bruteCheck))
                             {
@@ -844,8 +808,8 @@ namespace MelonAutoUpdater
                                         LoggerInstance.Msg("Downloading file(s)");
                                         foreach (string filePath in data.Result.DownloadFileURL)
                                         {
-                                            using var httpClient = new HttpClient();
-                                            using var response = httpClient.GetAsync(filePath, HttpCompletionOption.ResponseHeadersRead);
+                                            var httpClient = new HttpClient();
+                                            var response = httpClient.GetAsync(filePath, HttpCompletionOption.ResponseHeadersRead);
                                             response.Wait();
                                             FileStream downloadedFile = null;
                                             string pathToSave = "";
@@ -855,17 +819,24 @@ namespace MelonAutoUpdater
                                                 string _contentType = response.Result.Content.Headers.ContentType.MediaType;
                                                 if (_contentType != null)
                                                 {
-                                                    pathToSave = _contentType switch
+                                                    if (_contentType == "application/zip")
                                                     {
-                                                        "application/zip" => Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.zip"),
-                                                        "application/x-msdownload" => Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.dll"),
-                                                        _ => Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.temp"),
-                                                    };
+                                                        pathToSave = Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.zip");
+                                                    }
+                                                    else if (_contentType == "application/x-msdownload")
+                                                    {
+                                                        pathToSave = Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.dll");
+                                                    }
+                                                    else
+                                                    {
+                                                        pathToSave = Path.Combine(tempFilesPath, $"{melonAssemblyInfo.Name.Replace(" ", "")}.temp");
+                                                    }
                                                 }
-                                                using var ms = response.Result.Content.ReadAsStreamAsync();
+
+                                                var ms = response.Result.Content.ReadAsStreamAsync();
                                                 ms.Wait();
-                                                using var fs = File.Create(pathToSave);
-                                                var copyTask = ms.Result.CopyToAsync(fs);
+                                                var fs = File.Create(pathToSave);
+                                                var copyTask = ToTask(() => CopyTo(ms.Result, fs));
                                                 copyTask.Wait();
                                                 fs.Flush();
                                                 downloadedFile = fs;
@@ -881,6 +852,7 @@ namespace MelonAutoUpdater
 
                                             if (downloadedFile != null)
                                             {
+                                                downloadedFile.Dispose();
                                                 bool threwError = false;
                                                 int failed = 0;
                                                 int success = 0;
@@ -890,18 +862,18 @@ namespace MelonAutoUpdater
                                                     string extractPath = Path.Combine(tempFilesPath, melonAssemblyInfo.Name.Replace(" ", "-"));
                                                     try
                                                     {
-                                                        ZipFile.ExtractToDirectory(pathToSave, extractPath);
+                                                        Task<bool> unzipTask = UnzipFromStream(File.OpenRead(pathToSave), extractPath);
+                                                        unzipTask.Wait();
                                                         LoggerInstance.Msg("Successfully extracted files!");
                                                         LoggerInstance.Msg("Installing content to MelonLoader");
-                                                        var disposeTask = downloadedFile.DisposeAsync();
-                                                        disposeTask.AsTask().Wait();
+                                                        downloadedFile.Dispose();
                                                     }
                                                     catch (Exception ex)
                                                     {
                                                         threwError = true;
                                                         LoggerInstance.Error($"An exception occurred while extracting files from a ZIP file\n{ex.Message}\n{ex.StackTrace}");
                                                         File.Delete(pathToSave);
-                                                        DirectoryInfo tempDir = new(tempFilesPath);
+                                                        DirectoryInfo tempDir = new DirectoryInfo(tempFilesPath);
                                                         foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
                                                         foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
                                                     }
@@ -911,7 +883,7 @@ namespace MelonAutoUpdater
                                                     {
                                                         if (Directory.Exists(extPath))
                                                         {
-                                                            foreach (var fPath in Directory.GetFiles(extPath))
+                                                            foreach (var fPath in Directory.GetFiles(extPath, "*.dll"))
                                                             {
                                                                 FileType _fileType = GetFileType(fPath);
                                                                 if (_fileType == FileType.MelonMod)
@@ -930,7 +902,7 @@ namespace MelonAutoUpdater
                                                                                 continue;
                                                                             }
                                                                         }
-                                                                        string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(fPath));
+                                                                        string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(fPath));
                                                                         if (!File.Exists(_path)) File.Move(fPath, _path);
                                                                         else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
                                                                         success += 1;
@@ -958,8 +930,8 @@ namespace MelonAutoUpdater
                                                                                 continue;
                                                                             }
                                                                         }
-                                                                        string pluginPath = Path.Combine(MelonEnvironment.PluginsDirectory, fileName);
-                                                                        string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(fPath));
+                                                                        string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
+                                                                        string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(fPath));
                                                                         if (!File.Exists(_path)) File.Move(fPath, _path);
                                                                         else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
                                                                         //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
@@ -980,7 +952,7 @@ namespace MelonAutoUpdater
                                                                         try
                                                                         {
                                                                             LoggerInstance.Msg("Installing new library " + Path.GetFileName(fPath));
-                                                                            string _path = Path.Combine(MelonEnvironment.UserLibsDirectory, Path.GetFileName(fPath));
+                                                                            string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "UserLibs"), Path.GetFileName(fPath));
                                                                             if (!File.Exists(_path)) File.Move(fPath, _path);
                                                                             else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
                                                                         }
@@ -1015,7 +987,7 @@ namespace MelonAutoUpdater
                                                                             continue;
                                                                         }
                                                                     }
-                                                                    string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(extPath));
+                                                                    string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(extPath));
                                                                     if (!File.Exists(_path)) File.Move(extPath, _path);
                                                                     else File.Replace(extPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
                                                                     success += 1;
@@ -1044,8 +1016,8 @@ namespace MelonAutoUpdater
                                                                             continue;
                                                                         }
                                                                     }
-                                                                    string pluginPath = Path.Combine(MelonEnvironment.PluginsDirectory, fileName);
-                                                                    string _path = Path.Combine(MelonEnvironment.ModsDirectory, Path.GetFileName(extPath));
+                                                                    string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
+                                                                    string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(extPath));
                                                                     if (!File.Exists(_path)) File.Move(extPath, _path);
                                                                     else File.Replace(extPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
                                                                     //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
@@ -1106,7 +1078,7 @@ namespace MelonAutoUpdater
         public override void OnPreInitialization()
         {
             LoggerInstance.Msg("Creating folders in UserData");
-            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(MelonEnvironment.UserDataDirectory, "MelonAutoUpdater"));
+            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "UserData"), "MelonAutoUpdater"));
             DirectoryInfo tempDir = mainDir.CreateSubdirectory("TemporaryFiles");
             DirectoryInfo backupDir = mainDir.CreateSubdirectory("Backups");
 
@@ -1116,7 +1088,7 @@ namespace MelonAutoUpdater
 
             LoggerInstance.Msg("Clearing possibly left temporary files");
 
-            List<string> tempPaths = [.. Directory.GetFiles(tempFilesPath)];
+            List<string> tempPaths = Directory.GetFiles(tempFilesPath).ToList();
             tempPaths.AddRange(Directory.GetDirectories(tempFilesPath));
 
             foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
@@ -1127,7 +1099,7 @@ namespace MelonAutoUpdater
             SetupPreferences();
 
             LoggerInstance.Msg("Checking plugins...");
-            CheckDirectory(MelonEnvironment.PluginsDirectory, false);
+            CheckDirectory(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), false);
             LoggerInstance.Msg("Done checking plugins");
         }
 
@@ -1141,7 +1113,7 @@ namespace MelonAutoUpdater
                 return;
             }
             LoggerInstance.Msg("Checking mods...");
-            CheckDirectory(MelonEnvironment.ModsDirectory);
+            CheckDirectory(Path.Combine(MelonUtils.BaseDirectory, "Mods"));
             LoggerInstance.Msg("Done checking mods");
         }
     }

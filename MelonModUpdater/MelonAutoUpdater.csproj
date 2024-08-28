@@ -1,26 +1,78 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net6</TargetFramework>
-		<LangVersion>default</LangVersion>
-		<IsPackable>false</IsPackable>
-		<LangVersion>latest</LangVersion>
+		<TargetFrameworks>net6;net35</TargetFrameworks>
+		<IsPackable>true</IsPackable>
+		<LangVersion>7.3</LangVersion>
+		<RestoreProjectStyle>PackageReference</RestoreProjectStyle>
 		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
+		<GameDirectory>C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\V1</GameDirectory>
 	</PropertyGroup>
-	<ItemGroup>
-	  <PackageReference Include="Mono.Cecil" Version="0.11.5" />
-	</ItemGroup>
 
-	<ItemGroup>				
-		<Reference Include="Tomlet">
-		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
+	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
+		<Reference Include="Mono.Cecil">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.dll</HintPath>
 		</Reference>
-
+		<Reference Include="Mono.Cecil.Mdb">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Mdb.dll</HintPath>
+		</Reference>
+		<Reference Include="Mono.Cecil.Pdb">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Pdb.dll</HintPath>
+		</Reference>
+		<Reference Include="Mono.Cecil.Rocks">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Rocks.dll</HintPath>
+		</Reference>
 		<Reference Include="MelonLoader">
-			<HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\MelonLoader\net6\MelonLoader.dll</HintPath>
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net6\MelonLoader.dll</HintPath>
 		</Reference>
 	</ItemGroup>
-	
+
+	<ItemGroup Label="NoFrameworkCondition">
+		<Reference Include="Tomlet">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35FrameworkCondition">
+		<Reference Include="System.Threading, Version=1.0.2856.102, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+			<HintPath>$(GameDirectory)\UserLibs\MAU\net35\System.Threading.dll</HintPath>
+		</Reference>
+		<Reference Include="Rackspace.Threading">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\UserLibs\MAU\net35\Rackspace.Threading.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Net.Http">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\UserLibs\MAU\net35\System.Net.Http.dll</HintPath>
+		</Reference>
+		<Reference Include="Mono.Cecil">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.dll</HintPath>
+		</Reference>
+		<Reference Include="Mono.Cecil.Mdb">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Mdb.dll</HintPath>
+		</Reference>
+		<Reference Include="Mono.Cecil.Pdb">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Pdb.dll</HintPath>
+		</Reference>
+		<Reference Include="Mono.Cecil.Rocks">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Rocks.dll</HintPath>
+		</Reference>
+		<Reference Include="MelonLoader">
+			<SpecificVersion>false</SpecificVersion>
+			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins&quot;" />
+		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\V1\Plugins&quot;" />
 	</Target>
 </Project>
