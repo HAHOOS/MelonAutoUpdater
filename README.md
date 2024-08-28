@@ -24,7 +24,7 @@ List of mods (file names without extension example ".dll") that will not be upda
 ### Brute Check
 If enabled, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author
 This is not recommended as it will very easily result in this plugin being rate-limited<br/>
-**Github has a limit of 60 requests/hr, having brute check enabled will rate limit the plugin if the brute check was ran multiple times and/or you have a lot of mods**
+**Currently Github is not supported in brute checking due to extremely strict rate limits**
 
 <h2 align="center">For Developers</h2>
 
