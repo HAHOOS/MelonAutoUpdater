@@ -21,8 +21,6 @@ Currently supported links (this list will be expanded in the near future):
 If true, the plugin will update the mods
 ### Ignore List
 List of mods (file names without extension example ".dll") that will not be updated
-### Priority List
-List of mods (file names without extension example ".dll") that will be updated first, even if another mod has a set priority higher
 ### Brute Check
 If enabled, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author
 This is not recommended as it will very easily result in this plugin being rate-limited<br/>
