@@ -11,6 +11,7 @@ using MelonLoader.ICSharpCode.SharpZipLib.Core;
 using MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using MelonLoader.TinyJSON;
 using System.Threading.Tasks;
+using Semver;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "1.0.0", "HAHOOS", null)]
 [assembly: MelonPriority(-10000)]
@@ -116,6 +117,18 @@ namespace MelonAutoUpdater
         }
 
         #endregion Melon Preferences
+
+        /// <summary>
+        /// Copied from MelonLoader v0.6.4 to make it work with older versions
+        /// </summary>
+        public bool IsCompatible(VerifyLoaderVersionAttribute attribute, SemVersion version)
+           => attribute.SemVer == null || version == null || (attribute.IsMinimum ? attribute.SemVer <= version : attribute.SemVer == version);
+
+        /// <summary>
+        /// Copied from MelonLoader v0.6.4 to make it work with older versions
+        /// </summary>
+        public bool IsCompatible(VerifyLoaderVersionAttribute attribute, string version)
+            => !SemVersion.TryParse(version, out SemVersion ver) || IsCompatible(attribute, ver);
 
         /// <summary>
         /// Copy a stream to a new one<br/>
@@ -776,7 +789,7 @@ namespace MelonAutoUpdater
                         var loaderVer = GetLoaderVersionRequired(path);
                         if (loaderVer != null)
                         {
-                            if (!loaderVer.IsCompatible(BuildInfo.Version))
+                            if (!IsCompatible(loaderVer, BuildInfo.Version))
                             {
                                 string installString = loaderVer.IsMinimum ? $"{loaderVer.SemVer} or later" : $"{loaderVer.SemVer} specifically";
                                 LoggerInstance.Warning($"{assemblyName} is not compatible with the current version of MelonLoader ({BuildInfo.Version}), for it to work you need to install {installString}");
@@ -894,7 +907,7 @@ namespace MelonAutoUpdater
                                                                         var _loaderVer = GetLoaderVersionRequired(fPath);
                                                                         if (_loaderVer != null)
                                                                         {
-                                                                            if (!_loaderVer.IsCompatible(BuildInfo.Version))
+                                                                            if (!IsCompatible(_loaderVer, BuildInfo.Version))
                                                                             {
                                                                                 string installString = _loaderVer.IsMinimum ? $"{_loaderVer.SemVer} or later" : $"{_loaderVer.SemVer} specifically";
                                                                                 LoggerInstance.Warning($"{Path.GetFileName(fPath)} ({GetMelonInfo(fPath).Version}), a newly downloaded mod, is not compatible with the current version of MelonLoader ({BuildInfo.Version}), for it to work you need to install {installString}.");
@@ -922,7 +935,7 @@ namespace MelonAutoUpdater
                                                                         var _loaderVer = GetLoaderVersionRequired(fPath);
                                                                         if (_loaderVer != null)
                                                                         {
-                                                                            if (!_loaderVer.IsCompatible(BuildInfo.Version))
+                                                                            if (!IsCompatible(_loaderVer, BuildInfo.Version))
                                                                             {
                                                                                 string installString = _loaderVer.IsMinimum ? $"{_loaderVer.SemVer} or later" : $"{_loaderVer.SemVer} specifically";
                                                                                 LoggerInstance.Warning($"{Path.GetFileName(fPath)} ({GetMelonInfo(fPath).Version}), a newly downloaded plugin, is not compatible with the current version of MelonLoader ({BuildInfo.Version}), for it to work you need to install {installString}.");
@@ -979,7 +992,7 @@ namespace MelonAutoUpdater
                                                                     var _loaderVer = GetLoaderVersionRequired(extPath);
                                                                     if (_loaderVer != null)
                                                                     {
-                                                                        if (!_loaderVer.IsCompatible(BuildInfo.Version))
+                                                                        if (!IsCompatible(_loaderVer, BuildInfo.Version))
                                                                         {
                                                                             string installString = _loaderVer.IsMinimum ? $"{_loaderVer.SemVer} or later" : $"{_loaderVer.SemVer} specifically";
                                                                             LoggerInstance.Warning($"{Path.GetFileName(extPath)} ({GetMelonInfo(extPath).Version}), a newly downloaded mod, is not compatible with the current version of MelonLoader ({BuildInfo.Version}), for it to work you need to install {installString}.");
@@ -1008,7 +1021,7 @@ namespace MelonAutoUpdater
                                                                     var _loaderVer = GetLoaderVersionRequired(extPath);
                                                                     if (_loaderVer != null)
                                                                     {
-                                                                        if (!_loaderVer.IsCompatible(BuildInfo.Version))
+                                                                        if (!IsCompatible(_loaderVer, BuildInfo.Version))
                                                                         {
                                                                             string installString = _loaderVer.IsMinimum ? $"{_loaderVer.SemVer} or later" : $"{_loaderVer.SemVer} specifically";
                                                                             LoggerInstance.Warning($"{Path.GetFileName(extPath)} ({GetMelonInfo(extPath).Version}), a newly downloaded plugin, is not compatible with the current version of MelonLoader ({BuildInfo.Version}), for it to work you need to install {installString}.");
@@ -1101,17 +1114,7 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg("Checking plugins...");
             CheckDirectory(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), false);
             LoggerInstance.Msg("Done checking plugins");
-        }
 
-        public override void OnPreModsLoaded()
-        {
-            Task<bool> internetCheck = CheckForInternetConnection();
-            internetCheck.Wait();
-            if (!internetCheck.Result)
-            {
-                LoggerInstance.Msg("It seems like there is no internet, aborting..");
-                return;
-            }
             LoggerInstance.Msg("Checking mods...");
             CheckDirectory(Path.Combine(MelonUtils.BaseDirectory, "Mods"));
             LoggerInstance.Msg("Done checking mods");

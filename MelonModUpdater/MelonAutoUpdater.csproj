@@ -40,7 +40,7 @@
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35FrameworkCondition">
 		<Reference Include="System.Threading, Version=1.0.2856.102, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-			<HintPath>$(GameDirectory)\UserLibs\MAU\net35\System.Threading.dll</HintPath>
+			<HintPath>$(GameDirectory)\MelonLoader\Managed\System.Threading.dll</HintPath>
 		</Reference>
 		<Reference Include="Rackspace.Threading">
 			<SpecificVersion>false</SpecificVersion>
