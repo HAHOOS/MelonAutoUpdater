@@ -28,6 +28,7 @@ This is not recommended as it will very easily result in this plugin being rate-
 **Github has a limit of 60 requests/hr, having brute check enabled will rate limit the plugin if the brute check was ran multiple times and/or you have a lot of mods**
 
 <h2 align="center">Licensing & Credits</h2>
+
 MelonAutoUpdater (MAU) is licensed under the MIT License. See [LICENSE](https://github.com/HAHOOS/MelonAutoUpdater/blob/master/LICENSE.txt) for the full License.
 
 Third-party Libraries used as Source Code and/or bundled in Binary Form:
