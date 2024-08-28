@@ -1,7 +1,10 @@
-# Melon Auto Updater
-![GitHub Release](https://img.shields.io/github/v/release/HAHOOS/MelonAutoUpdater?include_prereleases&sort=semver&display_name=tag&style=for-the-badge)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/HAHOOS/MelonAutoUpdater/total?style=for-the-badge)
-![GitHub License](https://img.shields.io/github/license/HAHOOS/MelonAutoUpdater?style=for-the-badge)
+<h1 align="center">MAU | Melon Auto Updater</h1>
+
+<p align="center">
+<a href="github.com/HAHOOS/MelonAutoUpdater/releases/latest"><img src="https://img.shields.io/github/v/release/HAHOOS/MelonAutoUpdater?include_prereleases&sort=semver&display_name=tag&style=for-the-badge"></a>
+<a href="github.com/HAHOOS/MelonAutoUpdater/releases/"><img src="https://img.shields.io/github/downloads/HAHOOS/MelonAutoUpdater/total?style=for-the-badge"></a>
+<a href="https://github.com/HAHOOS/MelonAutoUpdater/blob/master/LICENSE.txt"><img src="https://img.shields.io/github/license/HAHOOS/MelonAutoUpdater?style=for-the-badge"></a>
+</p>
 
 Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!
 If a mod has included a download link in the assembly, the updater will pick that up and use that to get the newest version and if needed, install it.
@@ -11,7 +14,7 @@ Currently supported links (this list will be expanded in the near future):
 
 **This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet** 
 
-## Preferences
+<h2 align="center">Preferences</h2>
 
 ### Enabled
 If true, the plugin will update the mods
@@ -24,7 +27,7 @@ If enabled, when there's no download link provided with mod/plugin, it will chec
 This is not recommended as it will very easily result in this plugin being rate-limited<br/>
 **Github has a limit of 60 requests/hr, having brute check enabled will rate limit the plugin if the brute check was ran multiple times and/or you have a lot of mods**
 
-## Licensing & Credits
+<h2 align="center">Licensing & Credits</h2>
 MelonAutoUpdater (MAU) is licensed under the MIT License. See [LICENSE](https://github.com/HAHOOS/MelonAutoUpdater/blob/master/LICENSE.txt) for the full License.
 
 Third-party Libraries used as Source Code and/or bundled in Binary Form:
