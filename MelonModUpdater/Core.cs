@@ -436,8 +436,8 @@ namespace MelonAutoUpdater
 
         /// <summary>
         /// Get data about the mod from a name and author<br/>
-        /// <b>Might not comply with platform's ToS!</b><br/>
-        /// Currently Supported: Thunderstore, Github
+        /// Github is not supported in brute checking due to extremely strict rate limits
+        /// Currently Supported: Thunderstore
         /// </summary>
         /// <returns>If found, returns a ModData object which includes the latest version of the mod online and the download link(s)</returns>
         internal Task<ModData> GetModDataFromInfo(string name, string author)
@@ -498,95 +498,6 @@ namespace MelonAutoUpdater
             }
 
             #endregion Thunderstore
-
-            #region Github;
-
-            LoggerInstance.Msg("Checking Github");
-
-            var _client = new HttpClient();
-            _client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-            _client.DefaultRequestHeaders.Add("User-Agent", "MelonAutoUpdater");
-            if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
-            if (!disableGithubAPI)
-            {
-                var _response = _client.GetAsync($"https://api.github.com/repos/{author}/{name}/releases/latest", HttpCompletionOption.ResponseContentRead);
-                _response.Wait();
-                if (_response.Result.IsSuccessStatusCode)
-                {
-                    int remaining = int.Parse(_response.Result.Headers.GetValues("x-ratelimit-remaining").FirstOrDefault());
-                    long reset = long.Parse(_response.Result.Headers.GetValues("x-ratelimit-reset").FirstOrDefault());
-                    if (remaining <= 1)
-                    {
-                        LoggerInstance.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
-                        githubResetDate = reset;
-                        disableGithubAPI = true;
-                    }
-                    Task<string> body = _response.Result.Content.ReadAsStringAsync();
-                    body.Wait();
-                    if (body.Result != null)
-                    {
-                        var data = JSON.Load(body.Result);
-                        string version = (string)data["tag_name"];
-                        List<string> downloadURLs = new List<string>();
-
-                        foreach (var file in data["assets"] as ProxyArray)
-                        {
-                            downloadURLs.Add((string)file["browser_download_url"]);
-                        }
-
-                        _client.Dispose();
-                        _response.Dispose();
-                        body.Dispose();
-                        return Task.Factory.StartNew<ModData>(() => new ModData()
-                        {
-                            LatestVersion = ModVersion.GetFromString(version),
-                            DownloadFileURL = downloadURLs,
-                        });
-                    }
-                    else
-                    {
-                        LoggerInstance.Error("Github API returned no body, unable to fetch package information");
-
-                        _client.Dispose();
-                        _response.Dispose();
-                        body.Dispose();
-                    }
-                }
-                else
-                {
-                    int remaining = int.Parse(_response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                    int limit = int.Parse(_response.Result.Headers.GetValues("x-ratelimit-limit").First());
-                    long reset = long.Parse(_response.Result.Headers.GetValues("x-ratelimit-reset").First());
-                    if (remaining <= 0)
-                    {
-                        LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
-                        disableGithubAPI = true;
-                        githubResetDate = reset;
-                    }
-                    else
-                    {
-                        if (_response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
-                        {
-                            LoggerInstance.Warning("Github API could not find the mod/plugin");
-                        }
-                        else
-                        {
-                            LoggerInstance.Error
-        ($"Failed to fetch package information from Github, returned {_response.Result.StatusCode} with following message:\n{_response.Result.ReasonPhrase}");
-                        }
-                    }
-
-                    _client.Dispose();
-                    _response.Dispose();
-                }
-            }
-            else
-            {
-                MelonLogger.Warning(
-                    "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
-            }
-
-            #endregion Github;
 
             return CreateEmptyTask<ModData>();
         }
