@@ -13,7 +13,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// The URLs & to download the latest version of a mod & Content Type if provided
         /// </summary>
-        public Dictionary<string, string> DownloadFiles { get; internal set; }
+        public List<FileData> DownloadFiles { get; internal set; }
     }
 
     public class ModVersion
@@ -80,5 +80,23 @@ namespace MelonAutoUpdater
         MelonMod = 1,
         MelonPlugin = 2,
         Other = 3
+    }
+
+    public class FileData
+    {
+        /// <summary>
+        /// URL to the file
+        /// </summary>
+        public string URL { get; internal set; }
+
+        /// <summary>
+        /// Content Type returned by API
+        /// </summary>
+        public string ContentType { get; internal set; }
+
+        /// <summary>
+        /// File Name, if provided with response
+        /// </summary>
+        public string FileName { get; internal set; }
     }
 }
