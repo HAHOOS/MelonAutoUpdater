@@ -18,8 +18,10 @@ using MelonAutoUpdater.Helper;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.2.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
+#pragma warning disable CS0618 // Type or member is obsolete
 [assembly: MelonColor(ConsoleColor.Green)]
 [assembly: MelonAuthorColor(ConsoleColor.Yellow)]
+#pragma warning restore CS0618 // Type or member is obsolete
 
 namespace MelonAutoUpdater
 {
