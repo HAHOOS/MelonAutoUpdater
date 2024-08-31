@@ -11,13 +11,15 @@ using MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using MelonLoader.TinyJSON;
 using Semver;
 using System.Threading.Tasks;
-using MelonLoader.Pastel;
+using MelonAutoUpdater.Pastel;
 using System.Drawing;
 using MelonLoader.Preferences;
 using MelonAutoUpdater.Helper;
 
-[assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.1.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
-[assembly: MelonPriority(-10000)]
+[assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.2.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
+[assembly: MelonPriority(-100000000)]
+[assembly: MelonColor(ConsoleColor.Green)]
+[assembly: MelonAuthorColor(ConsoleColor.Yellow)]
 
 namespace MelonAutoUpdater
 {
