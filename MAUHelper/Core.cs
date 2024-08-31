@@ -51,7 +51,7 @@ namespace MAUHelper
             if (pluginAssembly != null)
             {
                 LoggerInstance.Msg("MAU found, checking if correct version");
-                bool isFramework = pluginAssembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib") != null;
+                bool isFramework = pluginAssembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib").Count() > 0;
                 LoggerInstance.Msg("Current MAU version: " + (isFramework ? "net35" : "net6"));
                 if (isFramework && isNet6)
                 {
