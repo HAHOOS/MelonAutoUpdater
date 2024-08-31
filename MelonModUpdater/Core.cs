@@ -89,7 +89,6 @@ namespace MelonAutoUpdater
         {
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             MainCategory.SetFilePath(Path.Combine(mainFolderPath, "config.cfg"));
-
             Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
                 description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
             Entry_enabled = MainCategory.CreateEntry<bool>("Enabled", true, "Enabled",
@@ -738,7 +737,7 @@ namespace MelonAutoUpdater
             });
             files.RemoveAll(x => fileNameIgnore.Contains(x));
 
-            LoggerInstance.WriteLine(newLineColor);
+            LoggerInstance.Msg("------------------------------".Pastel(newLineColor));
             foreach (string path in files)
             {
                 AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
@@ -924,7 +923,7 @@ namespace MelonAutoUpdater
                                                             else
                                                             {
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                ReplaceAllFiles(extPath, dirName == "MelonLoader" ? MelonUtils.MelonLoaderDirectory : dirName == "UserData" ? MelonUtils.UserDataDirectory : string.Empty);
+                                                                ReplaceAllFiles(extPath, dirName == "MelonLoader" ? Path.Combine(MelonUtils.BaseDirectory, "MelonLoader") : dirName == "UserData" ? MelonUtils.UserDataDirectory : string.Empty);
 #pragma warning restore CS0618 // Type or member is obsolete
                                                             }
                                                         }
@@ -1076,7 +1075,7 @@ namespace MelonAutoUpdater
                 {
                     LoggerInstance.Warning($"{fileName} does not seem to be a MelonLoader Mod");
                 }
-                LoggerInstance.WriteLine(newLineColor);
+                LoggerInstance.Msg("------------------------------".Pastel(newLineColor));
             }
         }
 

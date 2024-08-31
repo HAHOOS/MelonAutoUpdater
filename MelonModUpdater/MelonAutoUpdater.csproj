@@ -14,7 +14,7 @@
 			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.dll</HintPath>
 		</Reference>
 		<Reference Include="MelonLoader">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
+			<HintPath>$(GameDirectory)\MelonLoader\MelonLoader.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	
