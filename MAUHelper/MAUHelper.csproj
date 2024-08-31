@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net35</TargetFramework>
+		<LangVersion>7.3</LangVersion>
+		<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="MelonLoader">
+			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
+		</Reference>
+		<Reference Include="Tomlet">
+			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
+		</Reference>
+		<Reference Include="Mono.Cecil">
+			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.dll</HintPath>
+		</Reference>		
+
+	</ItemGroup>
+	
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins&quot;" />
+	</Target>
+</Project>
