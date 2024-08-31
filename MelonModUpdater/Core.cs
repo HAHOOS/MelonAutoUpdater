@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 using MelonLoader.Pastel;
 using System.Drawing;
 using MelonLoader.Preferences;
-using System.Globalization;
+using MelonAutoUpdater.Helper;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.1.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-10000)]
@@ -85,7 +85,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Setup Preferences
         /// </summary>
-        private void SetupPreferences()
+        private Task<bool> SetupPreferences()
         {
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             MainCategory.SetFilePath(Path.Combine(mainFolderPath, "config.cfg"));
@@ -103,6 +103,7 @@ namespace MelonAutoUpdater
             ThemesCategory.SaveToFile(false);
 
             LoggerInstance.Msg("Successfully set up Melon Preferences!");
+            return Task.Factory.StartNew(() => true);
         }
 
         /// <summary>
@@ -158,7 +159,7 @@ namespace MelonAutoUpdater
             {
                 output.Write(buffer, 0, bytesRead);
             }
-            return Task.FromResult(true);
+            return Task.Factory.StartNew(() => true);
         }
 
         /// <summary>
@@ -409,7 +410,7 @@ namespace MelonAutoUpdater
                         long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
                         if (remaining <= 0)
                         {
-                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime():t}");
+                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
                             githubResetDate = reset;
                             disableGithubAPI = true;
                         }
@@ -434,7 +435,7 @@ namespace MelonAutoUpdater
                 else
                 {
                     MelonLogger.Warning(
-                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffset.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
+                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
                 }
             }
 
@@ -564,12 +565,14 @@ namespace MelonAutoUpdater
         {
             foreach (string file in Directory.GetFiles(path))
             {
+                LoggerInstance.Msg($"{Path.GetFileName(file)} found in {Path.GetDirectoryName(directory)}, copying file to folder");
                 string _path = Path.Combine(directory, Path.GetFileName(file));
                 if (!File.Exists(_path)) File.Move(file, _path);
                 else File.Replace(file, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
             }
             foreach (string dir in Directory.GetDirectories(path))
             {
+                LoggerInstance.Msg($"Found {Path.GetDirectoryName(dir)}, going through files");
                 string _path = Path.Combine(directory, Path.GetDirectoryName(dir));
                 if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
                 ReplaceAllFiles(dir, _path);
@@ -922,6 +925,7 @@ namespace MelonAutoUpdater
                                                             }
                                                             else
                                                             {
+                                                                LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
 #pragma warning disable CS0618 // Type or member is obsolete
                                                                 ReplaceAllFiles(extPath, dirName == "MelonLoader" ? Path.Combine(MelonUtils.BaseDirectory, "MelonLoader") : dirName == "UserData" ? MelonUtils.UserDataDirectory : string.Empty);
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -1105,9 +1109,8 @@ namespace MelonAutoUpdater
 
             LoggerInstance.Msg("Setup Melon Preferences");
 
-            SetupPreferences();
+            SetupPreferences().Wait();
 
-            while (ThemesCategory.GetValue<Theme>() == null) Task.Delay(50).Wait();
             theme = ThemesCategory.GetValue<Theme>();
 #pragma warning disable CS0618 // Type or member is obsolete
             string pluginsDir = Path.Combine(MelonUtils.BaseDirectory, "Plugins");

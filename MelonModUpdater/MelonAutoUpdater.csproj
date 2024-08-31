@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net47</TargetFramework>
+		<TargetFramework>net35</TargetFramework>
 		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
 		<GameDirectory>C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\V1</GameDirectory>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Reference Include="System.Net.Http" />
 		<Reference Include="Tomlet">
 			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
 		</Reference>
@@ -16,6 +15,19 @@
 		<Reference Include="MelonLoader">
 			<HintPath>$(GameDirectory)\MelonLoader\MelonLoader.dll</HintPath>
 		</Reference>
+		<Reference Include="System.Threading">
+			<HintPath>$(GameDirectory)\MelonLoader\Managed\System.Threading.dll</HintPath>
+		</Reference>
+		<Reference Include="Rackspace.Threading">
+			<HintPath>$(GameDirectory)\MelonLoader\Managed\Rackspace.Threading.dll</HintPath>
+		</Reference>
+		<Reference Include="Net35.Http">
+			<HintPath>$(GameDirectory)\MelonLoader\Managed\Net35.Http.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Helper\" />
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
