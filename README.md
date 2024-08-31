@@ -8,9 +8,9 @@
 <a href="https://github.com/LavaGang/MelonLoader/releases"><img src="https://img.shields.io/badge/ML_Support-v0.5.2_or_later-blue?style=for-the-badge&labelColor=gray&color=blue"></a>
 </p>
 
-Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!
-If a mod has included a download link in the assembly, the updater will pick that up and use that to get the newest version and if needed, install it.
-Currently supported links (this list will be expanded in the near future):
+Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!<br/>
+If a mod has included a download link in the assembly, the updater will pick that up and use that to get the newest version and if needed, install it.<br/>
+Currently supported links (this list will be expanded in the near future):<br/>
  - [Thunderstore](https://thunderstore.io)
  - [Github](https://github.com/)
 
@@ -18,10 +18,12 @@ Currently supported links (this list will be expanded in the near future):
 
 <h2 align="center">Installation</h2>
 To install the plugin, you obviously need to have MelonLoader installed in your game.<br/>
+<br/>
+You can use the MAUHelper Plugin to determine if u need to install MAU-net6 or MAU-net32, it is also capable of checking if the MelonAutoUpdater is of correct version or not<br/>
 
-All current releases support MelonLoader 0.5.2 or later, **BUT** when installing it is important to know that:<br/>
-- For MelonLoader v0.6.0 and later, download `MAU-net6.zip` (if there are errors, it is possible that you might need to download `MAU-net32.zip` instead)
-- For MelonLoader v0.5.2-v0.5.7, download `MAU-net32.zip`
+If you do not want to use MAUHelper:
+  - For MelonLoader v0.6.0 and later, download `MAU-net6.zip` (if there are errors, it is possible that you might need to download `MAU-net32.zip` instead)<br/>
+  - For MelonLoader v0.5.2-v0.5.7, download `MAU-net32.zip`
 <br/>
 
 When downloaded, extract the files from the downloaded ZIP and drag the extracted folders into the game.<br/>
@@ -36,9 +38,22 @@ And now, you're done! Enjoy your mods being automatically updated! 🎉
 | Ignore List | List of mods (file names without extension example ".dll") that will not be updated |
 | Brute Check | If enabled, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author. **Currently Github is not supported in brute checking due to extremely strict rate limits** |
 
+<h2 align="center">Themes</h2>
+
+Themes are located in UserData/MelonAutoUpdater/themes.cfg, its just a few options that let you customize the color of things such as file names, versions etc. using HEX<br/>
+List of all customizable color strings:<br/>
+- Lines
+- File Names
+- Old Version & New Version
+- Up-to-date version Text
+- Download Count
+<br/>
+You may ask, why does this option exist, and the answer is.. I'm not sure why I did this, but hey, if u dont like the colors I put in, u can change them!
+
 <h2 align="center">For Developers</h2>
 
 To implement auto-updating into your code mod, simply set a correct **download link** in the [MelonInfo Attribute](https://melonwiki.xyz/#/modders/attributes?id=meloninfo) and please make sure to use the [VerifyLoaderVersion Attribute](https://melonwiki.xyz/#/modders/attributes?id=verifyloaderversion) and specify on what versions of ML does the mod/plugin work
+
 
 <h2 align="center">Licensing & Credits</h2>
 
