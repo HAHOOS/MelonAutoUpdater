@@ -24,7 +24,7 @@ You can use the **MAUHelper Plugin** to determine if u need to install `MAU-net6
 
 If you do not want to use MAUHelper:
   - For MelonLoader v0.6.0 and later, download `MAU-net6.zip` (if there are errors, it is possible that you might need to download `MAU-net32.zip` instead)<br/>
-  - For MelonLoader v0.5.2-v0.5.7, download `MAU-net32.zip`
+  - For MelonLoader v0.5.7 and earlier, download `MAU-net32.zip`
 <br/>
 
 When downloaded, extract the files from the downloaded ZIP and drag the extracted folders into the game.<br/>
