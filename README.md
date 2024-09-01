@@ -14,6 +14,10 @@ Currently supported links (this list will be expanded in the near future):<br/>
  - [Thunderstore](https://thunderstore.io)
  - [Github](https://github.com/)
 
+Tested Games & Versions:
+- BONELAB (ML v0.6.4)
+- BONEWORKS (ML v0.5.4)
+
 **This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet. It would be really appreciated if you would help me find any bugs by creating an issue in the repository if you find one** 
 
 <h2 align="center">Installation</h2>
