@@ -42,8 +42,8 @@ namespace MAUHelper
         public override void OnPreInitialization()
         {
             LoggerInstance.Msg("Starting check");
-            bool isNet6 = Environment.Version.Major >= 6;
-            string consoleVer = isNet6 ? ".NET 6" : $".NET Framework {Environment.Version.Major}.{Environment.Version.Minor}";
+            bool isNetCore = Environment.Version.Major >= 5;
+            string consoleVer = isNetCore ? $".NET {Environment.Version.Major}" : $".NET Framework {Environment.Version.Major}.{Environment.Version.Minor}";
             LoggerInstance.Msg(System.ConsoleColor.Green, "Runtime Version: " + consoleVer);
 
             LoggerInstance.Msg("Checking if MAU (Melon Auto Updater) is installed");
@@ -53,12 +53,12 @@ namespace MAUHelper
                 LoggerInstance.Msg("MAU found, checking if correct version");
                 bool isFramework = pluginAssembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib").Count() > 0;
                 LoggerInstance.Msg("Current MAU version: " + (isFramework ? "net35" : "net6"));
-                if (isFramework && isNet6)
+                if (isFramework && isNetCore)
                 {
                     LoggerInstance.Error("Incorrect version of MAU (Melon Auto Updater), make sure to install the net35 version, not the net6 version!");
                     Console.ReadKey();
                 }
-                else if (!isFramework && !isNet6)
+                else if (!isFramework && !isNetCore)
                 {
                     LoggerInstance.Error("Incorrect version of MAU (Melon Auto Updater), make sure to install the net6 version, not the net35 version!");
                     Console.ReadKey();
@@ -73,7 +73,7 @@ namespace MAUHelper
                 LoggerInstance.Msg("MAU is not installed");
                 LoggerInstance.Msg(System.ConsoleColor.Blue, "------------------------");
                 LoggerInstance.Msg("Results of checks:");
-                if (isNet6)
+                if (isNetCore)
                 {
                     LoggerInstance.Msg("Install net6 version of MAU (Melon Auto Updater), net35 version also works but is not recommended");
                 }
