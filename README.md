@@ -19,7 +19,8 @@ Currently supported links (this list will be expanded in the near future):<br/>
 <h2 align="center">Installation</h2>
 To install the plugin, you obviously need to have MelonLoader installed in your game.<br/>
 <br/>
-You can use the MAUHelper Plugin to determine if u need to install MAU-net6 or MAU-net32, it is also capable of checking if the MelonAutoUpdater is of correct version or not<br/>
+
+You can use the **MAUHelper Plugin** to determine if u need to install `MAU-net6` or `MAU-net32`, it is also capable of checking if the MelonAutoUpdater is of correct version or not<br/>
 
 If you do not want to use MAUHelper:
   - For MelonLoader v0.6.0 and later, download `MAU-net6.zip` (if there are errors, it is possible that you might need to download `MAU-net32.zip` instead)<br/>
