@@ -565,21 +565,47 @@ namespace MelonAutoUpdater
             return FileType.Other;
         }
 
-        internal void ReplaceAllFiles(string path, string directory)
+        internal static FileType GetFileType(MelonInfoAttribute infoAttribute)
         {
+            if (infoAttribute != null)
+            {
+                return infoAttribute.SystemType == typeof(MelonMod) ? FileType.MelonMod : infoAttribute.SystemType == typeof(MelonPlugin) ? FileType.MelonPlugin : FileType.Other;
+            }
+
+            return FileType.Other;
+        }
+
+        internal void ReplaceAllFiles(string path, string directory, string mainDirectoryName)
+        {
+            string prefix = string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{Path.GetDirectoryName(directory)}" : Path.GetDirectoryName(directory);
             foreach (string file in Directory.GetFiles(path))
             {
-                LoggerInstance.Msg($"{Path.GetFileName(file)} found in {Path.GetDirectoryName(directory)}, copying file to folder");
-                string _path = Path.Combine(directory, Path.GetFileName(file));
-                if (!File.Exists(_path)) File.Move(file, _path);
-                else File.Replace(file, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
+                LoggerInstance.Msg($"[{prefix}] {Path.GetFileName(file)} found, copying file to folder");
+                try
+                {
+                    string _path = Path.Combine(directory, Path.GetFileName(file));
+                    if (!File.Exists(_path)) File.Move(file, _path);
+                    else File.Replace(file, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
+                    LoggerInstance.Msg($"[{prefix}] Successfully copied {Path.GetFileName(file)}");
+                }
+                catch (Exception ex)
+                {
+                    LoggerInstance.Error($"[{prefix}] Failed to copy {Path.GetFileName(file)}, exception thrown:\n{ex.Message}\n{ex.StackTrace}");
+                }
             }
             foreach (string dir in Directory.GetDirectories(path))
             {
-                LoggerInstance.Msg($"Found {Path.GetDirectoryName(dir)}, going through files");
-                string _path = Path.Combine(directory, Path.GetDirectoryName(dir));
-                if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
-                ReplaceAllFiles(dir, _path);
+                LoggerInstance.Msg($"[{prefix}] Found folder {Path.GetDirectoryName(dir)}, going through files");
+                try
+                {
+                    string _path = Path.Combine(directory, Path.GetDirectoryName(dir));
+                    if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
+                    ReplaceAllFiles(dir, _path, prefix);
+                }
+                catch (Exception ex)
+                {
+                    LoggerInstance.Error($"[{prefix}] Failed to copy folder {Path.GetDirectoryName(dir)}, exception thrown:\n{ex.Message}\n{ex.StackTrace}");
+                }
             }
         }
 
@@ -743,17 +769,16 @@ namespace MelonAutoUpdater
                 }
             });
             files.RemoveAll(x => fileNameIgnore.Contains(x));
-
             LoggerInstance.Msg("------------------------------".Pastel(newLineColor));
             foreach (string path in files)
             {
                 AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
+                var melonAssemblyInfo = GetMelonInfo(mainAssembly);
                 string fileName = Path.GetFileName(path);
                 LoggerInstance.Msg($"Checking {fileName.Pastel(theme.FileNameColor)}");
-                FileType fileType = GetFileType(mainAssembly);
+                FileType fileType = GetFileType(melonAssemblyInfo);
                 if (fileType != FileType.Other)
                 {
-                    var melonAssemblyInfo = GetMelonInfo(mainAssembly);
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
                     if (melonAssemblyInfo != null)
                     {
@@ -853,7 +878,7 @@ namespace MelonAutoUpdater
                                                         if (Directory.Exists(extPath))
                                                         {
                                                             string dirName = Path.GetDirectoryName(extPath);
-                                                            if (dirName != "MelonLoader" && dirName != "UserData")
+                                                            if (dirName == "Mods" || dirName == "Plugins")
                                                             {
                                                                 foreach (var fPath in Directory.GetFiles(extPath, "*.dll"))
                                                                 {
@@ -902,36 +927,13 @@ namespace MelonAutoUpdater
                                                                             failed += 1;
                                                                         }
                                                                     }
-                                                                    else
-                                                                    {
-                                                                        if (Path.GetDirectoryName(extPath) == "UserLibs")
-                                                                        {
-                                                                            try
-                                                                            {
-                                                                                LoggerInstance.Msg("Installing new library " + Path.GetFileName(fPath));
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                                                string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "UserLibs"), Path.GetFileName(fPath));
-#pragma warning restore CS0618 // Type or member is obsolete
-                                                                                if (!File.Exists(_path)) File.Move(fPath, _path);
-                                                                                else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                                            }
-                                                                            catch (Exception ex)
-                                                                            {
-                                                                                LoggerInstance.Msg($"An unexpected error occurred while installing library\n{ex.Message}\n{ex.StackTrace}");
-                                                                            }
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
-                                                                        }
-                                                                    }
                                                                 }
                                                             }
                                                             else
                                                             {
                                                                 LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                ReplaceAllFiles(extPath, dirName == "MelonLoader" ? Path.Combine(MelonUtils.BaseDirectory, "MelonLoader") : dirName == "UserData" ? MelonUtils.UserDataDirectory : string.Empty);
+                                                                ReplaceAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty);
 #pragma warning restore CS0618 // Type or member is obsolete
                                                             }
                                                         }
