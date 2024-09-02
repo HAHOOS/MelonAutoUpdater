@@ -62,6 +62,8 @@ namespace MelonAutoUpdater
         /// </summary>
         internal Theme theme = new Theme();
 
+        internal static MelonLogger.Instance logger;
+
         #region Melon Preferences
 
         /// <summary>
@@ -300,9 +302,16 @@ namespace MelonAutoUpdater
 
                         files.Add(fileData);
 
+                        bool isSemVerSuccess = SemVersion.TryParse((string)_data["latest"]["version_number"], out SemVersion semver);
+                        if (!isSemVerSuccess)
+                        {
+                            LoggerInstance.Error($"Failed to parse version");
+                            return CreateEmptyTask<ModData>();
+                        }
+
                         return Task.Factory.StartNew<ModData>(() => new ModData()
                         {
-                            LatestVersion = ModVersion.GetFromString((string)_data["latest"]["version_number"]),
+                            LatestVersion = semver,
                             DownloadFiles = files,
                         });
                     }
@@ -390,9 +399,15 @@ namespace MelonAutoUpdater
                             client.Dispose();
                             response.Dispose();
                             body.Dispose();
+                            bool isSemVerSuccess = SemVersion.TryParse(version, out SemVersion semver);
+                            if (!isSemVerSuccess)
+                            {
+                                LoggerInstance.Error($"Failed to parse version");
+                                return CreateEmptyTask<ModData>();
+                            }
                             return Task.Factory.StartNew<ModData>(() => new ModData()
                             {
-                                LatestVersion = ModVersion.GetFromString(version),
+                                LatestVersion = semver,
                                 DownloadFiles = downloadURLs,
                             });
                         }
@@ -490,9 +505,16 @@ namespace MelonAutoUpdater
                         URL = (string)_data["latest"]["download_url"]
                     };
 
+                    bool isSemVerSuccess = SemVersion.TryParse((string)_data["latest"]["version_number"], out SemVersion semver);
+                    if (!isSemVerSuccess)
+                    {
+                        LoggerInstance.Error($"Failed to parse version");
+                        return CreateEmptyTask<ModData>();
+                    }
+
                     return Task.Factory.StartNew<ModData>(() => new ModData()
                     {
-                        LatestVersion = ModVersion.GetFromString((string)_data["latest"]["version_number"]),
+                        LatestVersion = semver,
                         DownloadFiles = files,
                     });
                 }
@@ -796,11 +818,10 @@ namespace MelonAutoUpdater
                         }
                         if (data.Result != null)
                         {
-                            ModVersion currentVersion = ModVersion.GetFromString(melonAssemblyInfo.Version);
+                            SemVersion currentVersion = SemVersion.Parse(melonAssemblyInfo.Version);
                             if (currentVersion != null && data.Result.LatestVersion != null)
                             {
-                                bool? needsUpdate = ModVersion.CompareVersions(data.Result.LatestVersion, currentVersion);
-                                if (needsUpdate != null && needsUpdate == true)
+                                if (data.Result.LatestVersion > currentVersion)
                                 {
                                     if (automatic)
                                     {
@@ -1092,6 +1113,7 @@ namespace MelonAutoUpdater
         // Note to self: Don't use async
         public override void OnPreInitialization()
         {
+            logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
 
             LoggerInstance.Msg("Creating folders in UserData");
