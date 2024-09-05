@@ -677,28 +677,6 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Retrieve information from the MelonPriorityAttribute in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly">Assembly of the file</param>
-        /// <returns>If present, returns a MelonPriorityAttribute</returns>
-        internal static MelonPriorityAttribute GetMelonPriority(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-                if (attr.AttributeType.Name == nameof(MelonPriorityAttribute))
-                {
-                    int priority = Get<int>(attr, 0);
-
-                    assembly.Dispose();
-
-                    return new MelonPriorityAttribute(priority);
-                }
-            }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
         /// Retrieve information from the VerifyLoaderVersionAttribute in a file using Mono.Cecil
         /// </summary>
         /// <param name="assembly">Assembly of the file</param>
