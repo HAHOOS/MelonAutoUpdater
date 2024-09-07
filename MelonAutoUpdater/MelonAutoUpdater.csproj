@@ -3,7 +3,7 @@
 		<TargetFrameworks>net6;net35</TargetFrameworks>
 		<LangVersion>7.3</LangVersion>
 		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
-		<GameDirectory>C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\V1</GameDirectory>
+		<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
 	</PropertyGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
@@ -54,6 +54,9 @@
 		</Reference>
 		<Reference Include="MelonLoader">
 			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
+		</Reference>
+		<Reference Include="ValueTupleBridge">
+			<HintPath>$(GameDirectory)\MelonLoader\Managed\ValueTupleBridge.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 

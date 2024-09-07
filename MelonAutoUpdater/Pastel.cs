@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
-namespace MelonAutoUpdater.Pastel
+namespace MelonAutoUpdater
 {
     /// <summary>
     /// Controls colored console output by <see langword="Pastel"/>.
@@ -105,7 +105,7 @@ namespace MelonAutoUpdater.Pastel
             get
             {
                 int p = (int)Environment.OSVersion.Platform;
-                return (p == 4) || (p == 6) || (p == 128);
+                return p == 4 || p == 6 || p == 128;
             }
         }
 

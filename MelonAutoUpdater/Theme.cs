@@ -10,5 +10,6 @@ namespace MelonAutoUpdater
         public string NewVersionColor { get; set; } = "#FF00FA9A";
         public string UpToDateVersionColor { get; set; } = "#FF90EE90";
         public string DownloadCountColor { get; set; } = "#FF008000";
+        public string ExtensionNameDefaultColor { get; set; } = "#FF00FFFF";
     }
 }

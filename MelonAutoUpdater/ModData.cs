@@ -1,5 +1,4 @@
 ﻿using Semver;
-using System;
 using System.Collections.Generic;
 
 namespace MelonAutoUpdater

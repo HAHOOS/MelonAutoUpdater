@@ -5,18 +5,19 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text.RegularExpressions;
 using MelonLoader.ICSharpCode.SharpZipLib.Core;
 using MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using MelonLoader.TinyJSON;
 using Semver;
 using System.Threading.Tasks;
-using MelonAutoUpdater.Pastel;
 using System.Drawing;
 using MelonLoader.Preferences;
+using MelonAutoUpdater.Search;
+using MelonAutoUpdater.Search.Attributes;
 using MelonAutoUpdater.Helper;
+using System.Reflection;
 
-[assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.2.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
+[assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: MelonColor(ConsoleColor.Green)]
@@ -43,26 +44,24 @@ namespace MelonAutoUpdater
         internal string backupFolderPath = "";
 
         /// <summary>
-        /// This is used to prevent from rate-limiting the API
-        /// </summary>
-        private bool disableGithubAPI = false;
-
-        /// <summary>
-        /// The time (in Unix time seconds) when the rate limit will disappear
-        /// </summary>
-        private long githubResetDate;
-
-        /// <summary>
         /// User Agent Header for all HTTP requests
         /// </summary>
-        private string UserAgent;
+        public string UserAgent { get; private set; }
 
         /// <summary>
         /// Customized colors, why does it exist? idk
         /// </summary>
-        internal Theme theme = new Theme();
+        internal static Theme theme = new Theme();
 
+        /// <summary>
+        /// Instance of MelonLogger
+        /// </summary>
         internal static MelonLogger.Instance logger;
+
+        /// <summary>
+        /// List of MAU Search Extensions
+        /// </summary>
+        internal IEnumerable<MAUSearch> extensions;
 
         #region Melon Preferences
 
@@ -220,8 +219,8 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Checks for internet connection
         /// </summary>
-        /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 10000)</param>
-        /// <param name="url">URL of the website used to check for connection (Default: null, url selected in code depending on country)</param>
+        /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 5000)</param>
+        /// <param name="url">URL of the website used to check for connection (Default: <c>http://www.gstatic.com/generate_204</c>)</param>
         /// <returns>If true, there's internet connection, otherwise not</returns>
         internal static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
         {
@@ -251,214 +250,25 @@ namespace MelonAutoUpdater
         {
             if (string.IsNullOrEmpty(downloadLink))
             {
-                LoggerInstance.Msg("No download link provided with mod, unable to fetch necessary information");
+                LoggerInstance.Msg("No download link was provided with the mod");
                 return CreateEmptyTask<ModData>();
             }
-
-            Regex ThunderstoreFind_Regex = new Regex(@"https?:\/\/(?:.+\.)?thunderstore\.io|http?:\/\/(?:.+\.)?thunderstore\.io");
-            Regex githubRegex = new Regex(@"(?=http:\/\/|https:\/\/)?github.com\/");
-
-            #region Thunderstore
-
-            if (ThunderstoreFind_Regex.Match(downloadLink).Success)
+            foreach (var ext in extensions)
             {
-                LoggerInstance.Msg("Thunderstore detected");
-                string[] split = downloadLink.Split('/');
-                string packageName;
-                string namespaceName;
-                if (downloadLink.EndsWith("/"))
+                LoggerInstance.Msg($"Checking {ext.Name.Pastel(ext.NameColor)}");
+                ext.Setup();
+                var result = ext.Search(downloadLink);
+                result.Wait();
+                if (result.Result == null)
                 {
-                    packageName = split[split.Length - 2];
-                    namespaceName = split[split.Length - 3];
+                    LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                 }
                 else
                 {
-                    packageName = split[split.Length - 1];
-                    namespaceName = split[split.Length - 2];
-                }
-                HttpClient request = new HttpClient();
-                request.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-                Task<HttpResponseMessage> response = request.GetAsync($"https://thunderstore.io/api/experimental/package/{namespaceName}/{packageName}/");
-                response.Wait();
-                if (response.Result.IsSuccessStatusCode)
-                {
-                    Task<string> body = response.Result.Content.ReadAsStringAsync();
-                    body.Wait();
-                    if (body.Result != null)
-                    {
-                        var _data = JSON.Load(body.Result);
-
-                        request.Dispose();
-                        response.Dispose();
-                        body.Dispose();
-
-                        List<FileData> files = new List<FileData>();
-
-                        FileData fileData = new FileData
-                        {
-                            FileName = packageName,
-                            URL = (string)_data["latest"]["download_url"]
-                        };
-
-                        files.Add(fileData);
-
-                        bool isSemVerSuccess = SemVersion.TryParse((string)_data["latest"]["version_number"], out SemVersion semver);
-                        if (!isSemVerSuccess)
-                        {
-                            LoggerInstance.Error($"Failed to parse version");
-                            return CreateEmptyTask<ModData>();
-                        }
-
-                        return Task.Factory.StartNew<ModData>(() => new ModData()
-                        {
-                            LatestVersion = semver,
-                            DownloadFiles = files,
-                        });
-                    }
-                    else
-                    {
-                        LoggerInstance.Error("Thunderstore API returned no body, unable to fetch package information");
-
-                        request.Dispose();
-                        response.Dispose();
-                        body.Dispose();
-
-                        return CreateEmptyTask<ModData>();
-                    }
-                }
-                else
-                {
-                    if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        LoggerInstance.Msg("Thunderstore API could not locate the mod/plugin");
-                    }
-                    else
-                    {
-                        LoggerInstance.Error
-                            ($"Failed to fetch package information from Thunderstore, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                    }
-                    request.Dispose();
-                    response.Dispose();
-
-                    return CreateEmptyTask<ModData>();
+                    LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                    return result;
                 }
             }
-
-            #endregion Thunderstore
-
-            #region Github
-
-            else if (githubRegex.Match(downloadLink).Success)
-            {
-                LoggerInstance.Msg("Github detected");
-
-                string[] split = downloadLink.Split('/');
-                string packageName;
-                string namespaceName;
-                if (downloadLink.EndsWith("/"))
-                {
-                    packageName = split[split.Length - 2];
-                    namespaceName = split[split.Length - 3];
-                }
-                else
-                {
-                    packageName = split[split.Length - 1];
-                    namespaceName = split[split.Length - 2];
-                }
-                HttpClient client = new HttpClient();
-                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-                client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-                if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
-                if (!disableGithubAPI)
-                {
-                    var response = client.GetAsync($"https://api.github.com/repos/{namespaceName}/{packageName}/releases/latest", HttpCompletionOption.ResponseContentRead);
-                    response.Wait();
-                    if (response.Result.IsSuccessStatusCode)
-                    {
-                        int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                        long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
-                        if (remaining <= 1)
-                        {
-                            LoggerInstance.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
-                            githubResetDate = reset;
-                            disableGithubAPI = true;
-                        }
-                        Task<string> body = response.Result.Content.ReadAsStringAsync();
-                        body.Wait();
-                        if (body.Result != null)
-                        {
-                            var data = JSON.Load(body.Result);
-                            string version = (string)data["tag_name"];
-                            List<FileData> downloadURLs = new List<FileData>();
-
-                            foreach (var file in data["assets"] as ProxyArray)
-                            {
-                                downloadURLs.Add(new FileData() { URL = (string)file["browser_download_url"], ContentType = (string)file["content_type"], FileName = Path.GetFileNameWithoutExtension((string)file["browser_download_url"]) });
-                            }
-
-                            client.Dispose();
-                            response.Dispose();
-                            body.Dispose();
-                            bool isSemVerSuccess = SemVersion.TryParse(version, out SemVersion semver);
-                            if (!isSemVerSuccess)
-                            {
-                                LoggerInstance.Error($"Failed to parse version");
-                                return CreateEmptyTask<ModData>();
-                            }
-                            return Task.Factory.StartNew<ModData>(() => new ModData()
-                            {
-                                LatestVersion = semver,
-                                DownloadFiles = downloadURLs,
-                            });
-                        }
-                        else
-                        {
-                            LoggerInstance.Error("Github API returned no body, unable to fetch package information");
-
-                            client.Dispose();
-                            response.Dispose();
-                            body.Dispose();
-
-                            return CreateEmptyTask<ModData>();
-                        }
-                    }
-                    else
-                    {
-                        int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                        int limit = int.Parse(response.Result.Headers.GetValues("x-ratelimit-limit").First());
-                        long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
-                        if (remaining <= 0)
-                        {
-                            LoggerInstance.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
-                            githubResetDate = reset;
-                            disableGithubAPI = true;
-                        }
-                        else
-                        {
-                            if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
-                            {
-                                LoggerInstance.Warning("Github API could not find the mod/plugin");
-                            }
-                            else
-                            {
-                                LoggerInstance.Error
-                                    ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                            }
-                        }
-                        client.Dispose();
-                        response.Dispose();
-
-                        return CreateEmptyTask<ModData>();
-                    }
-                }
-                else
-                {
-                    MelonLogger.Warning(
-                        "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
-                }
-            }
-
-            #endregion Github
 
             return CreateEmptyTask<ModData>();
         }
@@ -1093,6 +903,7 @@ namespace MelonAutoUpdater
         {
             logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
+            MAUSearch.UserAgent = UserAgent;
 
             LoggerInstance.Msg("Creating folders in UserData");
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -1100,6 +911,10 @@ namespace MelonAutoUpdater
 #pragma warning restore CS0618 // Type or member is obsolete
             DirectoryInfo tempDir = mainDir.CreateSubdirectory("TemporaryFiles");
             DirectoryInfo backupDir = mainDir.CreateSubdirectory("Backups");
+            DirectoryInfo extensionsDir = mainDir.CreateSubdirectory("SearchExtensions");
+
+            DirectoryInfo net35ExtDir = extensionsDir.CreateSubdirectory("net35");
+            DirectoryInfo net6ExtDir = extensionsDir.CreateSubdirectory("net6");
 
             tempFilesPath = tempDir.FullName;
             mainFolderPath = mainDir.FullName;
@@ -1118,6 +933,42 @@ namespace MelonAutoUpdater
             SetupPreferences().Wait();
 
             theme = ThemesCategory.GetValue<Theme>();
+
+            LoggerInstance.Msg("Load search extensions");
+            FileInfo[] extFiles = Environment.Version.Major >= 6 ? net6ExtDir.GetFiles("*.dll") : net35ExtDir.GetFiles("*.dll");
+            List<Assembly> assemblies = new List<Assembly> { System.Reflection.Assembly.GetExecutingAssembly() };
+            foreach (FileInfo file in extFiles)
+            {
+                LoggerInstance.Msg($"Checking {file.Name.Pastel(theme.FileNameColor)}");
+                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(file.FullName);
+                bool isExtension = false;
+                foreach (var attr in assembly.CustomAttributes)
+                {
+                    if (attr.AttributeType.Name == nameof(IsMAUSearchExtensionAttribute))
+                    {
+                        bool value = Get<bool>(attr, 0);
+                        assembly.Dispose();
+                        isExtension = value;
+                        break;
+                    }
+                }
+                assembly.Dispose();
+
+                if (isExtension)
+                {
+                    LoggerInstance.Msg($"{file.Name.Pastel(theme.FileNameColor)} is a MAU Search Extension");
+                    System.Reflection.Assembly assembly1 = System.Reflection.Assembly.LoadFile(file.FullName);
+                    assemblies.Add(assembly1);
+                }
+                else
+                {
+                    LoggerInstance.Msg($"{file.Name.Pastel(theme.FileNameColor)} is not a MAU Search Extension, continuing without loading");
+                }
+            }
+
+            LoggerInstance.Msg("Setting up search extensions");
+            extensions = MAUSearch.GetExtensions(assemblies.ToArray());
+
 #pragma warning disable CS0618 // Type or member is obsolete
             string pluginsDir = Path.Combine(MelonUtils.BaseDirectory, "Plugins");
             string modsDir = Path.Combine(MelonUtils.BaseDirectory, "Mods");
