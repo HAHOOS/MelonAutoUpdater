@@ -89,7 +89,7 @@ namespace MelonAutoUpdater.Search.Included
                 {
                     if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        Logger.Msg("Thunderstore API could not locate the mod/plugin");
+                        Logger.Warning("Thunderstore API could not locate the mod/plugin");
                     }
                     else
                     {

@@ -31,17 +31,22 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Path of the Temporary Files folder where downloaded files and uncompressed zip files get put temporarily
         /// </summary>
-        internal string tempFilesPath = "";
+        internal static string tempFilesPath = "";
 
         /// <summary>
         /// Path of MelonAutoUpdate folder containing all the other folders
         /// </summary>
-        internal string mainFolderPath = "";
+        internal static string mainFolderPath = "";
 
         /// <summary>
         /// Path of Backup folder where old versions of mods are saved
         /// </summary>
-        internal string backupFolderPath = "";
+        internal static string backupFolderPath = "";
+
+        /// <summary>
+        /// Path of Config folder for all extension config's
+        /// </summary>
+        internal static string extConfigFolderPath = "";
 
         /// <summary>
         /// User Agent Header for all HTTP requests
@@ -128,7 +133,7 @@ namespace MelonAutoUpdater
                 }
                 catch (InvalidCastException)
                 {
-                    LoggerInstance.Error($"Preference '{entry.DisplayName}' is of incorrect type, please go to UserData/MelonAutoUpdater/config.cfg to fix");
+                    LoggerInstance.Error($"Preference '{entry.DisplayName}' is of incorrect type");
                     return default;
                 }
             }
@@ -915,6 +920,8 @@ namespace MelonAutoUpdater
 
             DirectoryInfo net35ExtDir = extensionsDir.CreateSubdirectory("net35");
             DirectoryInfo net6ExtDir = extensionsDir.CreateSubdirectory("net6");
+
+            DirectoryInfo extConfigDir = extensionsDir.CreateSubdirectory("Config");
 
             tempFilesPath = tempDir.FullName;
             mainFolderPath = mainDir.FullName;

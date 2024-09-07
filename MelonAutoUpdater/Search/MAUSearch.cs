@@ -5,6 +5,8 @@ using System;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Drawing;
+using MelonLoader;
+using System.IO;
 
 namespace MelonAutoUpdater.Search
 {
@@ -59,6 +61,20 @@ namespace MelonAutoUpdater.Search
         /// <returns>ModData if able to retrieve information from link, otherwise <c>null</c></returns>
         public abstract Task<ModData> Search(string url);
 
+        /// <summary>
+        /// Configure necessary things in extension
+        /// </summary>
+        internal void Setup()
+        {
+            Logger = new MAULogger(Name);
+        }
+
+        /// <summary>
+        /// Called when extension is loaded into the plugin
+        /// </summary>
+        public virtual void OnInitialization()
+        { }
+
         #endregion Extension Methods
 
         #region Helper
@@ -74,6 +90,13 @@ namespace MelonAutoUpdater.Search
             return source.Task;
         }
 
+        public MelonPreferences_Category CreateCategory(string category = "")
+        {
+            MelonPreferences_Category _Category = MelonPreferences.CreateCategory(!string.IsNullOrEmpty(category) ? category : Name);
+            _Category.SetFilePath(Path.Combine(Core.extConfigFolderPath, $"{Name}.cfg"));
+            return _Category;
+        }
+
         /// <summary>
         /// User Agent Header for all HTTP requests
         /// </summary>
@@ -85,11 +108,6 @@ namespace MelonAutoUpdater.Search
         public MAULogger Logger { get; internal set; }
 
         #endregion Helper
-
-        internal void Setup()
-        {
-            Logger = new MAULogger(Name);
-        }
 
         #region Static Methods
 
@@ -109,6 +127,7 @@ namespace MelonAutoUpdater.Search
                     var obj = (MAUSearch)Activator.CreateInstance(type);
                     objects.Add(obj);
                     Core.logger.Msg($"Loaded MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(Core.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                    obj.OnInitialization();
                 }
             }
             return objects;
