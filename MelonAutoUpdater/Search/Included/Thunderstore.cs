@@ -17,7 +17,7 @@ namespace MelonAutoUpdater.Search.Included
 
         public override string Link => "https://thunderstore.io";
 
-        public override Task<ModData> Search(string url)
+        public override Task<ModData> Search(string url, SemVersion currentVersion)
         {
             Regex regex = new Regex(@"(https:\/\/|http:\/\/)(?:.+\.)?thunderstore\.io");
             if (regex.IsMatch(url))

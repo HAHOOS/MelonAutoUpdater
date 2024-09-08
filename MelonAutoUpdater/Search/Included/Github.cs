@@ -31,7 +31,7 @@ namespace MelonAutoUpdater.Search.Included
         /// </summary>
         private long githubResetDate;
 
-        public override Task<ModData> Search(string url)
+        public override Task<ModData> Search(string url, SemVersion currentVersion)
         {
             Regex regex = new Regex(@"(?<=(?<=http:\/\/|https:\/\/)github.com\/)(.*?)(?>\/)(.*?)(?=\/|$)");
             var match = regex.Match(url);

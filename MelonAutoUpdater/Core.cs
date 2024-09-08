@@ -16,6 +16,7 @@ using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Search.Attributes;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
+using System.Xml.Linq;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
@@ -47,6 +48,11 @@ namespace MelonAutoUpdater
         /// Path of Config folder for all extension config's
         /// </summary>
         internal static string extConfigFolderPath = "";
+
+        /// <summary>
+        /// Version of MAU
+        /// </summary>
+        public static string Version { get; private set; }
 
         /// <summary>
         /// User Agent Header for all HTTP requests
@@ -90,7 +96,20 @@ namespace MelonAutoUpdater
         /// </summary>
         internal MelonPreferences_Entry Entry_bruteCheck { get; private set; }
 
+        /// <summary>
+        /// Themes Category in Preferences
+        /// </summary>
         internal MelonPreferences_ReflectiveCategory ThemesCategory { get; private set; }
+
+        /// <summary>
+        /// Extensions Category in Preferences
+        /// </summary>
+        internal MelonPreferences_Category ExtensionsCategory { get; private set; }
+
+        /// <summary>
+        /// Dictionary of included extensions and their Enable entry
+        /// </summary>
+        internal static Dictionary<MAUSearch, MelonPreferences_Entry> IncludedExtEntries { get; private set; } = new Dictionary<MAUSearch, MelonPreferences_Entry>();
 
         /// <summary>
         /// Setup Preferences
@@ -112,6 +131,21 @@ namespace MelonAutoUpdater
             ThemesCategory.SetFilePath(Path.Combine(mainFolderPath, "theme.cfg"));
             ThemesCategory.SaveToFile(false);
 
+            ExtensionsCategory = MelonPreferences.CreateCategory("Extensions", "Extensions");
+            ExtensionsCategory.SetFilePath(Path.Combine(mainFolderPath, "extensions.cfg"));
+
+            foreach (Type type in
+                    Assembly.GetExecutingAssembly().GetTypes()
+                    .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(MAUSearch))))
+            {
+                var obj = (MAUSearch)Activator.CreateInstance(type);
+                MelonPreferences_Entry entry = ExtensionsCategory.CreateEntry<bool>($"{obj.Name}_Enabled", true, $"{obj.Name} Enabled",
+                    description: $"If true, {obj.Name} will be used in searches");
+                IncludedExtEntries.Add(obj, entry);
+            }
+
+            ExtensionsCategory.SaveToFile(false);
+
             LoggerInstance.Msg("Successfully set up Melon Preferences!");
             return Task.Factory.StartNew(() => true);
         }
@@ -123,7 +157,7 @@ namespace MelonAutoUpdater
         /// <param name="entry">The Melon Preferences Entry to retrieve value from</param>
         /// <returns>Value of entry with inputted type</returns>
 
-        private T GetPreferenceValue<T>(MelonPreferences_Entry entry)
+        internal static T GetEntryValue<T>(MelonPreferences_Entry entry)
         {
             if (entry != null && entry.BoxedValue != null)
             {
@@ -133,7 +167,7 @@ namespace MelonAutoUpdater
                 }
                 catch (InvalidCastException)
                 {
-                    LoggerInstance.Error($"Preference '{entry.DisplayName}' is of incorrect type");
+                    logger.Error($"Preference '{entry.DisplayName}' is of incorrect type");
                     return default;
                 }
             }
@@ -251,7 +285,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="downloadLink">Download Link, possibly included in the MelonInfoAttribute</param>
         /// <returns>If found, returns a ModData object which includes the latest version of the mod online and the download link(s)</returns>
-        internal Task<ModData> GetModData(string downloadLink)
+        internal Task<ModData> GetModData(string downloadLink, SemVersion currentVersion)
         {
             if (string.IsNullOrEmpty(downloadLink))
             {
@@ -262,7 +296,7 @@ namespace MelonAutoUpdater
             {
                 LoggerInstance.Msg($"Checking {ext.Name.Pastel(ext.NameColor)}");
                 ext.Setup();
-                var result = ext.Search(downloadLink);
+                var result = ext.Search(downloadLink, currentVersion);
                 result.Wait();
                 if (result.Result == null)
                 {
@@ -369,7 +403,7 @@ namespace MelonAutoUpdater
         /// <param name="name">Name of the file, without extension</param>
         /// <returns>A path to temporary directory with file name and extension according to contentType</returns>
 
-        internal string GetPathFromContentType(string contentType, string name)
+        internal static string GetPathFromContentType(string contentType, string name)
         {
             if (contentType == "application/zip")
             {
@@ -560,8 +594,8 @@ namespace MelonAutoUpdater
 
             List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
 
-            List<string> ignore = GetPreferenceValue<List<string>>(Entry_ignore);
-            bool enabled = GetPreferenceValue<bool>(Entry_enabled);
+            List<string> ignore = GetEntryValue<List<string>>(Entry_ignore);
+            bool enabled = GetEntryValue<bool>(Entry_enabled);
 
             if (!enabled)
             {
@@ -598,11 +632,12 @@ namespace MelonAutoUpdater
                     if (melonAssemblyInfo != null)
                     {
                         if (!CheckCompability(mainAssembly)) { mainAssembly.Dispose(); continue; }
-                        var data = GetModData(melonAssemblyInfo.DownloadLink);
+                        SemVersion currentVersion = SemVersion.Parse(melonAssemblyInfo.Version);
+                        var data = GetModData(melonAssemblyInfo.DownloadLink, currentVersion);
                         data.Wait();
                         if (data.Result == null && string.IsNullOrEmpty(melonAssemblyInfo.DownloadLink))
                         {
-                            if (GetPreferenceValue<bool>(Entry_bruteCheck))
+                            if (GetEntryValue<bool>(Entry_bruteCheck))
                             {
                                 LoggerInstance.Msg("Running " + "brute check..".Pastel(Color.Red));
                                 data = GetModDataFromInfo(melonAssemblyInfo.Name.Replace(" ", ""), melonAssemblyInfo.Author);
@@ -611,7 +646,6 @@ namespace MelonAutoUpdater
                         }
                         if (data.Result != null)
                         {
-                            SemVersion currentVersion = SemVersion.Parse(melonAssemblyInfo.Version);
                             if (currentVersion != null && data.Result.LatestVersion != null)
                             {
                                 if (data.Result.LatestVersion > currentVersion)
@@ -908,6 +942,7 @@ namespace MelonAutoUpdater
         {
             logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
+            Version = this.Info.Version;
             MAUSearch.UserAgent = UserAgent;
 
             LoggerInstance.Msg("Creating folders in UserData");
@@ -922,6 +957,8 @@ namespace MelonAutoUpdater
             DirectoryInfo net6ExtDir = extensionsDir.CreateSubdirectory("net6");
 
             DirectoryInfo extConfigDir = extensionsDir.CreateSubdirectory("Config");
+
+            extConfigFolderPath = extConfigDir.FullName;
 
             tempFilesPath = tempDir.FullName;
             mainFolderPath = mainDir.FullName;
