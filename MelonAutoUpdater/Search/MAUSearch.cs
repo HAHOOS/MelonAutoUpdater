@@ -50,6 +50,12 @@ namespace MelonAutoUpdater.Search
         public virtual Color NameColor
         { get { return Color.LightBlue; } }
 
+        /// <summary>
+        /// If true, the brute check event will be called
+        /// </summary>
+        public virtual bool BruteCheckEnabled
+        { get { return false; } }
+
         #endregion Extension Info
 
         #region Extension Methods
@@ -58,8 +64,21 @@ namespace MelonAutoUpdater.Search
         /// Called when the extension needs to perform a search with provided URL
         /// </summary>
         /// <param name="url">URL retrieved from mod/plugin that needs to be checked</param>
+        /// <param name="currentVersion">Current version of the mod/plugin</param>
         /// <returns>ModData if able to retrieve information from link, otherwise <c>null</c></returns>
         public abstract Task<ModData> Search(string url, SemVersion currentVersion);
+
+        /// <summary>
+        /// Called when the extension needs to perform a search with provided Author & Name
+        /// </summary>
+        /// <param name="name">Name provided with mod/plugin being checked</param>
+        /// <param name="author">Author provided with mod/plugin being checked</param>
+        /// <param name="currentVersion">Current version of mod/plugin</param>
+        /// <returns>ModData if able to retrieve information from name & author, otherwise <c>null</c></returns>
+        public virtual Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
+        {
+            return null;
+        }
 
         /// <summary>
         /// Configure necessary things in extension
@@ -78,17 +97,6 @@ namespace MelonAutoUpdater.Search
         #endregion Extension Methods
 
         #region Helper
-
-        /// <summary>
-        /// Returns a task will a null ModData result
-        /// </summary>
-        /// <returns>Just like I said</returns>
-        public static Task<ModData> ReturnEmpty()
-        {
-            TaskCompletionSource<ModData> source = new TaskCompletionSource<ModData>();
-            source.SetResult(null);
-            return source.Task;
-        }
 
         /// <summary>
         /// Create preferences category for saving data
@@ -135,6 +143,10 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         public MAULogger Logger { get; internal set; }
 
+        /// <summary>
+        /// Get current version of MAU
+        /// </summary>
+        /// <returns><see langword="SemVersion"/> of current MAU version</returns>
         public string GetMAUVersion() => Core.Version;
 
         #endregion Helper
@@ -191,8 +203,8 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// Checks if assembly is an extension
         /// </summary>
-        /// <param name="assembly"></param>
-        /// <returns></returns>
+        /// <param name="assembly">Assembly to check if is an extension</param>
+        /// <returns>If true, it is an extension, otherwise, false</returns>
         public static bool IsExtension(Assembly assembly)
         {
             return assembly.GetTypes()

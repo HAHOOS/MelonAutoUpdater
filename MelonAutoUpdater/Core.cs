@@ -331,80 +331,33 @@ namespace MelonAutoUpdater
         /// Currently Supported: Thunderstore
         /// </summary>
         /// <returns>If found, returns a ModData object which includes the latest version of the mod online and the download link(s)</returns>
-        internal Task<ModData> GetModDataFromInfo(string name, string author)
+        internal Task<ModData> GetModDataFromInfo(string name, string author, SemVersion currentVersion)
         {
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author))
             {
-                LoggerInstance.Msg("Either author or name is empty, unable to fetch necessary information");
+                LoggerInstance.Msg("Name/Author was not provided with the mod");
                 return null;
             }
-
-            #region Thunderstore
-
-            LoggerInstance.Msg("Checking Thunderstore");
-
-            HttpClient request = new HttpClient();
-            request.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-            Task<HttpResponseMessage> response = request.GetAsync($"https://thunderstore.io/api/experimental/package/{author}/{name}/");
-            response.Wait();
-            if (response.Result.IsSuccessStatusCode)
+            foreach (var ext in extensions)
             {
-                Task<string> body = response.Result.Content.ReadAsStringAsync();
-                body.Wait();
-                if (body.Result != null)
+                ModData result = null;
+                if (ext.BruteCheckEnabled)
                 {
-                    var _data = JSON.Load(body.Result);
-
-                    request.Dispose();
-                    response.Dispose();
-                    body.Dispose();
-
-                    List<FileData> files = new List<FileData>();
-
-                    FileData fileData = new FileData
-                    {
-                        FileName = name,
-                        URL = (string)_data["latest"]["download_url"]
-                    };
-
-                    bool isSemVerSuccess = SemVersion.TryParse((string)_data["latest"]["version_number"], out SemVersion semver);
-                    if (!isSemVerSuccess)
-                    {
-                        LoggerInstance.Error($"Failed to parse version");
-                        return null;
-                    }
-
-                    return Task.Factory.StartNew<ModData>(() => new ModData()
-                    {
-                        LatestVersion = semver,
-                        DownloadFiles = files,
-                    });
+                    LoggerInstance.Msg($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
+                    var task = ext.BruteCheck(name, author, currentVersion);
+                    task.Wait();
+                    result = task.Result;
+                }
+                if (result == null)
+                {
+                    LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                 }
                 else
                 {
-                    LoggerInstance.Error("Thunderstore API returned no body, unable to fetch package information");
-
-                    request.Dispose();
-                    response.Dispose();
-                    body.Dispose();
+                    LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                    return Task.Factory.StartNew(() => result);
                 }
             }
-            else
-            {
-                if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    LoggerInstance.Warning("Thunderstore API could not locate the mod/plugin");
-                }
-                else
-                {
-                    LoggerInstance.Error
-                        ($"Failed to fetch package information from Thunderstore, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                }
-                request.Dispose();
-                response.Dispose();
-            }
-
-            #endregion Thunderstore
 
             return null;
         }
@@ -653,7 +606,7 @@ namespace MelonAutoUpdater
                             if (GetEntryValue<bool>(Entry_bruteCheck))
                             {
                                 LoggerInstance.Msg("Running " + "brute check..".Pastel(Color.Red));
-                                data = GetModDataFromInfo(melonAssemblyInfo.Name.Replace(" ", ""), melonAssemblyInfo.Author);
+                                data = GetModDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author, currentVersion);
                                 data.Wait();
                             }
                         }
