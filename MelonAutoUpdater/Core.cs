@@ -25,6 +25,12 @@ using System.Xml.Linq;
 [assembly: MelonAuthorColor(ConsoleColor.Yellow)]
 #pragma warning restore CS0618 // Type or member is obsolete
 
+[assembly: AssemblyProduct("MelonAutoUpdater")]
+[assembly: AssemblyVersion("0.3.0")]
+[assembly: AssemblyTitle("MelonAutoUpdater")]
+[assembly: AssemblyCompany("HAHOOS")]
+[assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
+
 namespace MelonAutoUpdater
 {
     internal class Core : MelonPlugin
@@ -114,7 +120,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Setup Preferences
         /// </summary>
-        private Task<bool> SetupPreferences()
+        private bool SetupPreferences()
         {
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             MainCategory.SetFilePath(Path.Combine(mainFolderPath, "config.cfg"));
@@ -147,7 +153,7 @@ namespace MelonAutoUpdater
             ExtensionsCategory.SaveToFile(false);
 
             LoggerInstance.Msg("Successfully set up Melon Preferences!");
-            return Task.Factory.StartNew(() => true);
+            return true;
         }
 
         /// <summary>
@@ -194,6 +200,8 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="input">The stream u want to copy from</param>
         /// <param name="output">The stream u want to copy to</param>
+        [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         internal static Task<bool> CopyTo(Stream input, Stream output)
         {
             byte[] buffer = new byte[16 * 1024];
@@ -207,16 +215,21 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Create's an empty task, so you can return null with tasks<br/>
+        /// Copy a stream to a new one<br/>
         /// Made to work with net35
         /// </summary>
-        /// <typeparam name="T">Type that will be returned in Task</typeparam>
-        /// <returns>An empty Task with provided type</returns>
-        internal static Task<T> CreateEmptyTask<T>()
+        /// <param name="input">The stream u want to copy from</param>
+        /// <param name="output">The stream u want to copy to</param>
+        internal static bool CopyToNotTask(Stream input, Stream output)
         {
-            var tcs = new TaskCompletionSource<T>();
-            tcs.SetResult(default);
-            return tcs.Task;
+            byte[] buffer = new byte[16 * 1024];
+            int bytesRead;
+
+            while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                output.Write(buffer, 0, bytesRead);
+            }
+            return true;
         }
 
         /// <summary>
@@ -290,7 +303,7 @@ namespace MelonAutoUpdater
             if (string.IsNullOrEmpty(downloadLink))
             {
                 LoggerInstance.Msg("No download link was provided with the mod");
-                return CreateEmptyTask<ModData>();
+                return null;
             }
             foreach (var ext in extensions)
             {
@@ -309,7 +322,7 @@ namespace MelonAutoUpdater
                 }
             }
 
-            return CreateEmptyTask<ModData>();
+            return null;
         }
 
         /// <summary>
@@ -323,7 +336,7 @@ namespace MelonAutoUpdater
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author))
             {
                 LoggerInstance.Msg("Either author or name is empty, unable to fetch necessary information");
-                return CreateEmptyTask<ModData>();
+                return null;
             }
 
             #region Thunderstore
@@ -358,7 +371,7 @@ namespace MelonAutoUpdater
                     if (!isSemVerSuccess)
                     {
                         LoggerInstance.Error($"Failed to parse version");
-                        return CreateEmptyTask<ModData>();
+                        return null;
                     }
 
                     return Task.Factory.StartNew<ModData>(() => new ModData()
@@ -393,7 +406,7 @@ namespace MelonAutoUpdater
 
             #endregion Thunderstore
 
-            return CreateEmptyTask<ModData>();
+            return null;
         }
 
         /// <summary>
@@ -938,12 +951,61 @@ namespace MelonAutoUpdater
         }
 
         // Note to self: Don't use async
+        [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public override void OnPreInitialization()
         {
             logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
             Version = this.Info.Version;
             MAUSearch.UserAgent = UserAgent;
+#if NET35
+            LoggerInstance.Msg("Checking for dependencies");
+            string path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "MelonLoader"), "Managed");
+
+            var assemblyInfo = System.Reflection.Assembly.GetExecutingAssembly().GetName();
+            var resources = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames();
+            foreach (string resourceName in resources)
+            {
+                string remove = $"{assemblyInfo.Name}.Embedded.Dependencies.";
+                if (!string.IsNullOrEmpty(resourceName))
+                {
+                    string fileName = resourceName.Replace(remove, "");
+                    string pathToFile = Path.Combine(path, fileName);
+                    if (File.Exists(pathToFile))
+                    {
+                        LoggerInstance.Msg($"Found {fileName}");
+                    }
+                    else
+                    {
+                        LoggerInstance.Msg($"Did not find {fileName}, installing...");
+                        try
+                        {
+                            var stream = Assembly
+                                .GetExecutingAssembly()
+                                .GetManifestResourceStream(resourceName);
+                            Stream fileStream = File.Create(pathToFile);
+                            fileStream.Flush();
+                            fileStream.Seek(0, SeekOrigin.Begin);
+                            lock (this)
+                            {
+                                CopyToNotTask(stream, fileStream);
+                            };
+                            fileStream.Dispose();
+                            stream.Dispose();
+
+                            System.Reflection.Assembly.LoadFile(pathToFile);
+
+                            LoggerInstance.Msg($"Installed {fileName} successfully!");
+                        }
+                        catch (Exception ex)
+                        {
+                            LoggerInstance.Error($"Failed to install {fileName}\n{ex}");
+                        }
+                    }
+                }
+            }
+#endif
 
             LoggerInstance.Msg("Creating folders in UserData");
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -974,7 +1036,10 @@ namespace MelonAutoUpdater
 
             LoggerInstance.Msg("Setup Melon Preferences");
 
-            SetupPreferences().Wait();
+            lock (this)
+            {
+                SetupPreferences();
+            }
 
             theme = ThemesCategory.GetValue<Theme>();
 

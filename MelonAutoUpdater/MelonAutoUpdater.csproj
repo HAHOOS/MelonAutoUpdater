@@ -27,6 +27,18 @@
 		</Reference>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Remove="Embedded\Dependencies\Net35.Http.dll" />
+	  <None Remove="Embedded\Dependencies\Rackspace.Threading.dll" />
+	  <None Remove="Embedded\Dependencies\System.Threading.dll" />
+	</ItemGroup>
+
+	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
+	  <EmbeddedResource Include="Embedded\Dependencies\Net35.Http.dll" />
+	  <EmbeddedResource Include="Embedded\Dependencies\Rackspace.Threading.dll" />
+	  <EmbeddedResource Include="Embedded\Dependencies\System.Threading.dll"  />
+	</ItemGroup>
+
 	<ItemGroup Label="NoFrameworkCondition">
 		<Reference Include="Tomlet">
 			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
