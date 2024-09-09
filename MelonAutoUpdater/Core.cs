@@ -914,7 +914,9 @@ namespace MelonAutoUpdater
             MAUSearch.UserAgent = UserAgent;
 #if NET35
             LoggerInstance.Msg("Checking for dependencies");
+#pragma warning disable CS0618 // Type or member is obsolete
             string path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "MelonLoader"), "Managed");
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var assemblyInfo = System.Reflection.Assembly.GetExecutingAssembly().GetName();
             var resources = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames();
