@@ -4,9 +4,9 @@ namespace MelonAutoUpdater.Helper
 {
     public static class DateTimeOffsetHelper
     {
-        public static long ToUnixTimeSeconds(this DateTimeOffset dateTimeOffset) => (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+        public static long ToUnixTimeSeconds(this DateTimeOffset _) => (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
 
-        public static long ToUnixTimeMilliSeconds(this DateTimeOffset dateTimeOffset) => (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
+        public static long ToUnixTimeMilliSeconds(this DateTimeOffset _) => (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
 
         public static DateTimeOffset FromUnixTimeSeconds(long seconds)
         {
