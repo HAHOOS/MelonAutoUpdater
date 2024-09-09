@@ -78,7 +78,7 @@ namespace MelonAutoUpdater.Search.Included
                             if (!isSemVerSuccess)
                             {
                                 Logger.Error($"Failed to parse version");
-                                return ReturnEmpty();
+                                return null;
                             }
                             return Task.Factory.StartNew(() => new ModData()
                             {
@@ -94,7 +94,7 @@ namespace MelonAutoUpdater.Search.Included
                             response.Dispose();
                             body.Dispose();
 
-                            return ReturnEmpty();
+                            return null;
                         }
                     }
                     else
@@ -123,7 +123,7 @@ namespace MelonAutoUpdater.Search.Included
                         client.Dispose();
                         response.Dispose();
 
-                        return ReturnEmpty();
+                        return null;
                     }
                 }
                 else
@@ -132,7 +132,7 @@ namespace MelonAutoUpdater.Search.Included
                          "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
                 }
             }
-            return ReturnEmpty();
+            return null;
         }
     }
 }
