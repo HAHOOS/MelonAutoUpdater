@@ -147,7 +147,7 @@ namespace MelonAutoUpdater.Search
         /// Get current version of MAU
         /// </summary>
         /// <returns><see langword="SemVersion"/> of current MAU version</returns>
-        public string GetMAUVersion() => Core.Version;
+        public static string GetMAUVersion() => Core.Version;
 
         #endregion Helper
 
