@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net.Http;
 using MelonLoader.ICSharpCode.SharpZipLib.Core;
 using MelonLoader.ICSharpCode.SharpZipLib.Zip;
-using MelonLoader.TinyJSON;
 using Semver;
 using System.Threading.Tasks;
 using System.Drawing;
@@ -16,7 +15,6 @@ using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Search.Attributes;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
-using System.Xml.Linq;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
