@@ -193,6 +193,7 @@ namespace MelonAutoUpdater.Search
                     if (load)
                     {
                         objects.Add(obj);
+                        obj.Setup();
                         obj.OnInitialization();
                     }
                 }
