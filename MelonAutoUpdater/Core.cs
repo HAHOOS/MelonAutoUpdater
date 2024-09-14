@@ -12,9 +12,10 @@ using System.Threading.Tasks;
 using System.Drawing;
 using MelonLoader.Preferences;
 using MelonAutoUpdater.Search;
-using MelonAutoUpdater.Search.Attributes;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
+using MelonAutoUpdater.Attributes;
+using System.Net.Mime;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
@@ -64,7 +65,7 @@ namespace MelonAutoUpdater
         public string UserAgent { get; private set; }
 
         /// <summary>
-        /// Customized colors, why does it exist? idk
+        /// Customizable colors, why does it exist? I don't know
         /// </summary>
         internal static Theme theme = new Theme();
 
@@ -386,7 +387,7 @@ namespace MelonAutoUpdater
             }
             else
             {
-                return Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.temp");
+                return null;
             }
         }
 
@@ -528,6 +529,46 @@ namespace MelonAutoUpdater
             return null;
         }
 
+        /// <summary>
+        /// Retrieve information from the MAUIgnoreAttribute in a file using Mono.Cecil
+        /// </summary>
+        /// <param name="assembly">Assembly of the file</param>
+        /// <returns>If present, returns a MAUIgnoreAttribute</returns>
+        internal static MAUIgnoreAttribute GetMAUIgnoreAttribute(AssemblyDefinition assembly)
+        {
+            foreach (var attr in assembly.CustomAttributes)
+            {
+                if (attr.AttributeType.Name == nameof(MAUIgnoreAttribute))
+                {
+                    bool isTrue = Get<bool>(attr, 0);
+                    assembly.Dispose();
+                    return new MAUIgnoreAttribute(isTrue);
+                }
+            }
+            assembly.Dispose();
+            return null;
+        }
+
+        /// <summary>
+        /// Retrieve information from the MAUIgnoreAttribute in a file using Mono.Cecil
+        /// </summary>
+        /// <param name="assembly">Assembly of the file</param>
+        /// <returns>If present, returns a MAUIgnoreAttribute</returns>
+        internal static MAUDownloadFilesAllowedAttribute GetMAUDownloadFilesAllowedAttribute(AssemblyDefinition assembly)
+        {
+            foreach (var attr in assembly.CustomAttributes)
+            {
+                if (attr.AttributeType.Name == nameof(MAUDownloadFilesAllowedAttribute))
+                {
+                    List<string> list = Get<List<string>>(attr, 0);
+                    assembly.Dispose();
+                    return new MAUDownloadFilesAllowedAttribute(list);
+                }
+            }
+            assembly.Dispose();
+            return null;
+        }
+
         internal bool CheckCompability(AssemblyDefinition assembly)
         {
             var modInfo = GetMelonInfo(assembly);
@@ -593,8 +634,15 @@ namespace MelonAutoUpdater
             foreach (string path in files)
             {
                 AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
+                bool _ignore = GetMAUIgnoreAttribute(mainAssembly) != null;
                 var melonAssemblyInfo = GetMelonInfo(mainAssembly);
                 string fileName = Path.GetFileName(path);
+                if (_ignore)
+                {
+                    LoggerInstance.Msg($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
+                    LoggerInstance.Msg(theme.LineColor, "------------------------------");
+                    continue;
+                }
                 LoggerInstance.Msg($"Checking {fileName.Pastel(theme.FileNameColor)}");
                 FileType fileType = GetFileType(melonAssemblyInfo);
                 if (fileType != FileType.Other)
@@ -625,6 +673,7 @@ namespace MelonAutoUpdater
                                     {
                                         LoggerInstance.Msg($"A new version " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ", updating");
                                         LoggerInstance.Msg("Downloading file(s)");
+                                        MAUDownloadFilesAllowedAttribute downloadFilesAllowed = GetMAUDownloadFilesAllowedAttribute(mainAssembly);
                                         foreach (var retFile in data.Result.DownloadFiles)
                                         {
                                             var httpClient = new HttpClient();
@@ -632,20 +681,82 @@ namespace MelonAutoUpdater
                                             response.Wait();
                                             FileStream downloadedFile = null;
                                             string pathToSave = "";
-                                            string name = !string.IsNullOrEmpty(retFile.FileName) ? retFile.FileName : melonAssemblyInfo.Name;
+                                            string name = !string.IsNullOrEmpty(retFile.FileName) ? retFile.FileName : $"{melonAssemblyInfo.Name}-{MelonUtils.RandomString(7)}";
                                             try
                                             {
                                                 response.Result.EnsureSuccessStatusCode();
-                                                string _contentType = response.Result.Content.Headers.ContentType.MediaType;
+                                                string resContentType = response.Result.Content.Headers.ContentType.MediaType;
+                                                ContentType contentType;
                                                 if (!string.IsNullOrEmpty(retFile.ContentType))
                                                 {
-                                                    pathToSave = GetPathFromContentType(retFile.ContentType, name);
+                                                    bool parseSuccess = ContentType.TryParse(ContentType_Parse.MimeType, retFile.ContentType, out ContentType _contentType);
+                                                    if (parseSuccess)
+                                                    {
+                                                        contentType = _contentType;
+                                                        if (!string.IsNullOrEmpty(_contentType.Extension))
+                                                        {
+                                                            pathToSave = Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.{_contentType.Extension}");
+                                                        }
+                                                        else
+                                                        {
+                                                            LoggerInstance.Error("Content-Type is not associated with any file type, continuing without downloading & installing file");
+                                                            response.Dispose();
+                                                            httpClient.Dispose();
+                                                            continue;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        LoggerInstance.Error("Could not determine Content-Type, continuing without downloading & installing file");
+                                                        response.Dispose();
+                                                        httpClient.Dispose();
+                                                        continue;
+                                                    }
                                                 }
-                                                else if (_contentType != null)
+                                                else if (resContentType != null)
                                                 {
-                                                    pathToSave = GetPathFromContentType(_contentType, name);
+                                                    bool parseSuccess = ContentType.TryParse(ContentType_Parse.MimeType, resContentType, out ContentType _contentType);
+                                                    if (parseSuccess)
+                                                    {
+                                                        contentType = _contentType;
+                                                        if (!string.IsNullOrEmpty(_contentType.Extension))
+                                                        {
+                                                            pathToSave = Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.{_contentType.Extension}");
+                                                        }
+                                                        else
+                                                        {
+                                                            LoggerInstance.Error("Content-Type is not associated with any file type, continuing without downloading file");
+                                                            response.Dispose();
+                                                            httpClient.Dispose();
+                                                            continue;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        LoggerInstance.Error("Could not determine Content-Type, continuing without downloading file");
+                                                        response.Dispose();
+                                                        httpClient.Dispose();
+                                                        continue;
+                                                    }
                                                 }
-
+                                                else
+                                                {
+                                                    LoggerInstance.Error("No Content Type was provided, continuing without downloading file");
+                                                    response.Dispose();
+                                                    httpClient.Dispose();
+                                                    continue;
+                                                }
+                                                if (downloadFilesAllowed != null && contentType != null && !string.IsNullOrEmpty(retFile.FileName))
+                                                {
+                                                    string _fileName = Path.GetFileName(pathToSave);
+                                                    if (!string.IsNullOrEmpty(_fileName) && downloadFilesAllowed.AllowedFiles != null && downloadFilesAllowed.AllowedFiles.Any())
+                                                    {
+                                                        if (!downloadFilesAllowed.AllowedFiles.Contains(_fileName))
+                                                        {
+                                                            LoggerInstance.Msg($"{_fileName} was configured to not be downloaded & installed, aborting download");
+                                                        }
+                                                    }
+                                                }
                                                 var ms = response.Result.Content.ReadAsStreamAsync();
                                                 ms.Wait();
                                                 var fs = File.Create(pathToSave);
@@ -1009,6 +1120,8 @@ namespace MelonAutoUpdater
             }
 
             theme = ThemesCategory.GetValue<Theme>();
+
+            ContentType.Load();
 
             LoggerInstance.Msg("Load search extensions");
             FileInfo[] extFiles = Environment.Version.Major >= 6 ? net6ExtDir.GetFiles("*.dll") : net35ExtDir.GetFiles("*.dll");
