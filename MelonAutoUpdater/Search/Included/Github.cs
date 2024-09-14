@@ -24,6 +24,8 @@ namespace MelonAutoUpdater.Search.Included
 
         public override string Link => "https://github.com";
 
+        public override bool BruteCheckEnabled => true;
+
         /// <summary>
         /// This is used to prevent from rate-limiting the API
         /// </summary>
@@ -217,108 +219,88 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
             }
         }
 
-        public override Task<ModData> Search(string url, SemVersion currentVersion)
+        internal Task<ModData> Check(string author, string repo)
         {
-            Regex regex = new Regex(@"(?<=(?<=http:\/\/|https:\/\/)github.com\/)(.*?)(?>\/)(.*?)(?=\/|$)");
-            var match = regex.Match(url);
-            if (match.Success)
+            HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+            client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
+            if (!string.IsNullOrEmpty(AccessToken)) client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
+            if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
+            if (!disableGithubAPI)
             {
-                string[] split = match.Value.Split('/');
-                string packageName = split[1];
-                string namespaceName = split[0];
-                HttpClient client = new HttpClient();
-                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-                client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-                if (!string.IsNullOrEmpty(AccessToken)) client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
-                if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
-                if (!disableGithubAPI)
+                var response = client.GetAsync($"https://api.github.com/repos/{author}/{repo}/releases/latest", HttpCompletionOption.ResponseContentRead);
+                response.Wait();
+                if (response.Result.IsSuccessStatusCode)
                 {
-                    var response = client.GetAsync($"https://api.github.com/repos/{namespaceName}/{packageName}/releases/latest", HttpCompletionOption.ResponseContentRead);
-                    response.Wait();
-                    if (response.Result.IsSuccessStatusCode)
+                    if (response.Result.Headers.Contains("x-ratelimit-remaining")
+                        && response.Result.Headers.Contains("x-ratelimit-reset"))
                     {
-                        if (response.Result.Headers.Contains("x-ratelimit-remaining")
-                            && response.Result.Headers.Contains("x-ratelimit-reset"))
+                        int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
+                        long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
+                        if (remaining <= 10)
                         {
-                            int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                            long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
-                            if (remaining <= 10)
-                            {
-                                Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
-                                githubResetDate = reset;
-                                disableGithubAPI = true;
-                            }
+                            Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
+                            githubResetDate = reset;
+                            disableGithubAPI = true;
                         }
-                        Task<string> body = response.Result.Content.ReadAsStringAsync();
-                        body.Wait();
-                        if (body.Result != null)
+                    }
+                    Task<string> body = response.Result.Content.ReadAsStringAsync();
+                    body.Wait();
+                    if (body.Result != null)
+                    {
+                        var data = JSON.Load(body.Result);
+                        string version = (string)data["tag_name"];
+                        List<FileData> downloadURLs = new List<FileData>();
+
+                        foreach (var file in data["assets"] as ProxyArray)
                         {
-                            var data = JSON.Load(body.Result);
-                            string version = (string)data["tag_name"];
-                            List<FileData> downloadURLs = new List<FileData>();
-
-                            foreach (var file in data["assets"] as ProxyArray)
-                            {
-                                downloadURLs.Add(new FileData() { URL = (string)file["browser_download_url"], ContentType = (string)file["content_type"], FileName = Path.GetFileNameWithoutExtension((string)file["browser_download_url"]) });
-                            }
-
-                            client.Dispose();
-                            response.Dispose();
-                            body.Dispose();
-                            if (version.StartsWith("v"))
-                            {
-                                version = version.Substring(1);
-                            }
-                            bool isSemVerSuccess = SemVersion.TryParse(version, out SemVersion semver);
-                            if (!isSemVerSuccess)
-                            {
-                                Logger.Error($"Failed to parse version");
-                                return Empty();
-                            }
-                            return Task.Factory.StartNew(() => new ModData()
-                            {
-                                LatestVersion = semver,
-                                DownloadFiles = downloadURLs,
-                            });
+                            downloadURLs.Add(new FileData() { URL = (string)file["browser_download_url"], ContentType = (string)file["content_type"], FileName = Path.GetFileNameWithoutExtension((string)file["browser_download_url"]) });
                         }
-                        else
+
+                        client.Dispose();
+                        response.Dispose();
+                        body.Dispose();
+                        if (version.StartsWith("v"))
                         {
-                            Logger.Error("Github API returned no body, unable to fetch package information");
-
-                            client.Dispose();
-                            response.Dispose();
-                            body.Dispose();
-
+                            version = version.Substring(1);
+                        }
+                        bool isSemVerSuccess = SemVersion.TryParse(version, out SemVersion semver);
+                        if (!isSemVerSuccess)
+                        {
+                            Logger.Error($"Failed to parse version");
                             return Empty();
                         }
+                        return Task.Factory.StartNew(() => new ModData()
+                        {
+                            LatestVersion = semver,
+                            DownloadFiles = downloadURLs,
+                        });
                     }
                     else
                     {
-                        if (response.Result.Headers.Contains("x-ratelimit-remaining")
-                           && response.Result.Headers.Contains("x-ratelimit-reset")
-                           && response.Result.Headers.Contains("x-ratelimit-limit"))
+                        Logger.Error("Github API returned no body, unable to fetch package information");
+
+                        client.Dispose();
+                        response.Dispose();
+                        body.Dispose();
+
+                        return Empty();
+                    }
+                }
+                else
+                {
+                    if (response.Result.Headers.Contains("x-ratelimit-remaining")
+                       && response.Result.Headers.Contains("x-ratelimit-reset")
+                       && response.Result.Headers.Contains("x-ratelimit-limit"))
+                    {
+                        int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
+                        int limit = int.Parse(response.Result.Headers.GetValues("x-ratelimit-limit").First());
+                        long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
+                        if (remaining <= 0)
                         {
-                            int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                            int limit = int.Parse(response.Result.Headers.GetValues("x-ratelimit-limit").First());
-                            long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
-                            if (remaining <= 0)
-                            {
-                                Logger.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
-                                githubResetDate = reset;
-                                disableGithubAPI = true;
-                            }
-                            else
-                            {
-                                if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
-                                {
-                                    Logger.Warning("Github API could not find the mod/plugin");
-                                }
-                                else
-                                {
-                                    Logger.Error
-                                        ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                                }
-                            }
+                            Logger.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
+                            githubResetDate = reset;
+                            disableGithubAPI = true;
                         }
                         else
                         {
@@ -332,19 +314,51 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                     ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
                             }
                         }
-                        client.Dispose();
-                        response.Dispose();
-
-                        return Empty();
                     }
-                }
-                else
-                {
-                    Logger.Warning(
-                         "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
+                    else
+                    {
+                        if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            Logger.Warning("Github API could not find the mod/plugin");
+                        }
+                        else
+                        {
+                            Logger.Error
+                                ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
+                        }
+                    }
+                    client.Dispose();
+                    response.Dispose();
+
+                    return Empty();
                 }
             }
+            else
+            {
+                Logger.Warning(
+                     "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
+            }
+
             return Empty();
+        }
+
+        public override Task<ModData> Search(string url, SemVersion currentVersion)
+        {
+            Regex regex = new Regex(@"(?<=(?<=http:\/\/|https:\/\/)github.com\/)(.*?)(?>\/)(.*?)(?=\/|$)");
+            var match = regex.Match(url);
+            if (match.Success)
+            {
+                string[] split = match.Value.Split('/');
+                string packageName = split[1];
+                string namespaceName = split[0];
+                Check(namespaceName, packageName);
+            }
+            return Empty();
+        }
+
+        public override Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
+        {
+            return Check(author, name);
         }
     }
 }
