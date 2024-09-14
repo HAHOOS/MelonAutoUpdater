@@ -41,7 +41,7 @@ namespace MelonAutoUpdater
             StreamReader streamReader = new StreamReader(stream);
             string text_json = streamReader.ReadToEnd();
             _db = new MimeTypeDB() { mimeTypes = JSON.Load(text_json).Make<Dictionary<string, MimeType>>() };
-            Core.logger.Msg($"Successfully loaded {_db.mimeTypes.Count} Mime-Types!");
+            Core.logger.Msg($"Successfully loaded {_db.mimeTypes.Count} Mime-Types with {_db.mimeTypes.Where(x => x.Value.extensions != null).Count()} of them having a file extension associated!");
         }
 
         public static ContentType Parse(ContentType_Parse type, string value)
@@ -85,12 +85,13 @@ namespace MelonAutoUpdater
         {
             try
             {
-                ContentType _contentType = ContentType.Parse(type, value);
+                ContentType _contentType = Parse(type, value);
                 contentType = _contentType;
                 return true;
             }
             catch (Exception e)
             {
+                Core.logger.Error(e);
                 contentType = null;
                 return false;
             }
@@ -108,14 +109,27 @@ namespace MelonAutoUpdater.JSONObjects
 {
     public class MimeType
     {
-        public string source { get; private set; }
-        public string charset { get; private set; }
-        public string[] extensions { get; private set; }
-        public bool compressible { get; private set; }
+#pragma warning disable IDE1006 // Naming Styles
+
+        [Include]
+        public string source { get; internal set; }
+
+        [Include]
+        public string charset { get; internal set; }
+
+        [Include]
+        public string[] extensions { get; internal set; }
+
+        [Include]
+        public bool compressible { get; internal set; }
+
+#pragma warning restore IDE1006 // Naming Styles
     }
 
     public class MimeTypeDB
     {
+#pragma warning disable IDE1006 // Naming Styles
         public Dictionary<string, MimeType> mimeTypes { get; internal set; }
+#pragma warning restore IDE1006 // Naming Styles
     }
 }

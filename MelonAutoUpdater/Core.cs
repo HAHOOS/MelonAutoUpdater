@@ -15,7 +15,7 @@ using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
 using MelonAutoUpdater.Attributes;
-using System.Net.Mime;
+using Harmony;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
@@ -418,9 +418,22 @@ namespace MelonAutoUpdater
             return FileType.Other;
         }
 
+        internal string GetDirName(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                var info = new DirectoryInfo(path);
+                if (info != null)
+                {
+                    return info.Name;
+                }
+            }
+            return path;
+        }
+
         internal void ReplaceAllFiles(string path, string directory, string mainDirectoryName)
         {
-            string prefix = string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{Path.GetDirectoryName(directory)}" : Path.GetDirectoryName(directory);
+            string prefix = (string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{GetDirName(directory)}" : GetDirName(directory)).Pastel(Color.Cyan);
             foreach (string file in Directory.GetFiles(path))
             {
                 LoggerInstance.Msg($"[{prefix}] {Path.GetFileName(file)} found, copying file to folder");
@@ -438,16 +451,16 @@ namespace MelonAutoUpdater
             }
             foreach (string dir in Directory.GetDirectories(path))
             {
-                LoggerInstance.Msg($"[{prefix}] Found folder {Path.GetDirectoryName(dir)}, going through files");
+                LoggerInstance.Msg($"[{prefix}] Found folder {GetDirName(dir)}, going through files");
                 try
                 {
-                    string _path = Path.Combine(directory, Path.GetDirectoryName(dir));
+                    string _path = Path.Combine(directory, GetDirName(dir));
                     if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
                     ReplaceAllFiles(dir, _path, prefix);
                 }
                 catch (Exception ex)
                 {
-                    LoggerInstance.Error($"[{prefix}] Failed to copy folder {Path.GetDirectoryName(dir)}, exception thrown:\n{ex.Message}\n{ex.StackTrace}");
+                    LoggerInstance.Error($"[{prefix}] Failed to copy folder {GetDirName(dir)}, exception thrown:\n{ex.Message}\n{ex.StackTrace}");
                 }
             }
         }
@@ -596,14 +609,76 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
+        /// Installs mod/plugin from path
+        /// </summary>
+        /// <param name="path">Path of mod/plugin</param>
+        /// <returns>A tuple, success and threwError, self explanatory</returns>
+        internal (bool success, bool threwError) InstallPackage(string path)
+        {
+            bool success = false;
+            bool threwError = false;
+            string fileName = Path.GetFileName(path);
+            AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(path);
+            FileType _fileType = GetFileType(_assembly);
+            if (_fileType == FileType.MelonMod)
+            {
+                try
+                {
+                    LoggerInstance.Msg("Installing mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
+                    if (!CheckCompability(_assembly)) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
+#pragma warning disable CS0618 // Type or member is obsolete
+                    string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(path));
+#pragma warning restore CS0618 // Type or member is obsolete
+                    if (!File.Exists(_path)) File.Move(path, _path);
+                    else File.Replace(path, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                    success = true;
+                    LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
+                }
+                catch (Exception ex)
+                {
+                    LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                    threwError = true;
+                    success = false;
+                }
+            }
+            else if (_fileType == FileType.MelonPlugin)
+            {
+                try
+                {
+                    LoggerInstance.Msg("Installing plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
+                    if (!CheckCompability(_assembly)) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
+#pragma warning disable CS0618 // Type or member is obsolete
+                    string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
+                    string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(path));
+#pragma warning restore CS0618 // Type or member is obsolete
+                    if (!File.Exists(_path)) File.Move(path, _path);
+                    else File.Replace(path, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                    //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
+                    LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
+                    LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
+                    success = true;
+                }
+                catch (Exception ex)
+                {
+                    LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                    threwError = true;
+                    success = false;
+                }
+            }
+            else
+            {
+                LoggerInstance.Msg($"Not extracting {Path.GetFileName(path)}, because it does not have the Melon Info Attribute");
+            }
+            return (success, threwError);
+        }
+
+        /// <summary>
         /// Check directory for mods & plugins that can be updated
         /// </summary>
         /// <param name="directory">Path to the directory</param>
         /// <param name="automatic">If true, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
         internal void CheckDirectory(string directory, bool automatic = true)
         {
-            Color newLineColor = (Color)new ColorConverter().ConvertFromString(theme.LineColor);
-
             List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
 
             List<string> ignore = GetEntryValue<List<string>>(Entry_ignore);
@@ -625,12 +700,11 @@ namespace MelonAutoUpdater
                     {
                         LoggerInstance.Msg($"{fileName} is in ignore list, removing from update list");
                         fileNameIgnore.Add(fileName);
-                        return;
                     }
                 }
             });
             files.RemoveAll(x => fileNameIgnore.Contains(x));
-            LoggerInstance.Msg("------------------------------".Pastel(newLineColor));
+            LoggerInstance.Msg(ColorTranslator.FromHtml(theme.LineColor), "------------------------------");
             foreach (string path in files)
             {
                 AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
@@ -640,10 +714,10 @@ namespace MelonAutoUpdater
                 if (_ignore)
                 {
                     LoggerInstance.Msg($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
-                    LoggerInstance.Msg(theme.LineColor, "------------------------------");
+                    LoggerInstance.Msg(ColorTranslator.FromHtml(theme.LineColor), "------------------------------");
                     continue;
                 }
-                LoggerInstance.Msg($"Checking {fileName.Pastel(theme.FileNameColor)}");
+                LoggerInstance.Msg($"File: {fileName.Pastel(theme.FileNameColor)}");
                 FileType fileType = GetFileType(melonAssemblyInfo);
                 if (fileType != FileType.Other)
                 {
@@ -689,6 +763,7 @@ namespace MelonAutoUpdater
                                                 ContentType contentType;
                                                 if (!string.IsNullOrEmpty(retFile.ContentType))
                                                 {
+                                                    LoggerInstance.Msg(retFile.ContentType);
                                                     bool parseSuccess = ContentType.TryParse(ContentType_Parse.MimeType, retFile.ContentType, out ContentType _contentType);
                                                     if (parseSuccess)
                                                     {
@@ -715,6 +790,7 @@ namespace MelonAutoUpdater
                                                 }
                                                 else if (resContentType != null)
                                                 {
+                                                    LoggerInstance.Msg(resContentType);
                                                     bool parseSuccess = ContentType.TryParse(ContentType_Parse.MimeType, resContentType, out ContentType _contentType);
                                                     if (parseSuccess)
                                                     {
@@ -782,14 +858,13 @@ namespace MelonAutoUpdater
                                                 int success = 0;
                                                 if (Path.GetExtension(pathToSave) == ".zip")
                                                 {
-                                                    LoggerInstance.Msg("Downloaded file is a ZIP file, extracting files...");
+                                                    LoggerInstance.Msg("File is a ZIP, extracting files...");
                                                     string extractPath = Path.Combine(tempFilesPath, name.Replace(" ", "-"));
                                                     try
                                                     {
                                                         Task<bool> unzipTask = UnzipFromStream(File.OpenRead(pathToSave), extractPath);
                                                         unzipTask.Wait();
-                                                        LoggerInstance.Msg("Successfully extracted files!");
-                                                        LoggerInstance.Msg("Installing content to MelonLoader");
+                                                        LoggerInstance.Msg("Successfully extracted files! Installing content..");
                                                         downloadedFile.Dispose();
                                                     }
                                                     catch (Exception ex)
@@ -801,62 +876,22 @@ namespace MelonAutoUpdater
                                                         foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
                                                         foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
                                                     }
+                                                    Console.ReadKey();
                                                     var extractedFiles = Directory.GetFiles(extractPath).ToList();
                                                     Directory.GetDirectories(extractPath).ToList().ForEach((x) => extractedFiles.Add(x));
                                                     foreach (string extPath in extractedFiles)
                                                     {
                                                         if (Directory.Exists(extPath))
                                                         {
-                                                            string dirName = Path.GetDirectoryName(extPath);
+                                                            string dirName = GetDirName(extPath);
                                                             if (dirName == "Mods" || dirName == "Plugins")
                                                             {
                                                                 foreach (var fPath in Directory.GetFiles(extPath, "*.dll"))
                                                                 {
-                                                                    AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(fPath);
-                                                                    FileType _fileType = GetFileType(_assembly);
-                                                                    if (_fileType == FileType.MelonMod)
-                                                                    {
-                                                                        try
-                                                                        {
-                                                                            LoggerInstance.Msg("Installing mod file " + Path.GetFileName(fPath).Pastel(theme.FileNameColor));
-                                                                            if (!CheckCompability(_assembly)) continue;
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                                            string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(fPath));
-#pragma warning restore CS0618 // Type or member is obsolete
-                                                                            if (!File.Exists(_path)) File.Move(fPath, _path);
-                                                                            else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                                            success += 1;
-                                                                            LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(fPath).Pastel(theme.FileNameColor));
-                                                                        }
-                                                                        catch (Exception ex)
-                                                                        {
-                                                                            LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
-                                                                            failed += 1;
-                                                                        }
-                                                                    }
-                                                                    else if (_fileType == FileType.MelonPlugin)
-                                                                    {
-                                                                        try
-                                                                        {
-                                                                            LoggerInstance.Msg("Installing plugin file " + Path.GetFileName(fPath).Pastel(theme.FileNameColor));
-                                                                            if (!CheckCompability(_assembly)) { _assembly.Dispose(); continue; }
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                                            string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
-                                                                            string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(fPath));
-#pragma warning restore CS0618 // Type or member is obsolete
-                                                                            if (!File.Exists(_path)) File.Move(fPath, _path);
-                                                                            else File.Replace(fPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(_path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                                            //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
-                                                                            LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
-                                                                            LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(fPath).Pastel(theme.FileNameColor));
-                                                                            success += 1;
-                                                                        }
-                                                                        catch (Exception ex)
-                                                                        {
-                                                                            LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
-                                                                            failed += 1;
-                                                                        }
-                                                                    }
+                                                                    var res = InstallPackage(fPath);
+                                                                    if (res.threwError) threwError = true;
+                                                                    if (res.success) success += 1;
+                                                                    else failed += 1;
                                                                 }
                                                             }
                                                             else
@@ -869,57 +904,10 @@ namespace MelonAutoUpdater
                                                         }
                                                         else if (Path.GetExtension(extPath) == ".dll")
                                                         {
-                                                            AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(extPath);
-                                                            FileType _fileType = GetFileType(_assembly);
-                                                            if (_fileType == FileType.MelonMod)
-                                                            {
-                                                                try
-                                                                {
-                                                                    LoggerInstance.Msg("Installing mod file " + Path.GetFileName(extPath).Pastel(theme.FileNameColor));
-                                                                    if (!CheckCompability(_assembly)) { _assembly.Dispose(); continue; }
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                                    string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(extPath));
-#pragma warning restore CS0618 // Type or member is obsolete
-                                                                    if (!File.Exists(_path)) File.Move(extPath, _path);
-                                                                    else File.Replace(extPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                                    success += 1;
-                                                                    LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(extPath).Pastel(theme.FileNameColor));
-                                                                }
-                                                                catch (Exception ex)
-                                                                {
-                                                                    LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
-                                                                    threwError = true;
-                                                                    failed += 1;
-                                                                }
-                                                            }
-                                                            else if (_fileType == FileType.MelonPlugin)
-                                                            {
-                                                                try
-                                                                {
-                                                                    LoggerInstance.Msg("Installing plugin file " + Path.GetFileName(extPath).Pastel(theme.FileNameColor));
-                                                                    if (!CheckCompability(_assembly)) { _assembly.Dispose(); continue; }
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                                    string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
-                                                                    string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(extPath));
-#pragma warning restore CS0618 // Type or member is obsolete
-                                                                    if (!File.Exists(_path)) File.Move(extPath, _path);
-                                                                    else File.Replace(extPath, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                                    //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
-                                                                    LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
-                                                                    LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(extPath).Pastel(theme.FileNameColor));
-                                                                    success += 1;
-                                                                }
-                                                                catch (Exception ex)
-                                                                {
-                                                                    LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
-                                                                    threwError = true;
-                                                                    failed += 1;
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                LoggerInstance.Msg($"Not extracting {Path.GetFileName(extPath)}, because it does not have the Melon Info Attribute");
-                                                            }
+                                                            var res = InstallPackage(extPath);
+                                                            if (res.threwError) threwError = true;
+                                                            if (res.success) success += 1;
+                                                            else failed += 1;
                                                         }
                                                     }
                                                     Directory.Delete(extractPath, true);
@@ -928,57 +916,10 @@ namespace MelonAutoUpdater
                                                 else if (Path.GetExtension(pathToSave) == ".dll")
                                                 {
                                                     LoggerInstance.Msg("Downloaded file is a DLL file, installing content...");
-                                                    AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(pathToSave);
-                                                    FileType _fileType = GetFileType(_assembly);
-                                                    if (_fileType == FileType.MelonMod)
-                                                    {
-                                                        try
-                                                        {
-                                                            LoggerInstance.Msg("Installing mod file " + Path.GetFileName(pathToSave).Pastel(theme.FileNameColor));
-                                                            if (!CheckCompability(_assembly)) { _assembly.Dispose(); continue; }
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                            string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(pathToSave));
-#pragma warning restore CS0618 // Type or member is obsolete
-                                                            if (!File.Exists(_path)) File.Move(pathToSave, _path);
-                                                            else File.Replace(pathToSave, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                            success += 1;
-                                                            LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(pathToSave).Pastel(theme.FileNameColor));
-                                                        }
-                                                        catch (Exception ex)
-                                                        {
-                                                            LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
-                                                            threwError = true;
-                                                            failed += 1;
-                                                        }
-                                                    }
-                                                    else if (_fileType == FileType.MelonPlugin)
-                                                    {
-                                                        try
-                                                        {
-                                                            LoggerInstance.Msg("Installing plugin file " + Path.GetFileName(pathToSave).Pastel(theme.FileNameColor));
-                                                            if (!CheckCompability(_assembly)) { _assembly.Dispose(); continue; }
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                            string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
-                                                            string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(pathToSave));
-#pragma warning restore CS0618 // Type or member is obsolete
-                                                            if (!File.Exists(_path)) File.Move(pathToSave, _path);
-                                                            else File.Replace(pathToSave, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                                                            //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
-                                                            LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
-                                                            LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(pathToSave).Pastel(theme.FileNameColor));
-                                                            success += 1;
-                                                        }
-                                                        catch (Exception ex)
-                                                        {
-                                                            LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
-                                                            threwError = true;
-                                                            failed += 1;
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        LoggerInstance.Msg($"Not extracting {Path.GetFileName(pathToSave)}, because it does not have the Melon Info Attribute");
-                                                    }
+                                                    var res = InstallPackage(pathToSave);
+                                                    if (res.threwError) threwError = true;
+                                                    if (res.success) success += 1;
+                                                    else failed += 1;
                                                 }
                                                 else
                                                 {
@@ -988,8 +929,8 @@ namespace MelonAutoUpdater
                                                     threwError
                                                     ? $"Failed to update {assemblyName}".Pastel(Color.Red)
                                                     : success + failed > 0
-                                                    ? $"Updated {assemblyName} from {currentVersion.ToString().Pastel(theme.OldVersionColor)} --> " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + ", " + $"({success}/{success + failed})".Pastel(theme.DownloadCountColor) + " installed successfully"
-                                                    : "No files were downloaded, update unsuccessful".Pastel(Color.Yellow)
+                                                    ? $"Updated {assemblyName.Pastel(theme.FileNameColor)} from " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + " --> " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + ", " + $"({success}/{success + failed})".Pastel(theme.DownloadCountColor) + " installed successfully"
+                                                    : "No mods and/or plugins were installed".Pastel(Color.Yellow)
                                                     );
                                             }
                                             else
@@ -1007,11 +948,11 @@ namespace MelonAutoUpdater
                                 {
                                     if (data.Result.LatestVersion == currentVersion)
                                     {
-                                        LoggerInstance.Msg(theme.UpToDateVersionColor, "Version is up-to-date!");
+                                        LoggerInstance.Msg(ColorTranslator.FromHtml(theme.UpToDateVersionColor), "Version is up-to-date!");
                                     }
                                     else if (data.Result.LatestVersion < currentVersion)
                                     {
-                                        LoggerInstance.Msg(theme.UpToDateVersionColor, "Current version is newer than in the API");
+                                        LoggerInstance.Msg(ColorTranslator.FromHtml(theme.UpToDateVersionColor), "Current version is newer than in the API");
                                     }
                                 }
                             }
@@ -1022,7 +963,7 @@ namespace MelonAutoUpdater
                 {
                     LoggerInstance.Warning($"{fileName} does not seem to be a MelonLoader Mod");
                 }
-                LoggerInstance.Msg(theme.LineColor, "------------------------------");
+                LoggerInstance.Msg(ColorTranslator.FromHtml(theme.LineColor), "------------------------------");
             }
         }
 
