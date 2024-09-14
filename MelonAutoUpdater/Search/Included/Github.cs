@@ -53,10 +53,11 @@ namespace MelonAutoUpdater.Search.Included
             entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
                 description: "Access Token used to make authenticated requests (Do not edit if you do not know what you're doing)");
 
+            category.SaveToFile();
+
             Logger.Msg("Checking if Access Token exists");
 
             var use = GetEntryValue<bool>(entry_useDeviceFlow);
-            Logger.Msg(use);
             if (use)
             {
                 var accessToken = GetEntryValue<string>(entry_accessToken);
@@ -68,7 +69,6 @@ namespace MelonAutoUpdater.Search.Included
                 else
                 {
                     Logger.Msg("Requesting Device Flow");
-                    string scopes = "read:user";
                     HttpClient client = new HttpClient();
                     client.DefaultRequestHeaders.Add("Accept", "application/json");
                     client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
@@ -76,15 +76,14 @@ namespace MelonAutoUpdater.Search.Included
                     response.Wait();
                     if (response.Result.IsSuccessStatusCode)
                     {
-                        Logger.Msg("Success");
                         Task<string> body = response.Result.Content.ReadAsStringAsync();
                         body.Wait();
                         if (body.Result != null)
                         {
-                            var data = JSON.Load(body.Result);
+                            var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
                             Logger.Msg($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
 
-Go to {data["verification_uri"].ToString().Pastel(Color.Blue)} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
+Go to {data["verification_uri"].ToString().Pastel(Color.Cyan)} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
 You have {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes to enter the code before it expires!
 Press any key to continue, press N to continue without using authenticated requests (You will be limited to 60 requests, instead of 1000)
 
@@ -102,6 +101,8 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                     if (key.KeyChar.ToString().ToLower() == "N".ToLower())
                                     {
                                         Logger.Msg("Aborting Device Flow request");
+                                        client.Dispose();
+                                        response.Dispose();
                                         return;
                                     }
                                     else
@@ -115,11 +116,10 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                             _body.Wait();
                                             if (_body.Result != null)
                                             {
-                                                Logger.Msg(_body.Result);
-                                                var _data = JSON.Load(_body.Result);
+                                                var _data = JSON.Load(_body.Result).Make<Dictionary<string, string>>();
                                                 if (_data != null)
                                                 {
-                                                    if (_data["error"] != null)
+                                                    if (_data.ContainsKey("error"))
                                                     {
                                                         if (_data["error"] == "authorization_pending")
                                                         {
@@ -131,10 +131,17 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                                             return;
                                                         }
                                                     }
-                                                    else if (_data["access_token"] != null)
+                                                    else if (_data.ContainsKey("access_token"))
                                                     {
                                                         entry_accessToken.BoxedValue = _data["access_token"].ToString();
                                                         AccessToken = _data["access_token"].ToString();
+                                                        category.SaveToFile();
+                                                        Logger.Msg("Successfully retrieved access token".Pastel(Color.LawnGreen));
+
+                                                        client.Dispose();
+                                                        res.Dispose();
+                                                        response.Dispose();
+
                                                         return;
                                                     }
                                                 }
@@ -186,8 +193,8 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
             if (match.Success)
             {
                 string[] split = match.Value.Split('/');
-                string packageName = split[0];
-                string namespaceName = split[1];
+                string packageName = split[1];
+                string namespaceName = split[0];
                 HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
                 client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
@@ -199,13 +206,17 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                     response.Wait();
                     if (response.Result.IsSuccessStatusCode)
                     {
-                        int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                        long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
-                        if (remaining <= 10)
+                        if (response.Result.Headers.Contains("x-ratelimit-remaining")
+                            && response.Result.Headers.Contains("x-ratelimit-reset"))
                         {
-                            Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
-                            githubResetDate = reset;
-                            disableGithubAPI = true;
+                            int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
+                            long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
+                            if (remaining <= 10)
+                            {
+                                Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
+                                githubResetDate = reset;
+                                disableGithubAPI = true;
+                            }
                         }
                         Task<string> body = response.Result.Content.ReadAsStringAsync();
                         body.Wait();
@@ -223,11 +234,15 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                             client.Dispose();
                             response.Dispose();
                             body.Dispose();
+                            if (version.StartsWith("v"))
+                            {
+                                version = version.Substring(1);
+                            }
                             bool isSemVerSuccess = SemVersion.TryParse(version, out SemVersion semver);
                             if (!isSemVerSuccess)
                             {
                                 Logger.Error($"Failed to parse version");
-                                return null;
+                                return Empty();
                             }
                             return Task.Factory.StartNew(() => new ModData()
                             {
@@ -243,19 +258,36 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                             response.Dispose();
                             body.Dispose();
 
-                            return null;
+                            return Empty();
                         }
                     }
                     else
                     {
-                        int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                        int limit = int.Parse(response.Result.Headers.GetValues("x-ratelimit-limit").First());
-                        long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
-                        if (remaining <= 0)
+                        if (response.Result.Headers.Contains("x-ratelimit-remaining")
+                           && response.Result.Headers.Contains("x-ratelimit-reset")
+                           && response.Result.Headers.Contains("x-ratelimit-limit"))
                         {
-                            Logger.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
-                            githubResetDate = reset;
-                            disableGithubAPI = true;
+                            int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
+                            int limit = int.Parse(response.Result.Headers.GetValues("x-ratelimit-limit").First());
+                            long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
+                            if (remaining <= 0)
+                            {
+                                Logger.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
+                                githubResetDate = reset;
+                                disableGithubAPI = true;
+                            }
+                            else
+                            {
+                                if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
+                                {
+                                    Logger.Warning("Github API could not find the mod/plugin");
+                                }
+                                else
+                                {
+                                    Logger.Error
+                                        ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
+                                }
+                            }
                         }
                         else
                         {
@@ -272,7 +304,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                         client.Dispose();
                         response.Dispose();
 
-                        return null;
+                        return Empty();
                     }
                 }
                 else
@@ -281,7 +313,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                          "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
                 }
             }
-            return null;
+            return Empty();
         }
     }
 }

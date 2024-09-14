@@ -301,7 +301,9 @@ namespace MelonAutoUpdater
             if (string.IsNullOrEmpty(downloadLink))
             {
                 LoggerInstance.Msg("No download link was provided with the mod");
-                return null;
+                TaskCompletionSource<ModData> _res = new TaskCompletionSource<ModData>();
+                _res.SetResult(null);
+                return _res.Task;
             }
             foreach (var ext in extensions)
             {
@@ -309,7 +311,7 @@ namespace MelonAutoUpdater
                 ext.Setup();
                 var result = ext.Search(downloadLink, currentVersion);
                 result.Wait();
-                if (result.Result == null)
+                if (result == null || result.Result == null)
                 {
                     LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                 }
@@ -319,8 +321,9 @@ namespace MelonAutoUpdater
                     return result;
                 }
             }
-
-            return null;
+            TaskCompletionSource<ModData> res = new TaskCompletionSource<ModData>();
+            res.SetResult(null);
+            return res.Task;
         }
 
         /// <summary>
@@ -334,7 +337,9 @@ namespace MelonAutoUpdater
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author))
             {
                 LoggerInstance.Msg("Name/Author was not provided with the mod");
-                return null;
+                TaskCompletionSource<ModData> _res = new TaskCompletionSource<ModData>();
+                _res.SetResult(null);
+                return _res.Task;
             }
             foreach (var ext in extensions)
             {
@@ -357,7 +362,9 @@ namespace MelonAutoUpdater
                 }
             }
 
-            return null;
+            TaskCompletionSource<ModData> res = new TaskCompletionSource<ModData>();
+            res.SetResult(null);
+            return res.Task;
         }
 
         /// <summary>
@@ -887,7 +894,14 @@ namespace MelonAutoUpdater
                                 }
                                 else
                                 {
-                                    LoggerInstance.Msg("Version is up-to-date!".Pastel(theme.UpToDateVersionColor));
+                                    if (data.Result.LatestVersion == currentVersion)
+                                    {
+                                        LoggerInstance.Msg(theme.UpToDateVersionColor, "Version is up-to-date!");
+                                    }
+                                    else if (data.Result.LatestVersion < currentVersion)
+                                    {
+                                        LoggerInstance.Msg(theme.UpToDateVersionColor, "Current version is newer than in the API");
+                                    }
                                 }
                             }
                         }
@@ -897,7 +911,7 @@ namespace MelonAutoUpdater
                 {
                     LoggerInstance.Warning($"{fileName} does not seem to be a MelonLoader Mod");
                 }
-                LoggerInstance.Msg("------------------------------".Pastel(newLineColor));
+                LoggerInstance.Msg(theme.LineColor, "------------------------------");
             }
         }
 

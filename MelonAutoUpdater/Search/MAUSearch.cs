@@ -149,6 +149,13 @@ namespace MelonAutoUpdater.Search
         /// <returns><see langword="SemVersion"/> of current MAU version</returns>
         public static string GetMAUVersion() => Core.Version;
 
+        public static Task<ModData> Empty()
+        {
+            TaskCompletionSource<ModData> taskCompletionSource = new TaskCompletionSource<ModData>();
+            taskCompletionSource.SetResult(null);
+            return taskCompletionSource.Task;
+        }
+
         #endregion Helper
 
         #region Static Methods

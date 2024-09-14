@@ -114,7 +114,9 @@ namespace MelonAutoUpdater.Search.Included
                         if (remaining <= 10)
                         {
                             Logger.Warning("To protect you from a possible rate limit, the usage of the API will be disabled until reset");
-                            return null;
+                            TaskCompletionSource<HttpResponseMessage> _res = new TaskCompletionSource<HttpResponseMessage>();
+                            _res.SetResult(null);
+                            return _res.Task;
                         }
                     }
                     client.Dispose();
@@ -140,7 +142,9 @@ namespace MelonAutoUpdater.Search.Included
                     return Task.Factory.StartNew(() => response.Result);
                 }
             }
-            return null;
+            TaskCompletionSource<HttpResponseMessage> res = new TaskCompletionSource<HttpResponseMessage>();
+            res.SetResult(null);
+            return res.Task;
         }
 
         public override Task<ModData> Search(string url, SemVersion currentVersion)
@@ -209,7 +213,7 @@ namespace MelonAutoUpdater.Search.Included
                             else
                             {
                                 Logger.Error($"Failed to parse string '{body["version"]}' to Semversion");
-                                return null;
+                                return Empty();
                             }
                         }
                     }
@@ -259,9 +263,9 @@ namespace MelonAutoUpdater.Search.Included
                         }
                     };
                 }
-                return null;
+                return Empty();
             }
-            return null;
+            return Empty();
         }
     }
 }

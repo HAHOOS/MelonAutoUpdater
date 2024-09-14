@@ -59,7 +59,7 @@ namespace MelonAutoUpdater.Search.Included
                         if (!isSemVerSuccess)
                         {
                             Logger.Error($"Failed to parse version");
-                            return null;
+                            return Empty();
                         }
 
                         return Task.Factory.StartNew<ModData>(() => new ModData()
@@ -76,7 +76,7 @@ namespace MelonAutoUpdater.Search.Included
                         response.Dispose();
                         body.Dispose();
 
-                        return null;
+                        return Empty();
                     }
                 }
                 else
@@ -98,10 +98,10 @@ namespace MelonAutoUpdater.Search.Included
                     request.Dispose();
                     response.Dispose();
 
-                    return null;
+                    return Empty();
                 }
             }
-            return null;
+            return Empty();
         }
 
         public override Task<ModData> Search(string url, SemVersion currentVersion)
@@ -124,7 +124,7 @@ namespace MelonAutoUpdater.Search.Included
                 }
                 return Check(packageName, namespaceName);
             }
-            return null;
+            return Empty();
         }
 
         public override Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
