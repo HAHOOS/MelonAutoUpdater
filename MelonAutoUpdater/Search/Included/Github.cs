@@ -64,120 +64,151 @@ namespace MelonAutoUpdater.Search.Included
                 if (!string.IsNullOrEmpty(accessToken))
                 {
                     this.AccessToken = accessToken;
-                    Logger.Msg("Access Token Found");
-                }
-                else
-                {
-                    Logger.Msg("Requesting Device Flow");
-                    HttpClient client = new HttpClient();
-                    client.DefaultRequestHeaders.Add("Accept", "application/json");
-                    client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-                    var response = client.PostAsync($"https://github.com/login/device/code?client_id={ClientID}", null);
-                    response.Wait();
-                    if (response.Result.IsSuccessStatusCode)
+                    Logger.Msg("Access token found, validating");
+                    HttpClient client2 = new HttpClient();
+                    client2.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client2.DefaultRequestHeaders.Add("User-Agent", UserAgent);
+                    client2.DefaultRequestHeaders.Add("Authorization", "Bearer " + accessToken);
+                    var response2 = client2.GetAsync("https://api.github.com/user");
+                    response2.Wait();
+                    if (response2.Result.IsSuccessStatusCode)
                     {
-                        Task<string> body = response.Result.Content.ReadAsStringAsync();
-                        body.Wait();
-                        if (body.Result != null)
+                        Task<string> body2 = response2.Result.Content.ReadAsStringAsync();
+                        body2.Wait();
+                        if (body2.Result != null)
                         {
-                            var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
-                            Logger.Msg($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
+                            var data = JSON.Load(body2.Result).Make<Dictionary<string, string>>();
+                            Logger.Msg($"Successfully validated access token, belongs to {data["name"]} ({data["followers"]} Followers)");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        if (response2.Result.StatusCode == System.Net.HttpStatusCode.Unauthorized || response2.Result.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        {
+                            Logger.Warning("Access token expired or is incorrect");
+                        }
+                        else
+                        {
+                            Logger.Msg("Error");
+                            Logger.Error
+                                    ($"Failed to validate access token, returned {response2.Result.StatusCode} with following message:\n{response2.Result.ReasonPhrase}");
+                            client2.Dispose();
+                            response2.Dispose();
+                        }
+                    }
+                }
+                Logger.Msg("Requesting Device Flow");
+                HttpClient client = new HttpClient();
+                string scopes = "read:user";
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
+                var response = client.PostAsync($"https://github.com/login/device/code?client_id={ClientID}&scope={scopes}", null);
+                response.Wait();
+                if (response.Result.IsSuccessStatusCode)
+                {
+                    Task<string> body = response.Result.Content.ReadAsStringAsync();
+                    body.Wait();
+                    if (body.Result != null)
+                    {
+                        var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
+                        Logger.Msg($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
 
 Go to {data["verification_uri"].ToString().Pastel(Color.Cyan)} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
 You have {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes to enter the code before it expires!
 Press any key to continue, press N to continue without using authenticated requests (You will be limited to 60 requests, instead of 1000)
 
 If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/Config and open Github.json, in there set 'UseDeviceFlow' to false");
-                            bool canUse = true;
-                            while (true)
+                        bool canUse = true;
+                        while (true)
+                        {
+                            var key = Console.ReadKey(false);
+                            Logger.Msg(canUse);
+                            if (!canUse)
                             {
-                                if (!canUse)
+                                Logger.Msg("Cooldown!");
+                            }
+                            else
+                            {
+                                if (key.KeyChar.ToString().ToLower() == "N".ToLower())
                                 {
-                                    Logger.Msg("Cooldown!");
+                                    Logger.Msg("Aborting Device Flow request");
+                                    client.Dispose();
+                                    response.Dispose();
+                                    return;
                                 }
                                 else
                                 {
-                                    var key = Console.ReadKey(false);
-                                    if (key.KeyChar.ToString().ToLower() == "N".ToLower())
+                                    Logger.Msg("Checking if authorized");
+                                    var res = client.PostAsync($"https://github.com/login/oauth/access_token?client_id={ClientID}&device_code={data["device_code"]}&grant_type=urn:ietf:params:oauth:grant-type:device_code", null);
+                                    res.Wait();
+                                    if (res.Result.IsSuccessStatusCode)
                                     {
-                                        Logger.Msg("Aborting Device Flow request");
-                                        client.Dispose();
-                                        response.Dispose();
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        Logger.Msg("Checking if authorized");
-                                        var res = client.PostAsync($"https://github.com/login/oauth/access_token?client_id={ClientID}&device_code={data["device_code"]}&grant_type=urn:ietf:params:oauth:grant-type:device_code", null);
-                                        res.Wait();
-                                        if (res.Result.IsSuccessStatusCode)
+                                        Task<string> _body = res.Result.Content.ReadAsStringAsync();
+                                        _body.Wait();
+                                        if (_body.Result != null)
                                         {
-                                            Task<string> _body = res.Result.Content.ReadAsStringAsync();
-                                            _body.Wait();
-                                            if (_body.Result != null)
+                                            var _data = JSON.Load(_body.Result).Make<Dictionary<string, string>>();
+                                            if (_data != null)
                                             {
-                                                var _data = JSON.Load(_body.Result).Make<Dictionary<string, string>>();
-                                                if (_data != null)
+                                                if (_data.ContainsKey("error"))
                                                 {
-                                                    if (_data.ContainsKey("error"))
+                                                    if (_data["error"] == "authorization_pending")
                                                     {
-                                                        if (_data["error"] == "authorization_pending")
-                                                        {
-                                                            Logger.Msg("The plugin is not authorized!");
-                                                        }
-                                                        else
-                                                        {
-                                                            Logger.Error($"Unexpected error {_data["error"]}, description: {_data["error_description"]}");
-                                                            return;
-                                                        }
+                                                        Logger.Msg("The plugin is not authorized!");
                                                     }
-                                                    else if (_data.ContainsKey("access_token"))
+                                                    else
                                                     {
-                                                        entry_accessToken.BoxedValue = _data["access_token"].ToString();
-                                                        AccessToken = _data["access_token"].ToString();
-                                                        category.SaveToFile();
-                                                        Logger.Msg("Successfully retrieved access token".Pastel(Color.LawnGreen));
-
-                                                        client.Dispose();
-                                                        res.Dispose();
-                                                        response.Dispose();
-
+                                                        Logger.Error($"Unexpected error {_data["error"]}, description: {_data["error_description"]}");
                                                         return;
                                                     }
                                                 }
-                                                else
+                                                else if (_data.ContainsKey("access_token"))
                                                 {
-                                                    Logger.Warning("Missing required data from request");
+                                                    entry_accessToken.BoxedValue = _data["access_token"].ToString();
+                                                    AccessToken = _data["access_token"].ToString();
+                                                    category.SaveToFile();
+                                                    Logger.Msg("Successfully retrieved access token".Pastel(Color.LawnGreen));
+
+                                                    client.Dispose();
+                                                    res.Dispose();
+                                                    response.Dispose();
+
+                                                    return;
                                                 }
                                             }
                                             else
                                             {
-                                                Logger.Error
-                                                    ($"Failed to use Device Flow using Github, returned {res.Result.StatusCode} with following message:\n{res.Result.ReasonPhrase}");
+                                                Logger.Warning("Missing required data from request");
                                             }
                                         }
-                                    }
-                                    Task.Factory.StartNew(() =>
-                                    {
-                                        canUse = false;
-                                        Timer timer = new Timer((x) =>
+                                        else
                                         {
-                                            canUse = true;
-                                            return;
-                                        }, null, int.Parse(data["interval"]) * 1000, Timeout.Infinite);
-                                    });
+                                            Logger.Error
+                                                ($"Failed to use Device Flow using Github, returned {res.Result.StatusCode} with following message:\n{res.Result.ReasonPhrase}");
+                                        }
+                                    }
                                 }
+                                canUse = false;
+                                System.Timers.Timer timer = new System.Timers.Timer();
+                                timer.Interval = int.Parse(data["interval"]) * 1000;
+                                timer.Elapsed += (x, y) =>
+                                {
+                                    canUse = true;
+                                    timer.Stop();
+                                };
+                                timer.Start();
                             }
                         }
                     }
-                    else
-                    {
-                        Logger.Msg("Error");
-                        Logger.Error
-                                ($"Failed to use Device Flow using Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                        client.Dispose();
-                        response.Dispose();
-                    }
+                }
+                else
+                {
+                    Logger.Msg("Error");
+                    Logger.Error
+                            ($"Failed to use Device Flow using Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
+                    client.Dispose();
+                    response.Dispose();
                 }
             }
             else
