@@ -17,7 +17,7 @@ namespace MelonAutoUpdater
     }
 
     /// <summary>
-    /// Type of file, either MelonMod, MelonPlugin or Other
+    /// Type of file, either <see cref="MelonLoader.MelonMod"/>, <see cref="MelonLoader.MelonPlugin"/> or Other
     /// </summary>
     public enum FileType
     {

@@ -20,7 +20,7 @@ namespace MelonAutoUpdater
         public string MimeType { get; private set; }
 
         /// <summary>
-        /// Extension associated with the Mime Type, null if no extension was found to be associated with the Mime Type
+        /// Extension associated with the Mime Type, <see langword="null"/> if no extension was found to be associated with the Mime Type
         /// </summary>
         public string Extension { get; private set; }
 
@@ -44,6 +44,14 @@ namespace MelonAutoUpdater
             Core.logger.Msg($"Successfully loaded {_db.mimeTypes.Count} Mime-Types with {_db.mimeTypes.Where(x => x.Value.extensions != null).Count()} of them having a file extension associated!");
         }
 
+        /// <summary>
+        /// Parse mime type/file extension string to <see cref="ContentType"/>
+        /// </summary>
+        /// <param name="type">Way of parsing, either by Mime Type or File Extension</param>
+        /// <param name="value">The value to parse</param>
+        /// <returns><see cref="ContentType"/> of provided mime-type/file extension</returns>
+        /// <exception cref="KeyNotFoundException">Mime Type was not found</exception>
+        /// <exception cref="InvalidOperationException">An unknown <see cref="ContentType_Parse"/> enum was found</exception>
         public static ContentType Parse(ContentType_Parse type, string value)
         {
             if (type == ContentType_Parse.MimeType)
@@ -81,6 +89,15 @@ namespace MelonAutoUpdater
             throw new InvalidOperationException("Provided unrecognized ContentType_Parse Type");
         }
 
+        /// <summary>
+        /// Parse mime type/file extension string to <see cref="ContentType"/>
+        /// </summary>
+        /// <param name="type">Way of parsing, either by Mime Type or File Extension</param>
+        /// <param name="value">The value to parse</param>
+        /// <param name="contentType">The parsed <see cref="ContentType"/>, if not found, returns <see langword="null"/></param>
+        /// <returns><see langword="true"/>, if found, otherwise <see cref="false"/></returns>
+        /// <exception cref="KeyNotFoundException">Mime Type was not found</exception>
+        /// <exception cref="InvalidOperationException">An unknown <see cref="ContentType_Parse"/> enum was found</exception>
         public static bool TryParse(ContentType_Parse type, string value, out ContentType contentType)
         {
             try

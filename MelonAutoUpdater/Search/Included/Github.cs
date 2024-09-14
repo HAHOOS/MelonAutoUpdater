@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using MelonLoader;
 using System.Drawing;
-using System.Threading;
 
 namespace MelonAutoUpdater.Search.Included
 {

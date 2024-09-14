@@ -3,20 +3,20 @@
 namespace MelonAutoUpdater.Attributes
 {
     /// <summary>
-    /// Attribute that indicates whether an assembly is a MAU Search Extension or not
+    /// <see cref="Attribute"/> that indicates whether an assembly is a MAU Search Extension or not
     /// </summary>
     [AttributeUsage(AttributeTargets.Assembly)]
     public class IsMAUSearchExtensionAttribute : Attribute
     {
         /// <summary>
-        /// If true, assembly is a MAU Search Extension
+        /// If <see langword="true"/>, assembly is a MAU Search Extension
         /// </summary>
         public bool Value;
 
         /// <summary>
-        /// Creates a new instance of IsMAUSearchExtension Attribute
+        /// Creates a new instance of <see cref="IsMAUSearchExtensionAttribute"/> <see cref="Attribute" />
         /// </summary>
-        /// <param name="value">If true, assembly is a MAU Search Extension</param>
+        /// <param name="value">If <see langword="true"/>, <see cref="Attribute" /> is a MAU Search Extension</param>
         public IsMAUSearchExtensionAttribute(bool value = false) => Value = value;
     }
 }

@@ -70,7 +70,7 @@ namespace MelonAutoUpdater
         internal static Theme theme = new Theme();
 
         /// <summary>
-        /// Instance of MelonLogger
+        /// Instance of <see cref="MelonLogger"/>
         /// </summary>
         internal static MelonLogger.Instance logger;
 
@@ -194,11 +194,11 @@ namespace MelonAutoUpdater
             => !SemVersion.TryParse(version, out SemVersion ver) || IsCompatible(attribute, ver);
 
         /// <summary>
-        /// Copy a stream to a new one<br/>
+        /// Copy a <see cref="Stream"/> to a new one<br/>
         /// Made to work with net35
         /// </summary>
-        /// <param name="input">The stream u want to copy from</param>
-        /// <param name="output">The stream u want to copy to</param>
+        /// <param name="input">The <see cref="Stream"/> u want to copy from</param>
+        /// <param name="output">The <see cref="Stream"/> u want to copy to</param>
         [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         internal static Task<bool> CopyTo(Stream input, Stream output)
@@ -214,11 +214,11 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Copy a stream to a new one<br/>
+        /// Copy a <see cref="Stream"/> to a new one<br/>
         /// Made to work with net35
         /// </summary>
-        /// <param name="input">The stream u want to copy from</param>
-        /// <param name="output">The stream u want to copy to</param>
+        /// <param name="input">The <see cref="Stream"/> u want to copy from</param>
+        /// <param name="output">The <see cref="Stream"/> u want to copy to</param>
         internal static bool CopyToNotTask(Stream input, Stream output)
         {
             byte[] buffer = new byte[16 * 1024];
@@ -232,12 +232,12 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Unzip a file from stream<br/>
+        /// Unzip a file from <see cref="Stream"/><br/>
         /// Made to work with net35
         /// </summary>
-        /// <param name="zipStream">Stream of the ZIP File</param>
-        /// <param name="outFolder">Path to folder which will have the content of the zip/param>
-        /// <returns>A task</returns>
+        /// <param name="zipStream"><see cref="Stream"/> of the ZIP File</param>
+        /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip/param>
+        /// <returns>A <see cref="Task"/> that returns true if completed successfully</returns>
         internal static Task<bool> UnzipFromStream(Stream zipStream, string outFolder)
         {
             using (var zipInputStream = new ZipInputStream(zipStream))
@@ -272,7 +272,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 5000)</param>
         /// <param name="url">URL of the website used to check for connection (Default: <c>http://www.gstatic.com/generate_204</c>)</param>
-        /// <returns>If true, there's internet connection, otherwise not</returns>
+        /// <returns>If <see langword="true"/>, there's internet connection, otherwise not</returns>
         internal static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
         {
             try
@@ -295,8 +295,8 @@ namespace MelonAutoUpdater
         /// Get data about the mod from a downloadLink<br/>
         /// Currently Supported: Thunderstore, Github
         /// </summary>
-        /// <param name="downloadLink">Download Link, possibly included in the MelonInfoAttribute</param>
-        /// <returns>If found, returns a ModData object which includes the latest version of the mod online and the download link(s)</returns>
+        /// <param name="downloadLink">Download Link, possibly included in the <see cref="MelonInfoAttribute"/></param>
+        /// <returns>If found, returns a <see cref="ModData"/> object which includes the latest version of the mod online and the download link(s)</returns>
         internal Task<ModData> GetModData(string downloadLink, SemVersion currentVersion)
         {
             if (string.IsNullOrEmpty(downloadLink))
@@ -332,7 +332,7 @@ namespace MelonAutoUpdater
         /// Github is not supported in brute checking due to extremely strict rate limits
         /// Currently Supported: Thunderstore
         /// </summary>
-        /// <returns>If found, returns a ModData object which includes the latest version of the mod online and the download link(s)</returns>
+        /// <returns>If found, returns a <see cref="ModData"/> object which includes the latest version of the mod online and the download link(s)</returns>
         internal Task<ModData> GetModDataFromInfo(string name, string author, SemVersion currentVersion)
         {
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author))
@@ -373,33 +373,10 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Get path to save a file from contentType & name provided
+        /// Check if an assembly is a <see cref="MelonMod"/>, a <see cref="MelonPlugin"/> or something else
         /// </summary>
-        /// <param name="contentType">Content Type (Example: application/zip)</param>
-        /// <param name="name">Name of the file, without extension</param>
-        /// <returns>A path to temporary directory with file name and extension according to contentType</returns>
-
-        internal static string GetPathFromContentType(string contentType, string name)
-        {
-            if (contentType == "application/zip")
-            {
-                return Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.zip");
-            }
-            else if (contentType == "application/x-msdownload")
-            {
-                return Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.dll");
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Check if an assembly is a MelonMod, a MelonPlugin or something else
-        /// </summary>
-        /// <param name="assembly">Assembly of the file</param>
-        /// <returns>A FileType, either MelonMod, MelonPlugin or Other</returns>
+        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
+        /// <returns>A FileType, either <see cref="MelonMod"/>, <see cref="MelonPlugin"/> or Other</returns>
         internal static FileType GetFileType(AssemblyDefinition assembly)
         {
             MelonInfoAttribute infoAttribute = GetMelonInfo(assembly);
@@ -435,7 +412,15 @@ namespace MelonAutoUpdater
             return path;
         }
 
-        internal (int success, int failed, bool threwError) ReplaceAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion)
+        /// <summary>
+        /// Move all files from one directory to another
+        /// </summary>
+        /// <param name="path">A <see cref="Path"/> to directory to copy from</param>
+        /// <param name="directory">A <see cref="Path"/> to directory to copy to</param>
+        /// <param name="mainDirectoryName">Only used in prefix, just set <see cref="string.Empty"/></param>
+        /// <param name="latestVersion">The latest version of the mod the files are from</param>
+        /// <returns>Info about mod/plugin install (times when it succeeded, times when it failed, and if it threw an error)</returns>
+        internal (int success, int failed, bool threwError) MoveAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion)
         {
             int success = 0;
             int failed = 0;
@@ -463,7 +448,7 @@ namespace MelonAutoUpdater
                 }
                 catch (Exception ex)
                 {
-                    LoggerInstance.Error($"[{prefix}] Failed to copy {Path.GetFileName(file)}, exception thrown:\n{ex.Message}\n{ex.StackTrace}");
+                    LoggerInstance.Error($"[{prefix}] Failed to copy {Path.GetFileName(file)}, exception thrown:{ex}");
                 }
             }
             foreach (string dir in Directory.GetDirectories(path))
@@ -473,14 +458,14 @@ namespace MelonAutoUpdater
                 {
                     string _path = Path.Combine(directory, GetDirName(dir));
                     if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
-                    var res = ReplaceAllFiles(dir, _path, prefix, latestVersion);
+                    var res = MoveAllFiles(dir, _path, prefix, latestVersion);
                     if (res.threwError) threwError = true;
                     success += res.success;
                     failed += res.failed;
                 }
                 catch (Exception ex)
                 {
-                    LoggerInstance.Error($"[{prefix}] Failed to copy folder {GetDirName(dir)}, exception thrown:\n{ex.Message}\n{ex.StackTrace}");
+                    LoggerInstance.Error($"[{prefix}] Failed to copy folder {GetDirName(dir)}, exception thrown:{ex}");
                 }
             }
             return (success, failed, threwError);
@@ -489,10 +474,10 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Get value from a custom attribute
         /// </summary>
-        /// <typeparam name="T">Type that will be returned as value</typeparam>
+        /// <typeparam name="T"><see cref="Type"/> that will be returned as value</typeparam>
         /// <param name="customAttribute">The custom attribute you want to get value from</param>
         /// <param name="index">Index of the value</param>
-        /// <returns>A value from the Custom Attribute with provided Type</returns>
+        /// <returns>A value from the Custom Attribute with provided <see cref="Type"/></returns>
         internal static T Get<T>(CustomAttribute customAttribute, int index)
         {
             if (customAttribute.ConstructorArguments.Count <= 0) return default;
@@ -500,10 +485,10 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Retrieve information from the MelonInfoAttribute in a file using Mono.Cecil
+        /// Retrieve information from the <see cref="MelonInfoAttribute"/> in a file using Mono.Cecil
         /// </summary>
-        /// <param name="assembly">Assembly of the file</param>
-        /// <returns>If present, returns a MelonInfoAttribute</returns>
+        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
+        /// <returns>If present, returns a <see cref="MelonInfoAttribute"/></returns>
 
         internal static MelonInfoAttribute GetMelonInfo(AssemblyDefinition assembly)
         {
@@ -532,10 +517,10 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Retrieve information from the VerifyLoaderVersionAttribute in a file using Mono.Cecil
+        /// Retrieve information from the <see cref="VerifyLoaderVersionAttribute"/> in a file using Mono.Cecil
         /// </summary>
-        /// <param name="assembly">Assembly of the file</param>
-        /// <returns>If present, returns a VerifyLoaderVersionAttribute</returns>
+        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
+        /// <returns>If present, returns a <see cref="VerifyLoaderVersionAttribute"/></returns>
         internal static VerifyLoaderVersionAttribute GetLoaderVersionRequired(AssemblyDefinition assembly)
         {
             foreach (var attr in assembly.CustomAttributes)
@@ -564,10 +549,10 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Retrieve information from the MAUIgnoreAttribute in a file using Mono.Cecil
+        /// Retrieve information from the <see cref="MAUIgnoreAttribute"/> in a file using Mono.Cecil
         /// </summary>
-        /// <param name="assembly">Assembly of the file</param>
-        /// <returns>If present, returns a MAUIgnoreAttribute</returns>
+        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
+        /// <returns>If present, returns a <see cref="MAUIgnoreAttribute"/></returns>
         internal static MAUIgnoreAttribute GetMAUIgnoreAttribute(AssemblyDefinition assembly)
         {
             foreach (var attr in assembly.CustomAttributes)
@@ -584,10 +569,10 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Retrieve information from the MAUIgnoreAttribute in a file using Mono.Cecil
+        /// Retrieve information from the <see cref="MAUIgnoreAttribute"/> in a file using Mono.Cecil
         /// </summary>
-        /// <param name="assembly">Assembly of the file</param>
-        /// <returns>If present, returns a MAUIgnoreAttribute</returns>
+        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
+        /// <returns>If present, returns a <see cref="MAUIgnoreAttribute"/></returns>
         internal static MAUDownloadFilesAllowedAttribute GetMAUDownloadFilesAllowedAttribute(AssemblyDefinition assembly)
         {
             foreach (var attr in assembly.CustomAttributes)
@@ -603,6 +588,11 @@ namespace MelonAutoUpdater
             return null;
         }
 
+        /// <summary>
+        /// Checks if the <see cref="Assembly"/> is compatible with the current ML Instance
+        /// </summary>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> to check</param>
+        /// <returns><see langword="true"/>, if compatible, otherwise <see langword="false"/></returns>
         internal bool CheckCompability(AssemblyDefinition assembly)
         {
             var modInfo = GetMelonInfo(assembly);
@@ -632,9 +622,9 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Installs mod/plugin from path
         /// </summary>
-        /// <param name="path">Path of mod/plugin</param>
-        /// <param name="latestVersion">Latest version of mod/plugin, used to modify MelonInfoAttribute in case the version is not correct</param>
-        /// <returns>A tuple, success and threwError, self explanatory</returns>
+        /// <param name="path"><see cref="Path"/> of mod/plugin</param>
+        /// <param name="latestVersion">Latest version of mod/plugin, used to modify <see cref="MelonInfoAttribute"/> in case the version is not correct</param>
+        /// <returns>A <see cref="Tuple"/>, success and threwError, self explanatory</returns>
         internal (bool success, bool threwError) InstallPackage(string path, SemVersion latestVersion)
         {
             bool success = false;
@@ -691,7 +681,7 @@ namespace MelonAutoUpdater
                 }
                 catch (Exception ex)
                 {
-                    LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                    LoggerInstance.Error($"An unexpected error occurred while installing content{ex}");
                     threwError = true;
                     success = false;
                 }
@@ -749,7 +739,7 @@ namespace MelonAutoUpdater
                 }
                 catch (Exception ex)
                 {
-                    LoggerInstance.Error($"An unexpected error occurred while installing content\n{ex.Message}\n{ex.StackTrace}");
+                    LoggerInstance.Error($"An unexpected error occurred while installing content{ex}");
                     threwError = true;
                     success = false;
                 }
@@ -764,8 +754,8 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Check directory for mods & plugins that can be updated
         /// </summary>
-        /// <param name="directory">Path to the directory</param>
-        /// <param name="automatic">If true, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
+        /// <param name="directory"><see cref="Path"/> to the directory</param>
+        /// <param name="automatic">If <see langword="true"/>, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
         internal void CheckDirectory(string directory, bool automatic = true)
         {
             List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
@@ -933,7 +923,7 @@ namespace MelonAutoUpdater
                                             }
                                             catch (Exception ex)
                                             {
-                                                LoggerInstance.Error($"Failed to download file through link\n{ex.Message}\n{ex.StackTrace}");
+                                                LoggerInstance.Error($"Failed to download file through link{ex}");
                                                 downloadedFile.Dispose();
                                                 downloadedFile = null;
                                             }
@@ -958,7 +948,7 @@ namespace MelonAutoUpdater
                                                     catch (Exception ex)
                                                     {
                                                         threwError = true;
-                                                        LoggerInstance.Error($"An exception occurred while extracting files from a ZIP file\n{ex.Message}\n{ex.StackTrace}");
+                                                        LoggerInstance.Error($"An exception occurred while extracting files from a ZIP file{ex}");
                                                         File.Delete(pathToSave);
                                                         DirectoryInfo tempDir = new DirectoryInfo(tempFilesPath);
                                                         foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
@@ -997,7 +987,7 @@ namespace MelonAutoUpdater
                                                                     if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
                                                                     {
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                        var res1 = ReplaceAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.Result.LatestVersion);
+                                                                        var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.Result.LatestVersion);
 #pragma warning restore CS0618 // Type or member is obsolete
                                                                         checkedDirs++;
                                                                         success += res1.success;
@@ -1009,7 +999,7 @@ namespace MelonAutoUpdater
                                                                 {
                                                                     LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                    var res1 = ReplaceAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.Result.LatestVersion);
+                                                                    var res1 = MoveAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.Result.LatestVersion);
                                                                     success += res1.success;
                                                                     failed += res1.failed;
                                                                     if (res1.threwError) threwError = true;
@@ -1087,6 +1077,19 @@ namespace MelonAutoUpdater
     System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public override void OnPreInitialization()
         {
+            LoggerInstance.Msg("Checking if internet is connected");
+            var internetConnected = CheckForInternetConnection();
+            internetConnected.Wait();
+            if (internetConnected.Result)
+            {
+                LoggerInstance.Msg("Internet is connected!");
+            }
+            else
+            {
+                LoggerInstance.Msg(Color.Red, "Internet is not connected, aborting");
+                return;
+            }
+
             logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
             Version = this.Info.Version;

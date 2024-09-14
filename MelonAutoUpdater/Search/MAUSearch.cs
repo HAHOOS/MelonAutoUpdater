@@ -39,13 +39,13 @@ namespace MelonAutoUpdater.Search
         public abstract string Link { get; }
 
         /// <summary>
-        /// Color that should be displayed with the Author of the MAU Search Extension
+        /// <see cref="Color"/> that should be displayed with the Author of the MAU Search Extension
         /// </summary>
         public virtual Color AuthorColor
         { get { return Color.LightBlue; } }
 
         /// <summary>
-        /// Color that should be displayed with the Name of the MAU Search Extension
+        /// <see cref="Color"/> that should be displayed with the Name of the MAU Search Extension
         /// </summary>
         public virtual Color NameColor
         { get { return Color.LightBlue; } }
@@ -65,7 +65,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         /// <param name="url">URL retrieved from mod/plugin that needs to be checked</param>
         /// <param name="currentVersion">Current version of the mod/plugin</param>
-        /// <returns>ModData if able to retrieve information from link, otherwise <c>null</c></returns>
+        /// <returns><see cref="ModData"/> if able to retrieve information from link, otherwise <see langword="null"/></returns>
         public abstract Task<ModData> Search(string url, SemVersion currentVersion);
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace MelonAutoUpdater.Search
         /// <param name="name">Name provided with mod/plugin being checked</param>
         /// <param name="author">Author provided with mod/plugin being checked</param>
         /// <param name="currentVersion">Current version of mod/plugin</param>
-        /// <returns>ModData if able to retrieve information from name & author, otherwise <c>null</c></returns>
+        /// <returns><see cref="ModData"/> if able to retrieve information from name & author, otherwise <see langword="null"></returns>
         public virtual Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
         {
             return null;
@@ -149,6 +149,10 @@ namespace MelonAutoUpdater.Search
         /// <returns><see langword="SemVersion"/> of current MAU version</returns>
         public static string GetMAUVersion() => Core.Version;
 
+        /// <summary>
+        /// Returns an empty of a task with returning type <see langword="ModData"/>
+        /// </summary>
+        /// <returns>Task with returning type <see langword="ModData"/></returns>
         public static Task<ModData> Empty()
         {
             TaskCompletionSource<ModData> taskCompletionSource = new TaskCompletionSource<ModData>();
@@ -163,7 +167,7 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// Get all loaded extensions
         /// </summary>
-        /// <returns>A list of MAUSearch objects</returns>
+        /// <returns>A list of <see langword="MAUSearch"/> objects</returns>
         public static IEnumerable<MAUSearch> GetExtensions(Assembly[] loadedAssemblies)
         {
             List<MAUSearch> objects = new List<MAUSearch>();
@@ -211,7 +215,7 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// Checks if assembly is an extension
         /// </summary>
-        /// <param name="assembly">Assembly to check if is an extension</param>
+        /// <param name="assembly"><see langword="Assembly"/> to check if is an extension</param>
         /// <returns>If true, it is an extension, otherwise, false</returns>
         public static bool IsExtension(Assembly assembly)
         {
