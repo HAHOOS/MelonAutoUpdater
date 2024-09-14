@@ -419,7 +419,7 @@ namespace MelonAutoUpdater
             return FileType.Other;
         }
 
-        internal string GetDirName(string path)
+        internal static string GetDirName(string path)
         {
             if (Directory.Exists(path))
             {
@@ -660,7 +660,9 @@ namespace MelonAutoUpdater
                     {
                         LoggerInstance.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
                         var module = _assembly.MainModule;
+#pragma warning disable CS0618 // Type or member is obsolete
                         var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonModInfoAttribute));
+#pragma warning restore CS0618 // Type or member is obsolete
                         if (attr.Any())
                         {
                             LoggerInstance.Msg("Found attribute");
@@ -712,7 +714,9 @@ namespace MelonAutoUpdater
                     {
                         LoggerInstance.Warning("Plugin has incorrect version which can lead to repeated unnecessary updates, fixing");
                         var module = _assembly.MainModule;
+#pragma warning disable CS0618 // Type or member is obsolete
                         var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonPluginInfoAttribute));
+#pragma warning restore CS0618 // Type or member is obsolete
                         if (attr.Any())
                         {
                             LoggerInstance.Msg("Found attribute");
@@ -989,7 +993,9 @@ namespace MelonAutoUpdater
                                                                 {
                                                                     if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
                                                                     {
+#pragma warning disable CS0618 // Type or member is obsolete
                                                                         var res1 = ReplaceAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.Result.LatestVersion);
+#pragma warning restore CS0618 // Type or member is obsolete
                                                                         checkedDirs++;
                                                                         success += res1.success;
                                                                         failed += res1.failed;
