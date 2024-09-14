@@ -15,7 +15,6 @@ using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
 using MelonAutoUpdater.Attributes;
-using Harmony;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
@@ -352,15 +351,19 @@ namespace MelonAutoUpdater
                     var task = ext.BruteCheck(name, author, currentVersion);
                     task.Wait();
                     result = task.Result;
-                }
-                if (result == null)
-                {
-                    LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                    if (result == null)
+                    {
+                        LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                    }
+                    else
+                    {
+                        LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                        return Task.Factory.StartNew(() => result);
+                    }
                 }
                 else
                 {
-                    LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                    return Task.Factory.StartNew(() => result);
+                    LoggerInstance.Msg($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
                 }
             }
 
