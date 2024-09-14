@@ -129,7 +129,7 @@ namespace MelonAutoUpdater.Search.Included
 
         public override Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
         {
-            return Check(name, author);
+            return Check(name.Replace(" ", ""), author.Replace(" ", ""));
         }
     }
 }
