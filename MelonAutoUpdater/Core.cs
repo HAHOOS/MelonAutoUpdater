@@ -612,8 +612,9 @@ namespace MelonAutoUpdater
         /// Installs mod/plugin from path
         /// </summary>
         /// <param name="path">Path of mod/plugin</param>
+        /// <param name="latestVersion">Latest version of mod/plugin, used to modify MelonInfoAttribute in case the version is not correct</param>
         /// <returns>A tuple, success and threwError, self explanatory</returns>
-        internal (bool success, bool threwError) InstallPackage(string path)
+        internal (bool success, bool threwError) InstallPackage(string path, SemVersion latestVersion)
         {
             bool success = false;
             bool threwError = false;
@@ -632,6 +633,29 @@ namespace MelonAutoUpdater
                     if (!File.Exists(_path)) File.Move(path, _path);
                     else File.Replace(path, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
                     success = true;
+
+                    LoggerInstance.Msg("Checking if mod version is valid");
+
+                    var melonInfo = GetMelonInfo(_assembly);
+                    if (melonInfo.Version < latestVersion)
+                    {
+                        LoggerInstance.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
+                        var module = _assembly.MainModule;
+                        var attr = _assembly.CustomAttributes.Where(x => x.Constructor.Name == typeof(MelonInfoAttribute).Name || x.Constructor.Name == typeof(MelonModInfoAttribute).Name);
+                        if (attr.Any())
+                        {
+                            var a = attr.First();
+                            var semVersionType = module.ImportReference(typeof(SemVersion));
+                            a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion);
+                        }
+                        _assembly.Write();
+                        LoggerInstance.Msg("Fixed incorrect version of mod");
+                    }
+                    else
+                    {
+                        LoggerInstance.Msg("Correct mod version, not changing anything");
+                    }
+
                     LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
                 }
                 catch (Exception ex)
@@ -653,6 +677,27 @@ namespace MelonAutoUpdater
 #pragma warning restore CS0618 // Type or member is obsolete
                     if (!File.Exists(_path)) File.Move(path, _path);
                     else File.Replace(path, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+
+                    var melonInfo = GetMelonInfo(_assembly);
+                    if (melonInfo.Version < latestVersion)
+                    {
+                        LoggerInstance.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
+                        var module = _assembly.MainModule;
+                        var attr = _assembly.CustomAttributes.Where(x => x.Constructor.Name == typeof(MelonInfoAttribute).Name || x.Constructor.Name == typeof(MelonPluginInfoAttribute).Name);
+                        if (attr.Any())
+                        {
+                            var a = attr.First();
+                            var semVersionType = module.ImportReference(typeof(SemVersion));
+                            a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion);
+                        }
+                        _assembly.Write();
+                        LoggerInstance.Msg("Fixed incorrect version of mod");
+                    }
+                    else
+                    {
+                        LoggerInstance.Msg("Correct mod version, not changing anything");
+                    }
+
                     //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
                     LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
                     LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
@@ -876,7 +921,6 @@ namespace MelonAutoUpdater
                                                         foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
                                                         foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
                                                     }
-                                                    Console.ReadKey();
                                                     var extractedFiles = Directory.GetFiles(extractPath).ToList();
                                                     Directory.GetDirectories(extractPath).ToList().ForEach((x) => extractedFiles.Add(x));
                                                     foreach (string extPath in extractedFiles)
@@ -888,7 +932,7 @@ namespace MelonAutoUpdater
                                                             {
                                                                 foreach (var fPath in Directory.GetFiles(extPath, "*.dll"))
                                                                 {
-                                                                    var res = InstallPackage(fPath);
+                                                                    var res = InstallPackage(fPath, data.Result.LatestVersion);
                                                                     if (res.threwError) threwError = true;
                                                                     if (res.success) success += 1;
                                                                     else failed += 1;
@@ -904,7 +948,7 @@ namespace MelonAutoUpdater
                                                         }
                                                         else if (Path.GetExtension(extPath) == ".dll")
                                                         {
-                                                            var res = InstallPackage(extPath);
+                                                            var res = InstallPackage(extPath, data.Result.LatestVersion);
                                                             if (res.threwError) threwError = true;
                                                             if (res.success) success += 1;
                                                             else failed += 1;
@@ -916,7 +960,7 @@ namespace MelonAutoUpdater
                                                 else if (Path.GetExtension(pathToSave) == ".dll")
                                                 {
                                                     LoggerInstance.Msg("Downloaded file is a DLL file, installing content...");
-                                                    var res = InstallPackage(pathToSave);
+                                                    var res = InstallPackage(pathToSave, data.Result.LatestVersion);
                                                     if (res.threwError) threwError = true;
                                                     if (res.success) success += 1;
                                                     else failed += 1;
