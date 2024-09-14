@@ -25,7 +25,8 @@ using Harmony;
 #pragma warning restore CS0618 // Type or member is obsolete
 
 [assembly: AssemblyProduct("MelonAutoUpdater")]
-[assembly: AssemblyVersion("0.3.0")]
+[assembly: AssemblyVersion("0.3.0.0")]
+[assembly: AssemblyFileVersion("0.3.0")]
 [assembly: AssemblyTitle("MelonAutoUpdater")]
 [assembly: AssemblyCompany("HAHOOS")]
 [assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
@@ -431,8 +432,11 @@ namespace MelonAutoUpdater
             return path;
         }
 
-        internal void ReplaceAllFiles(string path, string directory, string mainDirectoryName)
+        internal (int success, int failed, bool threwError) ReplaceAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion)
         {
+            int success = 0;
+            int failed = 0;
+            bool threwError = false;
             string prefix = (string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{GetDirName(directory)}" : GetDirName(directory)).Pastel(Color.Cyan);
             foreach (string file in Directory.GetFiles(path))
             {
@@ -440,9 +444,19 @@ namespace MelonAutoUpdater
                 try
                 {
                     string _path = Path.Combine(directory, Path.GetFileName(file));
-                    if (!File.Exists(_path)) File.Move(file, _path);
-                    else File.Replace(file, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
-                    LoggerInstance.Msg($"[{prefix}] Successfully copied {Path.GetFileName(file)}");
+                    if (Path.GetExtension(file) == ".dll")
+                    {
+                        var res = InstallPackage(file, latestVersion);
+                        if (res.threwError) threwError = true;
+                        if (res.success) success++;
+                        else failed++;
+                    }
+                    else
+                    {
+                        if (!File.Exists(_path)) File.Move(file, _path);
+                        else File.Replace(file, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
+                        LoggerInstance.Msg($"[{prefix}] Successfully copied {Path.GetFileName(file)}");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -456,13 +470,17 @@ namespace MelonAutoUpdater
                 {
                     string _path = Path.Combine(directory, GetDirName(dir));
                     if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
-                    ReplaceAllFiles(dir, _path, prefix);
+                    var res = ReplaceAllFiles(dir, _path, prefix, latestVersion);
+                    if (res.threwError) threwError = true;
+                    success += res.success;
+                    failed += res.failed;
                 }
                 catch (Exception ex)
                 {
                     LoggerInstance.Error($"[{prefix}] Failed to copy folder {GetDirName(dir)}, exception thrown:\n{ex.Message}\n{ex.StackTrace}");
                 }
             }
+            return (success, failed, threwError);
         }
 
         /// <summary>
@@ -635,27 +653,35 @@ namespace MelonAutoUpdater
                     success = true;
 
                     LoggerInstance.Msg("Checking if mod version is valid");
-
+                    var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
+                    _assembly = AssemblyDefinition.ReadAssembly(fileStream);
                     var melonInfo = GetMelonInfo(_assembly);
                     if (melonInfo.Version < latestVersion)
                     {
                         LoggerInstance.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
                         var module = _assembly.MainModule;
-                        var attr = _assembly.CustomAttributes.Where(x => x.Constructor.Name == typeof(MelonInfoAttribute).Name || x.Constructor.Name == typeof(MelonModInfoAttribute).Name);
+                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonModInfoAttribute));
                         if (attr.Any())
                         {
+                            LoggerInstance.Msg("Found attribute");
                             var a = attr.First();
-                            var semVersionType = module.ImportReference(typeof(SemVersion));
-                            a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion);
+                            var versionType = module.ImportReference(typeof(string));
+                            a.ConstructorArguments[2] = new CustomAttributeArgument(versionType, latestVersion.ToString());
+                            _assembly.Write();
+                            LoggerInstance.Msg("Fixed incorrect version of mod");
                         }
-                        _assembly.Write();
-                        LoggerInstance.Msg("Fixed incorrect version of mod");
+                        else
+                        {
+                            LoggerInstance.Error("Could not find attribute, cannot fix incorrect version");
+                        }
                     }
                     else
                     {
                         LoggerInstance.Msg("Correct mod version, not changing anything");
                     }
-
+                    fileStream.Flush();
+                    fileStream.Dispose();
+                    _assembly.Dispose();
                     LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
                 }
                 catch (Exception ex)
@@ -678,25 +704,36 @@ namespace MelonAutoUpdater
                     if (!File.Exists(_path)) File.Move(path, _path);
                     else File.Replace(path, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
 
+                    LoggerInstance.Msg("Checking if plugin version is valid");
+                    var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
+                    _assembly = AssemblyDefinition.ReadAssembly(fileStream);
                     var melonInfo = GetMelonInfo(_assembly);
                     if (melonInfo.Version < latestVersion)
                     {
-                        LoggerInstance.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
+                        LoggerInstance.Warning("Plugin has incorrect version which can lead to repeated unnecessary updates, fixing");
                         var module = _assembly.MainModule;
-                        var attr = _assembly.CustomAttributes.Where(x => x.Constructor.Name == typeof(MelonInfoAttribute).Name || x.Constructor.Name == typeof(MelonPluginInfoAttribute).Name);
+                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonPluginInfoAttribute));
                         if (attr.Any())
                         {
+                            LoggerInstance.Msg("Found attribute");
                             var a = attr.First();
                             var semVersionType = module.ImportReference(typeof(SemVersion));
                             a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion);
+                            _assembly.Write();
+                            LoggerInstance.Msg("Fixed incorrect version of plugin");
                         }
-                        _assembly.Write();
-                        LoggerInstance.Msg("Fixed incorrect version of mod");
+                        else
+                        {
+                            LoggerInstance.Error("Could not find attribute, cannot fix incorrect version");
+                        }
                     }
                     else
                     {
-                        LoggerInstance.Msg("Correct mod version, not changing anything");
+                        LoggerInstance.Msg("Correct plugin version, not changing anything");
                     }
+                    _assembly.Dispose();
+                    fileStream.Flush();
+                    fileStream.Dispose();
 
                     //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
                     LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
@@ -808,7 +845,6 @@ namespace MelonAutoUpdater
                                                 ContentType contentType;
                                                 if (!string.IsNullOrEmpty(retFile.ContentType))
                                                 {
-                                                    LoggerInstance.Msg(retFile.ContentType);
                                                     bool parseSuccess = ContentType.TryParse(ContentType_Parse.MimeType, retFile.ContentType, out ContentType _contentType);
                                                     if (parseSuccess)
                                                     {
@@ -940,10 +976,36 @@ namespace MelonAutoUpdater
                                                             }
                                                             else
                                                             {
-                                                                LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
+                                                                List<string> SubDirCheck = new List<string>
+                                                                {
+                                                                    "Mods",
+                                                                    "Plugins",
+                                                                    "MelonLoader",
+                                                                    "UserData",
+                                                                    "UserLibs"
+                                                                };
+                                                                int checkedDirs = 0;
+                                                                foreach (var subdir in SubDirCheck)
+                                                                {
+                                                                    if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
+                                                                    {
+                                                                        var res1 = ReplaceAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.Result.LatestVersion);
+                                                                        checkedDirs++;
+                                                                        success += res1.success;
+                                                                        failed += res1.failed;
+                                                                        if (res1.threwError) threwError = true;
+                                                                    }
+                                                                }
+                                                                if (checkedDirs < Directory.GetDirectories(extPath).Length)
+                                                                {
+                                                                    LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                ReplaceAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty);
+                                                                    var res1 = ReplaceAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.Result.LatestVersion);
+                                                                    success += res1.success;
+                                                                    failed += res1.failed;
+                                                                    if (res1.threwError) threwError = true;
 #pragma warning restore CS0618 // Type or member is obsolete
+                                                                }
                                                             }
                                                         }
                                                         else if (Path.GetExtension(extPath) == ".dll")
