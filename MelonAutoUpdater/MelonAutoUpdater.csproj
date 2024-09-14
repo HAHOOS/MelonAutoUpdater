@@ -31,6 +31,7 @@
 	  <None Remove="Embedded\Dependencies\Net35.Http.dll" />
 	  <None Remove="Embedded\Dependencies\Rackspace.Threading.dll" />
 	  <None Remove="Embedded\Dependencies\System.Threading.dll" />
+	  <None Remove="Embedded\mime-types.json" />
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
@@ -77,6 +78,10 @@
 			<HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\MelonLoader\net35\WebSocketDotNet.dll</HintPath>
 		</Reference>
 		
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Embedded\mime-types.json" />
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
