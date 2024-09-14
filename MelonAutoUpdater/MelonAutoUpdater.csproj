@@ -32,12 +32,17 @@
 	  <None Remove="Embedded\Dependencies\Rackspace.Threading.dll" />
 	  <None Remove="Embedded\Dependencies\System.Threading.dll" />
 	  <None Remove="Embedded\mime-types.json" />
+	  <None Remove="Search\Included\NexusMods.old" />
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
 	  <EmbeddedResource Include="Embedded\Dependencies\Net35.Http.dll" />
 	  <EmbeddedResource Include="Embedded\Dependencies\Rackspace.Threading.dll" />
 	  <EmbeddedResource Include="Embedded\Dependencies\System.Threading.dll" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Include="Search\Included\NexusMods.old" />
 	</ItemGroup>
 
 	<ItemGroup Label="NoFrameworkCondition">
