@@ -5,7 +5,7 @@
 <a href="github.com/HAHOOS/MelonAutoUpdater/releases/latest"><img src="https://img.shields.io/github/v/release/HAHOOS/MelonAutoUpdater?include_prereleases&sort=semver&display_name=tag&style=for-the-badge"></a>
 <a href="github.com/HAHOOS/MelonAutoUpdater/releases/"><img src="https://img.shields.io/github/downloads/HAHOOS/MelonAutoUpdater/total?style=for-the-badge"></a>
 <a href="https://github.com/HAHOOS/MelonAutoUpdater/blob/master/LICENSE.txt"><img src="https://img.shields.io/github/license/HAHOOS/MelonAutoUpdater?style=for-the-badge"></a>
-<a href="https://github.com/LavaGang/MelonLoader/releases"><img src="https://img.shields.io/badge/ML_Support-v0.5.2_or_later-blue?style=for-the-badge&labelColor=gray&color=blue"></a>
+<a href="https://github.com/LavaGang/MelonLoader/releases"><img src="https://img.shields.io/badge/ML_Support-v0.5.3_or_later-blue?style=for-the-badge&labelColor=gray&color=blue"></a>
 </p>
 
 Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!<br/>
@@ -16,7 +16,8 @@ Currently supported links (this list will be expanded in the near future):<br/>
 
 Tested Games & Versions:
 - BONELAB (ML v0.6.4)
-- BONEWORKS (ML v0.5.4)
+- BONEWORKS (ML v0.5.4 & v0.5.3)
+
 
 **This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet. It would be really appreciated if you would help me find any bugs by creating an issue in the repository if you find one** 
 
@@ -52,6 +53,7 @@ List of all customizable color strings:<br/>
 - Old Version & New Version
 - Up-to-date version Text
 - Download Count
+- Extension Name
 <br/>
 You may ask, why does this option exist, and the answer is.. I'm not sure why I did this, but hey, if u dont like the colors I put in, u can change them!
 
@@ -68,6 +70,7 @@ Third-party Libraries bundled in Binary Form:
 - [MelonLoader](https://github.com/LavaGang/MelonLoader) is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/LavaGang/MelonLoader/blob/master/LICENSE.md) for the full License.
 - [Mono.Cecil](https://github.com/jbevain/cecil) is licensed under the MIT License. See [LICENSE](https://github.com/jbevain/cecil/blob/master/LICENSE.txt) for the full License.
 - [Rackspace.Threading](https://github.com/tunnelvisionlabs/dotnet-threading) is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/tunnelvisionlabs/dotnet-threading/blob/master/LICENSE) for the full License.
+- [Rackspace.HttpClient35](https://github.com/tunnelvisionlabs/dotnet-httpclient35) is licensed under the MIT License. See [LICENSE](https://github.com/tunnelvisionlabs/dotnet-httpclient35/blob/master/LICENSE) for the full License.
 - [TinyJSON](https://github.com/pbhogan/TinyJSON) is licensed under the MIT License. See [LICENSE](https://github.com/LavaGang/MelonLoader/blob/master/MelonLoader/TinyJSON/LICENSE.md) for the full License.
 - [Tomlet](https://github.com/SamboyCoding/Tomlet) is licensed under the MIT License. See [LICENSE](https://github.com/SamboyCoding/Tomlet/blob/master/LICENSE) for the full License.
 - [SharpZipLib](https://github.com/icsharpcode/SharpZipLib) is licensed under the MIT License. See [LICENSE](https://github.com/LavaGang/MelonLoader/blob/master/MelonLoader/SharpZipLib/LICENSE.txt) for the full License.
