@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace MelonAutoUpdater
 {
+    /// <summary>
+    /// Class that contains data about mod<br/>
+    /// Like: Latest Version and Download Files
+    /// </summary>
     public class ModData
     {
         /// <summary>
@@ -26,6 +30,9 @@ namespace MelonAutoUpdater
         Other = 3
     }
 
+    /// <summary>
+    /// Data regarding file, including URL to download, the content-type if provided and name if provided
+    /// </summary>
     public class FileData
     {
         /// <summary>

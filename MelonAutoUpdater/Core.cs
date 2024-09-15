@@ -32,7 +32,7 @@ using MelonAutoUpdater.Attributes;
 
 namespace MelonAutoUpdater
 {
-    internal class Core : MelonPlugin
+    public class Core : MelonPlugin
     {
         /// <summary>
         /// Path of the Temporary Files folder where downloaded files and uncompressed zip files get put temporarily
@@ -121,6 +121,7 @@ namespace MelonAutoUpdater
         /// </summary>
         private bool SetupPreferences()
         {
+            // Main Category
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             MainCategory.SetFilePath(Path.Combine(mainFolderPath, "config.cfg"));
             Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
@@ -128,13 +129,17 @@ namespace MelonAutoUpdater
             Entry_enabled = MainCategory.CreateEntry<bool>("Enabled", true, "Enabled",
                 description: "If true, Mods & Plugins will update on every start");
             Entry_bruteCheck = MainCategory.CreateEntry<bool>("BruteCheck", false, "Brute Check",
-                description: "If true, when there's no download link provided with mod/plugin, it will check every possible platform providing the Name & Author\nThis is not recommended as it will very easily result in this plugin being rate-limited");
+                description: "If true, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author\nWARNING: You may get rate-limited with large amounts of mods/plugins, use with caution");
 
             MainCategory.SaveToFile(false);
+
+            // Themes Category
 
             ThemesCategory = MelonPreferences.CreateCategory<Theme>("Theme", "Theme");
             ThemesCategory.SetFilePath(Path.Combine(mainFolderPath, "theme.cfg"));
             ThemesCategory.SaveToFile(false);
+
+            // Extensions Category
 
             ExtensionsCategory = MelonPreferences.CreateCategory("Extensions", "Extensions");
             ExtensionsCategory.SetFilePath(Path.Combine(mainFolderPath, "extensions.cfg"));
@@ -389,6 +394,11 @@ namespace MelonAutoUpdater
             return FileType.Other;
         }
 
+        /// <summary>
+        /// Check if an assembly is a <see cref="MelonMod"/>, a <see cref="MelonPlugin"/> or something else
+        /// </summary>
+        /// <param name="infoAttribute"><see cref="MelonInfoAttribute"/> of the assembly</param>
+        /// <returns>A FileType, either <see cref="MelonMod"/>, <see cref="MelonPlugin"/> or Other</returns>
         internal static FileType GetFileType(MelonInfoAttribute infoAttribute)
         {
             if (infoAttribute != null)
@@ -399,6 +409,11 @@ namespace MelonAutoUpdater
             return FileType.Other;
         }
 
+        /// <summary>
+        /// Get name of a directory
+        /// </summary>
+        /// <param name="path">Path to the directory</param>
+        /// <returns>Name of directory</returns>
         internal static string GetDirName(string path)
         {
             if (Directory.Exists(path))
@@ -761,13 +776,6 @@ namespace MelonAutoUpdater
             List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
 
             List<string> ignore = GetEntryValue<List<string>>(Entry_ignore);
-            bool enabled = GetEntryValue<bool>(Entry_enabled);
-
-            if (!enabled)
-            {
-                LoggerInstance.Msg("Plugin disabled in preferences, aborting..");
-                return;
-            }
 
             List<string> fileNameIgnore = new List<string>();
             files.ForEach(x =>
@@ -868,7 +876,6 @@ namespace MelonAutoUpdater
                                                 }
                                                 else if (resContentType != null)
                                                 {
-                                                    LoggerInstance.Msg(resContentType);
                                                     bool parseSuccess = ContentType.TryParse(ContentType_Parse.MimeType, resContentType, out ContentType _contentType);
                                                     if (parseSuccess)
                                                     {
@@ -1179,6 +1186,14 @@ namespace MelonAutoUpdater
             }
 
             theme = ThemesCategory.GetValue<Theme>();
+
+            bool enabled = GetEntryValue<bool>(Entry_enabled);
+
+            if (!enabled)
+            {
+                LoggerInstance.Msg("Plugin disabled in preferences, aborting..");
+                return;
+            }
 
             ContentType.Load();
 

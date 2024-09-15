@@ -146,13 +146,13 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// Get current version of MAU
         /// </summary>
-        /// <returns><see langword="SemVersion"/> of current MAU version</returns>
+        /// <returns><see cref="SemVersion"/> of current MAU version</returns>
         public static string GetMAUVersion() => Core.Version;
 
         /// <summary>
-        /// Returns an empty of a task with returning type <see langword="ModData"/>
+        /// Returns an empty of a task with returning type <see cref="ModData"/>
         /// </summary>
-        /// <returns>Task with returning type <see langword="ModData"/></returns>
+        /// <returns>Task with returning type <see cref="ModData"/></returns>
         public static Task<ModData> Empty()
         {
             TaskCompletionSource<ModData> taskCompletionSource = new TaskCompletionSource<ModData>();
@@ -167,7 +167,7 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// Get all loaded extensions
         /// </summary>
-        /// <returns>A list of <see langword="MAUSearch"/> objects</returns>
+        /// <returns>A list of <see cref="MAUSearch"/> objects</returns>
         public static IEnumerable<MAUSearch> GetExtensions(Assembly[] loadedAssemblies)
         {
             List<MAUSearch> objects = new List<MAUSearch>();
@@ -215,7 +215,7 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// Checks if assembly is an extension
         /// </summary>
-        /// <param name="assembly"><see langword="Assembly"/> to check if is an extension</param>
+        /// <param name="assembly"><see cref="Assembly"/> to check if is an extension</param>
         /// <returns>If true, it is an extension, otherwise, false</returns>
         public static bool IsExtension(Assembly assembly)
         {
