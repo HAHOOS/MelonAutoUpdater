@@ -3,7 +3,8 @@
 		<TargetFrameworks>net6;net35</TargetFrameworks>
 		<LangVersion>7.3</LangVersion>
 		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
-		<GameDirectory>C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\V1</GameDirectory>
+		<GenerateDocumentation>enable</GenerateDocumentation>
+		<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
 	</PropertyGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
@@ -24,6 +25,19 @@
 		</Reference>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Remove="Embedded\Dependencies\Net35.Http.dll" />
+	  <None Remove="Embedded\Dependencies\Rackspace.Threading.dll" />
+	  <None Remove="Embedded\Dependencies\System.Threading.dll" />
+	  <None Remove="Embedded\mime-types.json" />
+	</ItemGroup>
+
+	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
+	  <EmbeddedResource Include="Embedded\Dependencies\Net35.Http.dll" />
+	  <EmbeddedResource Include="Embedded\Dependencies\Rackspace.Threading.dll" />
+	  <EmbeddedResource Include="Embedded\Dependencies\System.Threading.dll" />
+	</ItemGroup>
+
 	<ItemGroup Label="NoFrameworkCondition">
 		<Reference Include="Tomlet">
 			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
@@ -31,7 +45,7 @@
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35FrameworkCondition">
-		<Reference Include="System.Threading, Version=1.0.2856.102, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+		<Reference Include="System.Threading">
 			<HintPath>$(GameDirectory)\MelonLoader\Managed\System.Threading.dll</HintPath>
 		</Reference>
 		<Reference Include="Rackspace.Threading">
@@ -55,10 +69,13 @@
 		<Reference Include="MelonLoader">
 			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
 		</Reference>
+		<Reference Include="ValueTupleBridge">
+			<HintPath>$(GameDirectory)\MelonLoader\Managed\ValueTupleBridge.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Helper\" />
+	  <EmbeddedResource Include="Embedded\mime-types.json" />
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

@@ -1,79 +1,55 @@
-﻿using System;
+﻿using Semver;
 using System.Collections.Generic;
 
 namespace MelonAutoUpdater
 {
+    /// <summary>
+    /// Class that contains data about mod<br/>
+    /// Like: Latest Version and Download Files
+    /// </summary>
     public class ModData
     {
         /// <summary>
         /// Latest version available online of a mod
         /// </summary>
-        public ModVersion LatestVersion { get; internal set; }
+        public SemVersion LatestVersion { get; internal set; }
 
         /// <summary>
         /// The URLs & to download the latest version of a mod & Content Type if provided
         /// </summary>
         public List<FileData> DownloadFiles { get; internal set; }
-    }
-
-    public class ModVersion
-    {
-        public int Major { get; set; }
-        public int Minor { get; set; }
-        public int Patch { get; set; }
 
         /// <summary>
-        /// Get version from string
+        /// Creates new instance of <see cref="ModData">
         /// </summary>
-        /// <param name="version">String version</param>
-        /// <returns>ModVersion object with values Major, Minor and Patch</returns>
-        public static ModVersion GetFromString(string version)
+        /// <param name="latestVersion">Latest version available in the API</param>
+        /// <param name="downloadFiles">List of <see cref="FileData"></param>
+        public ModData(SemVersion latestVersion, List<FileData> downloadFiles)
         {
-            if (version.StartsWith("v")) version = version.Remove(0, 1);
-            string[] split = version.Split('.');
-            if (split.Length >= 3)
-            {
-                return new ModVersion()
-                {
-                    Major = int.Parse(split[0]),
-                    Minor = int.Parse(split[1]),
-                    Patch = int.Parse(split[2])
-                };
-            }
-            return null;
-        }
-
-        public override string ToString()
-        {
-            return $"{Major}.{Minor}.{Patch}";
+            this.LatestVersion = latestVersion;
+            this.DownloadFiles = downloadFiles;
         }
 
         /// <summary>
-        /// Compare two versions and check which is latest
+        /// Creates new instance of <see cref="ModData">
         /// </summary>
-        /// <param name="version1">First version</param>
-        /// <param name="version2">Second version</param>
-        /// <returns>A boolean value indicating if <b>version1</b> is greater than <b>version2</b>, returns null if the versions are the same</returns>
-        public static bool? CompareVersions(ModVersion version1, ModVersion version2)
+        /// <param name="latestVersion">Latest version available in the API</param>
+        /// <param name="downloadFiles">List of <see cref="FileData"></param>
+        public ModData(SemVersion latestVersion)
         {
-            if (version1 == null) throw new ArgumentNullException(nameof(version1));
-            else if (version2 == null) throw new ArgumentNullException(nameof(version2));
+            this.LatestVersion = latestVersion;
+        }
 
-            if (version1.Major > version2.Major) return true;
-            else if (version2.Major > version1.Major) return false;
-
-            if (version1.Minor > version2.Minor) return true;
-            else if (version2.Minor > version1.Minor) return false;
-
-            if (version1.Patch > version2.Patch) return true;
-            else if (version2.Patch > version1.Patch) return false;
-
-            return null;
+        /// <summary>
+        /// Creates new instance of <see cref="ModData">
+        /// </summary>
+        public ModData()
+        {
         }
     }
 
     /// <summary>
-    /// Type of file, either MelonMod, MelonPlugin or Other
+    /// Type of file, either <see cref="MelonLoader.MelonMod"/>, <see cref="MelonLoader.MelonPlugin"/> or Other
     /// </summary>
     public enum FileType
     {
@@ -82,6 +58,9 @@ namespace MelonAutoUpdater
         Other = 3
     }
 
+    /// <summary>
+    /// Data regarding file, including URL to download, the content-type if provided and name if provided
+    /// </summary>
     public class FileData
     {
         /// <summary>
@@ -98,5 +77,44 @@ namespace MelonAutoUpdater
         /// File Name, if provided with response
         /// </summary>
         public string FileName { get; internal set; }
+
+        /// <summary>
+        /// Creates new instance of <see cref="FileData"/>
+        /// </summary>
+        public FileData()
+        { }
+
+        /// <summary>
+        /// Creates new instance of <see cref="FileData"/>
+        /// </summary>
+        /// <param name="url">URL to the file</param>
+        /// <param name="fileName">File Name, if provided with response</param>
+        /// <param name="contentType">Content Type returned by API</param>
+        public FileData(string url, string fileName, string contentType)
+        {
+            this.URL = url;
+            this.ContentType = contentType;
+            this.FileName = fileName;
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="FileData"/>
+        /// </summary>
+        /// <param name="url">URL to the file</param>
+        public FileData(string url)
+        {
+            this.URL = url;
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="FileData"/>
+        /// </summary>
+        /// <param name="url">URL to the file</param>
+        /// <param name="contentType">Content Type returned by API</param>
+        public FileData(string url, string contentType)
+        {
+            this.URL = url;
+            this.ContentType = contentType;
+        }
     }
 }

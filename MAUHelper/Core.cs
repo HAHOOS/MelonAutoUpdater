@@ -5,11 +5,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-[assembly: MelonInfo(typeof(MAUHelper.Core), "MAUHelper", "1.0.0", "HAHOOS", null)]
+[assembly: MelonInfo(typeof(MAUHelper.Core), "MAUHelper", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000001)]
+[assembly: VerifyLoaderVersion(0, 5, 3, true)]
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: MelonColor(ConsoleColor.Green)]
-[assembly: MelonAuthorColor(ConsoleColor.Yellow)]
 #pragma warning restore CS0618 // Type or member is obsolete
 
 namespace MAUHelper
