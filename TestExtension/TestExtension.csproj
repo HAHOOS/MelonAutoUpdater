@@ -1,18 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6</TargetFramework>
+    <TargetFrameworks>net35;net6</TargetFrameworks>
+	<LangVersion>7.3</LangVersion>
 	<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Reference Include="MelonAutoUpdater">
-      <HintPath>$(GameDirectory)\Plugins\MelonAutoUpdater.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35FrameworkCondition">
-		<Reference Include="System.Threading, Version=1.0.2856.102, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+		<Reference Include="System.Threading">
 			<HintPath>$(GameDirectory)\MelonLoader\Managed\System.Threading.dll</HintPath>
 		</Reference>
 		<Reference Include="Rackspace.Threading">
@@ -24,11 +19,17 @@
 		<Reference Include="MelonLoader">
 			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
 		</Reference>
+		<Reference Include="MelonAutoUpdater">
+			<HintPath>$(GameDirectory)\Plugins\net35\MelonAutoUpdater.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
 		<Reference Include="MelonLoader">
 			<HintPath>$(GameDirectory)\MelonLoader\net6\MelonLoader.dll</HintPath>
+		</Reference>
+		<Reference Include="MelonAutoUpdater">
+			<HintPath>$(GameDirectory)\Plugins\MelonAutoUpdater.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
