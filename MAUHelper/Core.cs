@@ -7,7 +7,7 @@ using System.Linq;
 
 [assembly: MelonInfo(typeof(MAUHelper.Core), "MAUHelper", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000001)]
-[assembly: VerifyLoaderVersion("0.5.3", true)]
+[assembly: VerifyLoaderVersion(0, 5, 3, true)]
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: MelonColor(ConsoleColor.Green)]
 #pragma warning restore CS0618 // Type or member is obsolete

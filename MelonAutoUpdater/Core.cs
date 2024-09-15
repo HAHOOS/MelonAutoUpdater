@@ -28,7 +28,7 @@ using MelonAutoUpdater.Attributes;
 [assembly: AssemblyTitle("MelonAutoUpdater")]
 [assembly: AssemblyCompany("HAHOOS")]
 [assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
-[assembly: VerifyLoaderVersion("0.5.3", true)]
+[assembly: VerifyLoaderVersion(0, 5, 3, true)]
 
 namespace MelonAutoUpdater
 {
