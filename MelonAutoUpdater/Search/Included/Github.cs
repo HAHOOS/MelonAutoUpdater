@@ -191,8 +191,10 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                     }
                                 }
                                 canUse = false;
-                                System.Timers.Timer timer = new System.Timers.Timer();
-                                timer.Interval = int.Parse(data["interval"]) * 1000;
+                                System.Timers.Timer timer = new System.Timers.Timer
+                                {
+                                    Interval = int.Parse(data["interval"]) * 1000
+                                };
                                 timer.Elapsed += (x, y) =>
                                 {
                                     canUse = true;
@@ -253,7 +255,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
 
                         foreach (var file in data["assets"] as ProxyArray)
                         {
-                            downloadURLs.Add(new FileData() { URL = (string)file["browser_download_url"], ContentType = (string)file["content_type"], FileName = Path.GetFileNameWithoutExtension((string)file["browser_download_url"]) });
+                            downloadURLs.Add(new FileData((string)file["browser_download_url"], Path.GetFileNameWithoutExtension((string)file["browser_download_url"]), (string)file["content_type"]));
                         }
 
                         client.Dispose();
@@ -269,11 +271,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                             Logger.Error($"Failed to parse version");
                             return Empty();
                         }
-                        return Task.Factory.StartNew(() => new ModData()
-                        {
-                            LatestVersion = semver,
-                            DownloadFiles = downloadURLs,
-                        });
+                        return Task.Factory.StartNew(() => new ModData(semver, downloadURLs));
                     }
                     else
                     {

@@ -65,7 +65,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         /// <param name="url">URL retrieved from mod/plugin that needs to be checked</param>
         /// <param name="currentVersion">Current version of the mod/plugin</param>
-        /// <returns><see cref="ModData"/> if able to retrieve information from link, otherwise <see langword="null"/></returns>
+        /// <returns><see cref="ModData"/> if able to retrieve information from link, otherwise <see cref="null"/></returns>
         public abstract Task<ModData> Search(string url, SemVersion currentVersion);
 
         /// <summary>
@@ -74,10 +74,10 @@ namespace MelonAutoUpdater.Search
         /// <param name="name">Name provided with mod/plugin being checked</param>
         /// <param name="author">Author provided with mod/plugin being checked</param>
         /// <param name="currentVersion">Current version of mod/plugin</param>
-        /// <returns><see cref="ModData"/> if able to retrieve information from name & author, otherwise <see langword="null"></returns>
+        /// <returns><see cref="ModData"/> if able to retrieve information from name & author, otherwise <see cref="null"></returns>
         public virtual Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
         {
-            return null;
+            return Empty();
         }
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace MelonAutoUpdater.Search
         /// Get all loaded extensions
         /// </summary>
         /// <returns>A list of <see cref="MAUSearch"/> objects</returns>
-        public static IEnumerable<MAUSearch> GetExtensions(Assembly[] loadedAssemblies)
+        internal static IEnumerable<MAUSearch> GetExtensions(Assembly[] loadedAssemblies)
         {
             List<MAUSearch> objects = new List<MAUSearch>();
             foreach (Assembly assembly in loadedAssemblies)
@@ -216,7 +216,7 @@ namespace MelonAutoUpdater.Search
         /// Checks if assembly is an extension
         /// </summary>
         /// <param name="assembly"><see cref="Assembly"/> to check if is an extension</param>
-        /// <returns>If true, it is an extension, otherwise, false</returns>
+        /// <returns>If <see cref="true">, it is an extension, otherwise, <see cref="false"></returns>
         public static bool IsExtension(Assembly assembly)
         {
             return assembly.GetTypes()

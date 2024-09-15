@@ -20,7 +20,7 @@ namespace MelonAutoUpdater
         public string MimeType { get; private set; }
 
         /// <summary>
-        /// Extension associated with the Mime Type, <see langword="null"/> if no extension was found to be associated with the Mime Type
+        /// Extension associated with the Mime Type, <see cref="null"/> if no extension was found to be associated with the Mime Type
         /// </summary>
         public string Extension { get; private set; }
 
@@ -94,8 +94,8 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="type">Way of parsing, either by Mime Type or File Extension</param>
         /// <param name="value">The value to parse</param>
-        /// <param name="contentType">The parsed <see cref="ContentType"/>, if not found, returns <see langword="null"/></param>
-        /// <returns><see langword="true"/>, if found, otherwise <see cref="false"/></returns>
+        /// <param name="contentType">The parsed <see cref="ContentType"/>, if not found, returns <see cref="null"/></param>
+        /// <returns><see cref="true"/>, if found, otherwise <see cref="false"/></returns>
         /// <exception cref="KeyNotFoundException">Mime Type was not found</exception>
         /// <exception cref="InvalidOperationException">An unknown <see cref="ContentType_Parse"/> enum was found</exception>
         public static bool TryParse(ContentType_Parse type, string value, out ContentType contentType)

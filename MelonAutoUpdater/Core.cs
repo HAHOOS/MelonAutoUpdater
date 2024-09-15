@@ -20,7 +20,6 @@ using MelonAutoUpdater.Attributes;
 [assembly: MelonPriority(-100000000)]
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: MelonColor(ConsoleColor.Green)]
-[assembly: MelonAuthorColor(ConsoleColor.Yellow)]
 #pragma warning restore CS0618 // Type or member is obsolete
 
 [assembly: AssemblyProduct("MelonAutoUpdater")]
@@ -29,6 +28,7 @@ using MelonAutoUpdater.Attributes;
 [assembly: AssemblyTitle("MelonAutoUpdater")]
 [assembly: AssemblyCompany("HAHOOS")]
 [assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
+[assembly: VerifyLoaderVersion("0.5.3", true)]
 
 namespace MelonAutoUpdater
 {
@@ -67,7 +67,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Customizable colors, why does it exist? I don't know
         /// </summary>
-        internal static Theme theme = new Theme();
+        internal static Theme theme = Theme.Instance;
 
         /// <summary>
         /// Instance of <see cref="MelonLogger"/>
@@ -277,7 +277,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 5000)</param>
         /// <param name="url">URL of the website used to check for connection (Default: <c>http://www.gstatic.com/generate_204</c>)</param>
-        /// <returns>If <see langword="true"/>, there's internet connection, otherwise not</returns>
+        /// <returns>If <see cref="true"/>, there's internet connection, otherwise not</returns>
         internal static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
         {
             try
@@ -356,7 +356,7 @@ namespace MelonAutoUpdater
                     var task = ext.BruteCheck(name, author, currentVersion);
                     task.Wait();
                     result = task.Result;
-                    if (result == null)
+                    if (result == null || result.LatestVersion == null)
                     {
                         LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                     }
@@ -607,7 +607,7 @@ namespace MelonAutoUpdater
         /// Checks if the <see cref="Assembly"/> is compatible with the current ML Instance
         /// </summary>
         /// <param name="assembly"><see cref="AssemblyDefinition"/> to check</param>
-        /// <returns><see langword="true"/>, if compatible, otherwise <see langword="false"/></returns>
+        /// <returns><see cref="true"/>, if compatible, otherwise <see cref="false"/></returns>
         internal bool CheckCompability(AssemblyDefinition assembly)
         {
             var modInfo = GetMelonInfo(assembly);
@@ -770,7 +770,7 @@ namespace MelonAutoUpdater
         /// Check directory for mods & plugins that can be updated
         /// </summary>
         /// <param name="directory"><see cref="Path"/> to the directory</param>
-        /// <param name="automatic">If <see langword="true"/>, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
+        /// <param name="automatic">If <see cref="true"/>, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
         internal void CheckDirectory(string directory, bool automatic = true)
         {
             List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
@@ -791,7 +791,7 @@ namespace MelonAutoUpdater
                 }
             });
             files.RemoveAll(x => fileNameIgnore.Contains(x));
-            LoggerInstance.Msg(ColorTranslator.FromHtml(theme.LineColor), "------------------------------");
+            LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
             foreach (string path in files)
             {
                 AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
@@ -801,7 +801,7 @@ namespace MelonAutoUpdater
                 if (_ignore)
                 {
                     LoggerInstance.Msg($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
-                    LoggerInstance.Msg(ColorTranslator.FromHtml(theme.LineColor), "------------------------------");
+                    LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
                     continue;
                 }
                 LoggerInstance.Msg($"File: {fileName.Pastel(theme.FileNameColor)}");
@@ -968,19 +968,7 @@ namespace MelonAutoUpdater
                                                         if (Directory.Exists(extPath))
                                                         {
                                                             string dirName = GetDirName(extPath);
-                                                            if (dirName == "Mods" || dirName == "Plugins")
-                                                            {
-                                                                foreach (var fPath in Directory.GetFiles(extPath, "*.dll"))
-                                                                {
-                                                                    var res = InstallPackage(fPath, data.Result.LatestVersion);
-                                                                    if (res.threwError) threwError = true;
-                                                                    if (res.success) success += 1;
-                                                                    else failed += 1;
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                List<string> SubDirCheck = new List<string>
+                                                            List<string> SubDirCheck = new List<string>
                                                                 {
                                                                     "Mods",
                                                                     "Plugins",
@@ -988,30 +976,29 @@ namespace MelonAutoUpdater
                                                                     "UserData",
                                                                     "UserLibs"
                                                                 };
-                                                                int checkedDirs = 0;
-                                                                foreach (var subdir in SubDirCheck)
+                                                            int checkedDirs = 0;
+                                                            foreach (var subdir in SubDirCheck)
+                                                            {
+                                                                if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
                                                                 {
-                                                                    if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
-                                                                    {
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                        var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.Result.LatestVersion);
+                                                                    var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.Result.LatestVersion);
 #pragma warning restore CS0618 // Type or member is obsolete
-                                                                        checkedDirs++;
-                                                                        success += res1.success;
-                                                                        failed += res1.failed;
-                                                                        if (res1.threwError) threwError = true;
-                                                                    }
-                                                                }
-                                                                if (checkedDirs < Directory.GetDirectories(extPath).Length)
-                                                                {
-                                                                    LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                                    var res1 = MoveAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.Result.LatestVersion);
+                                                                    checkedDirs++;
                                                                     success += res1.success;
                                                                     failed += res1.failed;
                                                                     if (res1.threwError) threwError = true;
-#pragma warning restore CS0618 // Type or member is obsolete
                                                                 }
+                                                            }
+                                                            if (checkedDirs < Directory.GetDirectories(extPath).Length)
+                                                            {
+                                                                LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
+#pragma warning disable CS0618 // Type or member is obsolete
+                                                                var res1 = MoveAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.Result.LatestVersion);
+                                                                success += res1.success;
+                                                                failed += res1.failed;
+                                                                if (res1.threwError) threwError = true;
+#pragma warning restore CS0618 // Type or member is obsolete
                                                             }
                                                         }
                                                         else if (Path.GetExtension(extPath) == ".dll")
@@ -1060,11 +1047,11 @@ namespace MelonAutoUpdater
                                 {
                                     if (data.Result.LatestVersion == currentVersion)
                                     {
-                                        LoggerInstance.Msg(ColorTranslator.FromHtml(theme.UpToDateVersionColor), "Version is up-to-date!");
+                                        LoggerInstance.Msg("Version is up-to-date!".Pastel(theme.UpToDateVersionColor));
                                     }
                                     else if (data.Result.LatestVersion < currentVersion)
                                     {
-                                        LoggerInstance.Msg(ColorTranslator.FromHtml(theme.UpToDateVersionColor), "Current version is newer than in the API");
+                                        LoggerInstance.Msg("Current version is newer than in the API".Pastel(theme.UpToDateVersionColor));
                                     }
                                 }
                             }
@@ -1075,7 +1062,7 @@ namespace MelonAutoUpdater
                 {
                     LoggerInstance.Warning($"{fileName} does not seem to be a MelonLoader Mod");
                 }
-                LoggerInstance.Msg(ColorTranslator.FromHtml(theme.LineColor), "------------------------------");
+                LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
             }
         }
 
@@ -1093,7 +1080,7 @@ namespace MelonAutoUpdater
             }
             else
             {
-                LoggerInstance.Msg(Color.Red, "Internet is not connected, aborting");
+                LoggerInstance.Msg("Internet is not connected, aborting");
                 return;
             }
 
@@ -1112,6 +1099,7 @@ namespace MelonAutoUpdater
             foreach (string resourceName in resources)
             {
                 string remove = $"{assemblyInfo.Name}.Embedded.Dependencies.";
+                if (!resourceName.StartsWith(remove)) continue;
                 if (!string.IsNullOrEmpty(resourceName))
                 {
                     string fileName = resourceName.Replace(remove, "");
@@ -1203,7 +1191,7 @@ namespace MelonAutoUpdater
             foreach (FileInfo file in extFiles)
             {
                 LoggerInstance.Msg($"Checking {file.Name.Pastel(theme.FileNameColor)}");
-                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(file.FullName);
+                AssemblyDefinition assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(file.FullName);
                 bool isExtension = false;
                 foreach (var attr in assembly.CustomAttributes)
                 {
@@ -1222,6 +1210,11 @@ namespace MelonAutoUpdater
                     LoggerInstance.Msg($"{file.Name.Pastel(theme.FileNameColor)} is a MAU Search Extension");
                     System.Reflection.Assembly assembly1 = System.Reflection.Assembly.LoadFile(file.FullName);
                     assemblies.Add(assembly1);
+                    LoggerInstance.Msg("Loading dependencies");
+                    foreach (var a in assembly1.GetReferencedAssemblies())
+                    {
+                        System.Reflection.Assembly.Load(a);
+                    }
                 }
                 else
                 {

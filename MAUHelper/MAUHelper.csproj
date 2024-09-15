@@ -2,6 +2,7 @@
 	<PropertyGroup>
 		<TargetFramework>net35</TargetFramework>
 		<LangVersion>7.3</LangVersion>
+		<GenerateDocumentation>enable</GenerateDocumentation>
 		<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
 	</PropertyGroup>
 

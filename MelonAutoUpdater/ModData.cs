@@ -18,6 +18,34 @@ namespace MelonAutoUpdater
         /// The URLs & to download the latest version of a mod & Content Type if provided
         /// </summary>
         public List<FileData> DownloadFiles { get; internal set; }
+
+        /// <summary>
+        /// Creates new instance of <see cref="ModData">
+        /// </summary>
+        /// <param name="latestVersion">Latest version available in the API</param>
+        /// <param name="downloadFiles">List of <see cref="FileData"></param>
+        public ModData(SemVersion latestVersion, List<FileData> downloadFiles)
+        {
+            this.LatestVersion = latestVersion;
+            this.DownloadFiles = downloadFiles;
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="ModData">
+        /// </summary>
+        /// <param name="latestVersion">Latest version available in the API</param>
+        /// <param name="downloadFiles">List of <see cref="FileData"></param>
+        public ModData(SemVersion latestVersion)
+        {
+            this.LatestVersion = latestVersion;
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="ModData">
+        /// </summary>
+        public ModData()
+        {
+        }
     }
 
     /// <summary>
@@ -49,5 +77,44 @@ namespace MelonAutoUpdater
         /// File Name, if provided with response
         /// </summary>
         public string FileName { get; internal set; }
+
+        /// <summary>
+        /// Creates new instance of <see cref="FileData"/>
+        /// </summary>
+        public FileData()
+        { }
+
+        /// <summary>
+        /// Creates new instance of <see cref="FileData"/>
+        /// </summary>
+        /// <param name="url">URL to the file</param>
+        /// <param name="fileName">File Name, if provided with response</param>
+        /// <param name="contentType">Content Type returned by API</param>
+        public FileData(string url, string fileName, string contentType)
+        {
+            this.URL = url;
+            this.ContentType = contentType;
+            this.FileName = fileName;
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="FileData"/>
+        /// </summary>
+        /// <param name="url">URL to the file</param>
+        public FileData(string url)
+        {
+            this.URL = url;
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="FileData"/>
+        /// </summary>
+        /// <param name="url">URL to the file</param>
+        /// <param name="contentType">Content Type returned by API</param>
+        public FileData(string url, string contentType)
+        {
+            this.URL = url;
+            this.ContentType = contentType;
+        }
     }
 }
