@@ -79,4 +79,5 @@ Third-party Libraries bundled in Binary Form:
 Assets from Third-party Libraries used as Source Code and/or bundled in Binary Form:
 - [db.json](https://github.com/jshttp/mime-db/blob/master/db.json) from [mime-db](https://github.com/jshttp/mime-db) is licensed under the MIT License. See [LICENSE](https://github.com/jshttp/mime-db/blob/master/LICENSE) for the full License.
 
-MelonAutoUpdater is not sponsored by, affiliated with or endorsed by Lava Gang
+MelonAutoUpdater is not sponsored by, affiliated with or endorsed by Lava Gang or its affiliates.
+"MelonLoader" is a trademark or a registered trademark of Lava Gang or its affiliates in the U.S. and elsewhere.
