@@ -33,7 +33,7 @@ If you do not want to use MAUHelper:
   - For MelonLoader v0.5.7 and earlier, download `MelonAutoUpdater-net35.dll`
 <br/>
 
-When downloaded, extract the files from the downloaded ZIP and drag the extracted folders into the game.<br/>
+When downloaded, put the DLL file into the `Mods` folder<br/>
 
 And now, you're done! Enjoy your mods being automatically updated! 🎉
 
