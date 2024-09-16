@@ -9,7 +9,7 @@
 
 ## Reporting a Vulnerability
 
-To report a vulnerability, email [hahoos@hahoos.pl](mailto:hahoos@hahoos.pl) with the following format:
+To report a vulnerability, email [hahoos@hahoos.pl](mailto:hahoos@hahoos.pl) or message @hahoos on Discord with the following format:
 
 ```
 Hello,
