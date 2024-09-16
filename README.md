@@ -1,4 +1,4 @@
-<div align="center"><a href="https://github.com/HAHOOS/MelonAutoUpdater/releases/"><img src="https://github.com/HAHOOS/MelonAutoUpdater/blob/master/.github/Images/MAUIcon.png" /></a></div>
+<div align="center"><a href="https://github.com/HAHOOS/MelonAutoUpdater/wiki/Icon"><img src="https://github.com/HAHOOS/MelonAutoUpdater/blob/master/.github/Images/MAUIcon.png" /></a></div>
 
 <h1 align="center">MAU | Melon Auto Updater</h1>
 
