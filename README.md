@@ -43,7 +43,7 @@ And now, you're done! Enjoy your mods being automatically updated! 🎉
 | --- | --- |
 | Enabled | If true, the plugin will update the mods |
 | Ignore List | List of mods (file names without extension example ".dll") that will not be updated |
-| Brute Check | If enabled, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author. **Currently Github is not supported in brute checking due to extremely strict rate limits** |
+| Brute Check | If enabled, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author. **WARNING: You may get rate-limited with large amounts of mods/plugins, use with caution** |
 
 <h2 align="center">Themes</h2>
 
