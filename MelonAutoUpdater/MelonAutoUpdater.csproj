@@ -8,34 +8,13 @@
 	</PropertyGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
-		<Reference Include="Mono.Cecil">
-			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.dll</HintPath>
-		</Reference>
-		<Reference Include="Mono.Cecil.Mdb">
-			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Mdb.dll</HintPath>
-		</Reference>
-		<Reference Include="Mono.Cecil.Pdb">
-			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Pdb.dll</HintPath>
-		</Reference>
-		<Reference Include="Mono.Cecil.Rocks">
-			<HintPath>$(GameDirectory)\MelonLoader\net6\Mono.Cecil.Rocks.dll</HintPath>
-		</Reference>
 		<Reference Include="MelonLoader">
 			<HintPath>$(GameDirectory)\MelonLoader\net6\MelonLoader.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="Embedded\Dependencies\Net35.Http.dll" />
-	  <None Remove="Embedded\Dependencies\Rackspace.Threading.dll" />
-	  <None Remove="Embedded\Dependencies\System.Threading.dll" />
 	  <None Remove="Embedded\mime-types.json" />
-	</ItemGroup>
-
-	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
-	  <EmbeddedResource Include="Embedded\Dependencies\Net35.Http.dll" />
-	  <EmbeddedResource Include="Embedded\Dependencies\Rackspace.Threading.dll" />
-	  <EmbeddedResource Include="Embedded\Dependencies\System.Threading.dll" />
 	</ItemGroup>
 
 	<ItemGroup Label="NoFrameworkCondition">
@@ -45,27 +24,6 @@
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35FrameworkCondition">
-		<Reference Include="System.Threading">
-			<HintPath>$(GameDirectory)\MelonLoader\Managed\System.Threading.dll</HintPath>
-		</Reference>
-		<Reference Include="Rackspace.Threading">
-			<HintPath>$(GameDirectory)\MelonLoader\Managed\Rackspace.Threading.dll</HintPath>
-		</Reference>
-		<Reference Include="Net35.Http">
-			<HintPath>$(GameDirectory)\MelonLoader\Managed\Net35.Http.dll</HintPath>
-		</Reference>
-		<Reference Include="Mono.Cecil">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.dll</HintPath>
-		</Reference>
-		<Reference Include="Mono.Cecil.Mdb">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Mdb.dll</HintPath>
-		</Reference>
-		<Reference Include="Mono.Cecil.Pdb">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Pdb.dll</HintPath>
-		</Reference>
-		<Reference Include="Mono.Cecil.Rocks">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.Rocks.dll</HintPath>
-		</Reference>
 		<Reference Include="MelonLoader">
 			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
 		</Reference>
@@ -77,6 +35,18 @@
 	<ItemGroup>
 	  <EmbeddedResource Include="Embedded\mime-types.json" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Mono.Cecil" Version="0.10.4" />
+	</ItemGroup>
+
+	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
+		<PackageReference Include="Rackspace.Threading" Version="2.0.0-alpha001" />
+		<PackageReference Include="TaskParallelLibrary" Version="1.0.2856" />
+		<PackageReference Include="Net35.Http" Version="1.0.0" />
+		<PackageReference Include="ValueTupleBridge" Version="0.1.5" />
+	</ItemGroup>
+		
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins&quot;" />

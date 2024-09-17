@@ -15,6 +15,9 @@ using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
 using MelonAutoUpdater.Attributes;
+using Harmony;
+using System.Net;
+using System.Threading;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
@@ -28,7 +31,7 @@ using MelonAutoUpdater.Attributes;
 [assembly: AssemblyTitle("MelonAutoUpdater")]
 [assembly: AssemblyCompany("HAHOOS")]
 [assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
-[assembly: VerifyLoaderVersion(0, 5, 3, true)]
+[assembly: VerifyLoaderVersion("0.5.3", true)]
 
 namespace MelonAutoUpdater
 {
@@ -78,6 +81,31 @@ namespace MelonAutoUpdater
         /// List of MAU Search Extensions
         /// </summary>
         internal IEnumerable<MAUSearch> extensions;
+
+        private Dictionary<string, Dictionary<string, string>> NuGetPackages = new Dictionary<string, Dictionary<string, string>> {
+            {
+                "net6",
+                new Dictionary<string, string> {
+                }
+            },
+            {
+                "net35",
+                new Dictionary<string, string> {
+                    {
+                        "Rackspace.Threading", "2.0.0-alpha001"
+                    },
+                    {
+                        "TaskParallelLibrary", "1.0.2856"
+                    },
+                    {
+                        "Net35.Http", "1.0.0"
+                    },
+                    {
+                        "ValueTupleBridge", "0.1.5"
+                    }
+                }
+            },
+        };
 
         #region Melon Preferences
 
@@ -271,6 +299,41 @@ namespace MelonAutoUpdater
             return Task.Factory.StartNew(() => true);
         }
 
+        /// <summary>
+        /// Unzip a file from <see cref="Stream"/><br/>
+        /// Made to work with net35
+        /// </summary>
+        /// <param name="zipStream"><see cref="Stream"/> of the ZIP File</param>
+        /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip/param>
+        /// <returns>A <see cref="Task"/> that returns true if completed successfully</returns>
+        internal static bool UnzipFromStream_NotTask(Stream zipStream, string outFolder)
+        {
+            using (var zipInputStream = new ZipInputStream(zipStream))
+            {
+                while (zipInputStream.GetNextEntry() is ZipEntry zipEntry)
+                {
+                    var entryFileName = zipEntry.Name;
+
+                    var buffer = new byte[4096];
+
+                    var fullZipToPath = Path.Combine(outFolder, entryFileName);
+                    var directoryName = Path.GetDirectoryName(fullZipToPath);
+
+                    if (directoryName.Length > 0)
+                        Directory.CreateDirectory(directoryName);
+                    if (Path.GetFileName(fullZipToPath).Length == 0)
+                    {
+                        continue;
+                    }
+                    using (FileStream streamWriter = File.Create(fullZipToPath))
+                    {
+                        StreamUtils.Copy(zipInputStream, streamWriter, buffer);
+                    }
+                }
+            }
+            return true;
+        }
+
         // If you are wondering, this is from StackOverflow, although a bit edited, I'm just a bit lazy
         /// <summary>
         /// Checks for internet connection
@@ -278,6 +341,8 @@ namespace MelonAutoUpdater
         /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 5000)</param>
         /// <param name="url">URL of the website used to check for connection (Default: <c>http://www.gstatic.com/generate_204</c>)</param>
         /// <returns>If <see cref="true"/>, there's internet connection, otherwise not</returns>
+        [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         internal static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
         {
             try
@@ -1071,8 +1136,125 @@ namespace MelonAutoUpdater
     System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public override void OnPreInitialization()
         {
+            LoggerInstance.Msg("Loading necessary dependencies");
+#if NET35_OR_GREATER
+            var dependencies = NuGetPackages["net35"];
+#elif NET6_0_OR_GREATER
+            var dependencies = NuGetPackages["net6"];
+#endif
+            int downloaded = 0;
+            int needDownload = dependencies.Count;
+            if (dependencies != null)
+            {
+                Thread thread = new Thread(() =>
+                {
+                    var allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+                    foreach (var assembly in allAssemblies)
+                    {
+                        LoggerInstance.Msg(assembly.GetName().Name);
+                    }
+                    foreach (var dependency in dependencies)
+                    {
+                        if (allAssemblies.Where(x => x.GetName().Name == dependency.Key).Any())
+                        {
+                            LoggerInstance.Msg($"{dependency.Key} v{dependency.Value} is loaded!");
+                            downloaded++;
+                        }
+                        else
+                        {
+                            LoggerInstance.Error($"{dependency.Key} v{dependency.Value} is not loaded, installing");
+
+                            string path = Path.Combine(MelonUtils.BaseDirectory, $"{dependency.Key}.{dependency.Value}.nupkg");
+                            LoggerInstance.Msg("Downloading file");
+                            WebClient webClient = new WebClient();
+                            webClient.DownloadFile($"https://api.nuget.org/v3-flatcontainer/{dependency.Key.ToLower()}/{dependency.Value}/{dependency.Key.ToLower()}.{dependency.Value}.nupkg", path);
+                            if (File.Exists(path))
+                            {
+                                string userLibsDirectory = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
+
+                                LoggerInstance.Msg("Downloaded successfully, extracting files");
+                                FileInfo fileInfo = new FileInfo(path);
+                                string zip_Path = Path.ChangeExtension(path, "zip");
+                                fileInfo.MoveTo(zip_Path);
+                                string dirPath = Path.Combine(MelonUtils.BaseDirectory, $"{dependency.Key}.{dependency.Value}-dependency");
+                                UnzipFromStream_NotTask(File.Open(zip_Path, FileMode.Open), dirPath);
+                                if (Directory.Exists(dirPath))
+                                {
+                                    LoggerInstance.Msg("Extracted successfully, installing");
+                                    var libDir = new DirectoryInfo(Path.Combine(dirPath, "lib"));
+                                    if (libDir.Exists)
+                                    {
+                                        List<string> dependencyFiles = new List<string>();
+                                        LoggerInstance.Msg("Found lib directory, finding dependency");
+                                        var dllFiles = libDir.GetFiles();
+                                        if (dllFiles.Length > 0)
+                                        {
+                                            LoggerInstance.Msg("Found dependency in lib directory");
+                                            foreach (var dllFile in dllFiles)
+                                            {
+                                                LoggerInstance.Msg("Installing " + dllFile.Name);
+                                                dllFile.MoveTo(Path.Combine(userLibsDirectory, dllFile.Name));
+                                                dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            LoggerInstance.Msg("Looking for corresponding net version in libraries");
+#if NET6_0_OR_GREATER
+                                            string netVer = "net6";
+#elif NET35_OR_GREATER
+                                            string netVer = "net35";
+#endif
+                                            var _netDir = Directory.GetDirectories(libDir.FullName).Where(x => GetDirName(x).ToLower().StartsWith(netVer));
+                                            if (_netDir.Any())
+                                            {
+                                                var netDir = new DirectoryInfo(_netDir.First());
+                                                LoggerInstance.Msg("Found corresponding net version in libraries, installing");
+                                                var dllFiles2 = netDir.GetFiles();
+                                                if (dllFiles2.Length > 0)
+                                                {
+                                                    foreach (var dllFile in dllFiles2)
+                                                    {
+                                                        LoggerInstance.Msg("Installing " + dllFile.Name);
+                                                        dllFile.MoveTo(Path.Combine(userLibsDirectory, dllFile.Name));
+                                                        dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                LoggerInstance.Error("Could not find corresponding NET version in dependency, unable to install");
+                                            }
+                                        }
+                                        foreach (var file in dependencyFiles)
+                                        {
+                                            if (Path.GetExtension(file) == ".dll")
+                                            {
+                                                Assembly.LoadFrom(file);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        LoggerInstance.Error("Could not find 'lib' directory in downloaded NuGet package");
+                                    }
+                                    Directory.Delete(dirPath, true);
+                                }
+                                else
+                                {
+                                    LoggerInstance.Error("Download failed");
+                                }
+                                File.Delete(zip_Path);
+                                downloaded++;
+                            };
+                        }
+                    }
+                });
+                thread.Start();
+                thread.Join();
+            }
             LoggerInstance.Msg("Checking if internet is connected");
-            var internetConnected = CheckForInternetConnection();
+            /*var internetConnected = CheckForInternetConnection();
             internetConnected.Wait();
             if (internetConnected.Result)
             {
@@ -1082,62 +1264,12 @@ namespace MelonAutoUpdater
             {
                 LoggerInstance.Msg("Internet is not connected, aborting");
                 return;
-            }
+            }*/
 
             logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
             Version = this.Info.Version;
             MAUSearch.UserAgent = UserAgent;
-#if NET35
-            LoggerInstance.Msg("Checking for dependencies");
-#pragma warning disable CS0618 // Type or member is obsolete
-            string path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "MelonLoader"), "Managed");
-#pragma warning restore CS0618 // Type or member is obsolete
-
-            var assemblyInfo = System.Reflection.Assembly.GetExecutingAssembly().GetName();
-            var resources = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames();
-            foreach (string resourceName in resources)
-            {
-                string remove = $"{assemblyInfo.Name}.Embedded.Dependencies.";
-                if (!resourceName.StartsWith(remove)) continue;
-                if (!string.IsNullOrEmpty(resourceName))
-                {
-                    string fileName = resourceName.Replace(remove, "");
-                    string pathToFile = Path.Combine(path, fileName);
-                    if (File.Exists(pathToFile))
-                    {
-                        LoggerInstance.Msg($"Found {fileName}");
-                    }
-                    else
-                    {
-                        LoggerInstance.Msg($"Did not find {fileName}, installing...");
-                        try
-                        {
-                            var stream = Assembly
-                                .GetExecutingAssembly()
-                                .GetManifestResourceStream(resourceName);
-                            Stream fileStream = File.Create(pathToFile);
-                            fileStream.Flush();
-                            fileStream.Seek(0, SeekOrigin.Begin);
-                            lock (this)
-                            {
-                                CopyToNotTask(stream, fileStream);
-                            };
-                            fileStream.Dispose();
-                            stream.Dispose();
-
-                            System.Reflection.Assembly.LoadFile(pathToFile);
-
-                            LoggerInstance.Msg($"Installed {fileName} successfully!");
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggerInstance.Error($"Failed to install {fileName}\n{ex}");
-                        }
-                    }
-                }
-            }
-#endif
 
             LoggerInstance.Msg("Creating folders in UserData");
 #pragma warning disable CS0618 // Type or member is obsolete
