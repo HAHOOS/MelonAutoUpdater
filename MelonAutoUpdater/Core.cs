@@ -619,8 +619,9 @@ namespace MelonAutoUpdater
                     catch (Exception)
                     {
                         string version = Get<string>(attr, 0);
+                        bool isMinimum = Get<bool>(attr, 1);
                         assembly.Dispose();
-                        return new VerifyLoaderVersionAttribute(version);
+                        return new VerifyLoaderVersionAttribute(version, isMinimum);
                     }
                 }
             }
