@@ -82,23 +82,26 @@ namespace MelonAutoUpdater
         /// </summary>
         internal IEnumerable<MAUSearch> extensions;
 
-        private Dictionary<string, Dictionary<string, string>> NuGetPackages = new Dictionary<string, Dictionary<string, string>> {
+        private Dictionary<string, Dictionary<List<string>, string>> NuGetPackages = new Dictionary<string, Dictionary<List<string>, string>> {
             {
                 "net6",
-                new Dictionary<string, string> {
+                new Dictionary<List <string>, string> {
                 }
             },
             {
                 "net35",
-                new Dictionary<string, string> {
+                new Dictionary<List<string>, string> {
                     {
-                        "TaskParallelLibrary", "1.0.2856"
+                        new List<string> {"Rackspace.Threading"}, "2.0.0-alpha001"
                     },
                     {
-                        "Net35.Http", "1.0.0"
+                         new List<string> {"TaskParallelLibrary", "System.Threading" }, "1.0.2856"
                     },
                     {
-                        "ValueTupleBridge", "0.1.5"
+                         new List<string> {"Net35.Http" }, "1.0.0"
+                    },
+                    {
+                         new List<string> {"ValueTupleBridge" }, "0.1.5"
                     }
                 }
             },
@@ -1152,28 +1155,30 @@ namespace MelonAutoUpdater
                     }
                     foreach (var dependency in dependencies)
                     {
-                        if (allAssemblies.Where(x => x.GetName().Name == dependency.Key).Any())
+                        string userLibsDirectory = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
+                        string packageName = dependency.Key[0];
+                        string assemblyName = dependency.Key.Count > 1 ? dependency.Key[1] : dependency.Key[0];
+                        var userLibs = Directory.GetFiles(userLibsDirectory);
+                        if (allAssemblies.Where(x => x.GetName().Name == assemblyName).Any() || File.Exists(Path.Combine(userLibsDirectory, $"{packageName}.dll")) || File.Exists(Path.Combine(userLibsDirectory, $"{assemblyName}.dll")))
                         {
-                            LoggerInstance.Msg($"{dependency.Key.Pastel(theme.FileNameColor)} is loaded!");
+                            LoggerInstance.Msg($"{packageName.Pastel(theme.FileNameColor)} is loaded!");
                             downloaded++;
                         }
                         else
                         {
-                            LoggerInstance.Error($"{dependency.Key} is not loaded, installing");
+                            LoggerInstance.Error($"{packageName.Pastel(theme.FileNameColor)} is not loaded, installing");
 
-                            string path = Path.Combine(MelonUtils.BaseDirectory, $"{dependency.Key}.{dependency.Value}.nupkg");
+                            string path = Path.Combine(MelonUtils.BaseDirectory, $"{packageName}.{dependency.Value}.nupkg");
                             LoggerInstance.Msg("Downloading file");
                             WebClient webClient = new WebClient();
-                            webClient.DownloadFile($"https://api.nuget.org/v3-flatcontainer/{dependency.Key.ToLower()}/{dependency.Value}/{dependency.Key.ToLower()}.{dependency.Value}.nupkg", path);
+                            webClient.DownloadFile($"https://api.nuget.org/v3-flatcontainer/{packageName.ToLower()}/{dependency.Value}/{packageName.ToLower()}.{dependency.Value}.nupkg", path);
                             if (File.Exists(path))
                             {
-                                string userLibsDirectory = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
-
                                 LoggerInstance.Msg("Downloaded successfully, extracting files");
                                 FileInfo fileInfo = new FileInfo(path);
                                 string zip_Path = Path.ChangeExtension(path, "zip");
                                 fileInfo.MoveTo(zip_Path);
-                                string dirPath = Path.Combine(MelonUtils.BaseDirectory, $"{dependency.Key}.{dependency.Value}-dependency");
+                                string dirPath = Path.Combine(MelonUtils.BaseDirectory, $"{packageName}.{dependency.Value}-dependency");
                                 UnzipFromStream_NotTask(File.Open(zip_Path, FileMode.Open), dirPath);
                                 if (Directory.Exists(dirPath))
                                 {
