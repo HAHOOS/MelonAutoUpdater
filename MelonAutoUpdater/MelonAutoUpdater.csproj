@@ -5,6 +5,7 @@
 		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
 		<GenerateDocumentation>enable</GenerateDocumentation>
 		<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
