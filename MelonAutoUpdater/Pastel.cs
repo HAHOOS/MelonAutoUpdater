@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 namespace MelonAutoUpdater
 {
     /// <summary>
-    /// Controls colored console output by <see cref="Pastel"/>.
+    /// Controls colored console output by <see langword="Pastel"/>.
     /// </summary>
     public static class ConsoleExtensions
     {

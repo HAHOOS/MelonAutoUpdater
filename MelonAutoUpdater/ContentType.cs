@@ -7,6 +7,9 @@ using System.Linq;
 
 namespace MelonAutoUpdater
 {
+    /// <summary>
+    /// Content Type that can be retrieved from Mime Type or File Extension
+    /// </summary>
     public class ContentType
     {
         /// <summary>
@@ -20,7 +23,7 @@ namespace MelonAutoUpdater
         public string MimeType { get; private set; }
 
         /// <summary>
-        /// Extension associated with the Mime Type, <see cref="null"/> if no extension was found to be associated with the Mime Type
+        /// Extension associated with the Mime Type, <see langword="null"/> if no extension was found to be associated with the Mime Type
         /// </summary>
         public string Extension { get; private set; }
 
@@ -94,8 +97,8 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="type">Way of parsing, either by Mime Type or File Extension</param>
         /// <param name="value">The value to parse</param>
-        /// <param name="contentType">The parsed <see cref="ContentType"/>, if not found, returns <see cref="null"/></param>
-        /// <returns><see cref="true"/>, if found, otherwise <see cref="false"/></returns>
+        /// <param name="contentType">The parsed <see cref="ContentType"/>, if not found, returns <see langword="null"/></param>
+        /// <returns><see langword="true"/>, if found, otherwise <see langword="false"/></returns>
         /// <exception cref="KeyNotFoundException">Mime Type was not found</exception>
         /// <exception cref="InvalidOperationException">An unknown <see cref="ContentType_Parse"/> enum was found</exception>
         public static bool TryParse(ContentType_Parse type, string value, out ContentType contentType)
@@ -115,38 +118,71 @@ namespace MelonAutoUpdater
         }
     }
 
+    /// <summary>
+    /// Type of value that should be parsed
+    /// </summary>
     public enum ContentType_Parse
     {
+        /// <summary>
+        /// <see cref="ContentType"/> will be found from provided Mime Type
+        /// </summary>
         MimeType,
+
+        /// <summary>
+        /// <see cref="ContentType"/> will be found from provided file extension
+        /// </summary>
         Extension
     }
 }
 
 namespace MelonAutoUpdater.JSONObjects
 {
+    /// <summary>
+    /// Mime-Type object used in the database
+    /// </summary>
     public class MimeType
     {
 #pragma warning disable IDE1006 // Naming Styles
 
+        /// <summary>
+        /// Source from where the mime-type was defined
+        /// </summary>
         [Include]
         public string source { get; internal set; }
 
+        /// <summary>
+        /// The default charset associated with this type, if any
+        /// </summary>
         [Include]
         public string charset { get; internal set; }
 
+        /// <summary>
+        /// Known file extensions associated with this mime type.
+        /// </summary>
         [Include]
         public string[] extensions { get; internal set; }
 
+        /// <summary>
+        /// Whether a file of this type can be gzipped
+        /// </summary>
         [Include]
         public bool compressible { get; internal set; }
 
 #pragma warning restore IDE1006 // Naming Styles
     }
 
+    /// <summary>
+    /// Object used for database
+    /// </summary>
     public class MimeTypeDB
     {
 #pragma warning disable IDE1006 // Naming Styles
+
+        /// <summary>
+        /// List of all mime-types
+        /// </summary>
         public Dictionary<string, MimeType> mimeTypes { get; internal set; }
+
 #pragma warning restore IDE1006 // Naming Styles
     }
 }

@@ -4,6 +4,9 @@ using System;
 
 namespace MelonAutoUpdater.Search
 {
+    /// <summary>
+    /// Provides logging for MAU Search Extensions
+    /// </summary>
     public class MAULogger
     {
         internal string Name { get; set; }

@@ -18,7 +18,7 @@ namespace MelonAutoUpdater.Attributes
         /// <summary>
         /// Creates instance of <see cref="MAUDownloadFilesAllowedAttribute" /> Attribute
         /// </summary>
-        /// <param name="AllowedFiles"/>List of file names (example <c>MAU-net6.zip</c>) that are allowed to be downloaded, if not on list, the download will be disregarded</param>
+        /// <param name="AllowedFiles">List of file names (example <c>MAU-net6.zip</c>) that are allowed to be downloaded, if not on list, the download will be disregarded</param>
         public MAUDownloadFilesAllowedAttribute(List<string> AllowedFiles) => this.AllowedFiles = AllowedFiles;
     }
 }

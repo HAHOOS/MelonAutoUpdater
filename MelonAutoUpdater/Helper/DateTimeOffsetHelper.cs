@@ -25,7 +25,7 @@ namespace MelonAutoUpdater.Helper
         /// Converts Unix timestamp in seconds to <see cref="DateTimeOffset" />
         /// </summary>
         /// <param name="seconds">The Unix timestamp in seconds</param>
-        /// <returns><see cref="DateTimeOffset" /> with date & time corresponding to Unix timestamp</returns>
+        /// <returns><see cref="DateTimeOffset" /> with date and time corresponding to Unix timestamp</returns>
         public static DateTimeOffset FromUnixTimeSeconds(long seconds)
         {
             return (new DateTime(1970, 1, 1)).AddSeconds(seconds).ToLocalTime();
@@ -35,7 +35,7 @@ namespace MelonAutoUpdater.Helper
         /// Converts Unix timestamp in milliseconds to <see cref="DateTimeOffset" />
         /// </summary>
         /// <param name="milliseconds">The Unix timestamp in milliseconds</param>
-        /// <returns><see cref="DateTimeOffset" /> with date & time corresponding to Unix timestamp</returns>
+        /// <returns><see cref="DateTimeOffset" /> with date and time corresponding to Unix timestamp</returns>
         public static DateTimeOffset FromUnixTimeMilliseconds(long milliseconds)
         {
             return (new DateTime(1970, 1, 1)).AddMilliseconds(milliseconds).ToLocalTime();

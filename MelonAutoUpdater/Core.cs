@@ -15,7 +15,6 @@ using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
 using MelonAutoUpdater.Attributes;
-using Harmony;
 using System.Net;
 using System.Threading;
 
@@ -35,6 +34,9 @@ using System.Threading;
 
 namespace MelonAutoUpdater
 {
+    /// <summary>
+    /// Class that contains most of MelonAutoUpdater's functionality
+    /// </summary>
     public class Core : MelonPlugin
     {
         /// <summary>
@@ -82,7 +84,7 @@ namespace MelonAutoUpdater
         /// </summary>
         internal IEnumerable<MAUSearch> extensions;
 
-        private Dictionary<string, Dictionary<List<string>, string>> NuGetPackages = new Dictionary<string, Dictionary<List<string>, string>> {
+        private readonly Dictionary<string, Dictionary<List<string>, string>> NuGetPackages = new Dictionary<string, Dictionary<List<string>, string>> {
             {
                 "net6",
                 new Dictionary<List <string>, string> {
@@ -269,7 +271,7 @@ namespace MelonAutoUpdater
         /// Made to work with net35
         /// </summary>
         /// <param name="zipStream"><see cref="Stream"/> of the ZIP File</param>
-        /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip/param>
+        /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip</param>
         /// <returns>A <see cref="Task"/> that returns true if completed successfully</returns>
         internal static Task<bool> UnzipFromStream(Stream zipStream, string outFolder)
         {
@@ -304,7 +306,7 @@ namespace MelonAutoUpdater
         /// Made to work with net35
         /// </summary>
         /// <param name="zipStream"><see cref="Stream"/> of the ZIP File</param>
-        /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip/param>
+        /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip</param>
         /// <returns>A <see cref="Task"/> that returns true if completed successfully</returns>
         internal static bool UnzipFromStream_NotTask(Stream zipStream, string outFolder)
         {
@@ -340,7 +342,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 5000)</param>
         /// <param name="url">URL of the website used to check for connection (Default: <c>http://www.gstatic.com/generate_204</c>)</param>
-        /// <returns>If <see cref="true"/>, there's internet connection, otherwise not</returns>
+        /// <returns>If <see langword="true"/>, there's internet connection, otherwise not</returns>
         [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         internal static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
@@ -366,6 +368,7 @@ namespace MelonAutoUpdater
         /// Currently Supported: Thunderstore, Github
         /// </summary>
         /// <param name="downloadLink">Download Link, possibly included in the <see cref="MelonInfoAttribute"/></param>
+        /// <param name="currentVersion">Current version of the Melon in question</param>
         /// <returns>If found, returns a <see cref="ModData"/> object which includes the latest version of the mod online and the download link(s)</returns>
         internal Task<ModData> GetModData(string downloadLink, SemVersion currentVersion)
         {
@@ -673,7 +676,7 @@ namespace MelonAutoUpdater
         /// Checks if the <see cref="Assembly"/> is compatible with the current ML Instance
         /// </summary>
         /// <param name="assembly"><see cref="AssemblyDefinition"/> to check</param>
-        /// <returns><see cref="true"/>, if compatible, otherwise <see cref="false"/></returns>
+        /// <returns><see langword="true"/>, if compatible, otherwise <see langword="false"/></returns>
         internal bool CheckCompability(AssemblyDefinition assembly)
         {
             var modInfo = GetMelonInfo(assembly);
@@ -705,7 +708,7 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="path"><see cref="Path"/> of mod/plugin</param>
         /// <param name="latestVersion">Latest version of mod/plugin, used to modify <see cref="MelonInfoAttribute"/> in case the version is not correct</param>
-        /// <returns>A <see cref="Tuple"/>, success and threwError, self explanatory</returns>
+        /// <returns>A <see langword="Tuple"/>, success and threwError, self explanatory</returns>
         internal (bool success, bool threwError) InstallPackage(string path, SemVersion latestVersion)
         {
             bool success = false;
@@ -833,10 +836,10 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Check directory for mods & plugins that can be updated
+        /// Check directory for mods and plugins that can be updated
         /// </summary>
         /// <param name="directory"><see cref="Path"/> to the directory</param>
-        /// <param name="automatic">If <see cref="true"/>, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
+        /// <param name="automatic">If <see langword="true"/>, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
         internal void CheckDirectory(string directory, bool automatic = true)
         {
             List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
@@ -1132,7 +1135,88 @@ namespace MelonAutoUpdater
             }
         }
 
+        internal void DownloadFile(string url, string path)
+        {
+#if NET35_OR_GREATER
+            WebClient webClient = new WebClient();
+            webClient.DownloadFile(url, path);
+#elif NET6_0_OR_GREATER
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
+            var get = httpClient.GetAsync(url);
+            get.Wait();
+            var response = get.Result;
+            response.EnsureSuccessStatusCode();
+            var fileStream = File.Open(path, FileMode.OpenOrCreate);
+            fileStream.Seek(0, SeekOrigin.Begin);
+            var resStream = response.Content.ReadAsStream();
+            resStream.Seek(0, SeekOrigin.Begin);
+
+            resStream.CopyTo(fileStream);
+
+            fileStream.Dispose();
+            resStream.Dispose();
+
+#endif
+        }
+
+        internal void FileMoveTo(string originPath, string desPath, bool overwrite = false)
+        {
+#if NET6_0_OR_GREATER
+            var originFile = new FileInfo(originPath);
+            if (originFile.Exists)
+            {
+                originFile.MoveTo(desPath, overwrite);
+            }
+            else
+            {
+                throw new FileNotFoundException("Could not find the origin file!", originPath);
+            }
+#elif NET35_OR_GREATER
+            var originFile = new FileInfo(originPath);
+            if (originFile.Exists)
+            {
+                var originStream = originFile.OpenRead();
+                var desFile = new FileInfo(desPath);
+                if (desFile.Exists)
+                {
+                    if (overwrite)
+                    {
+                        var desStream = desFile.OpenWrite();
+                        CopyToNotTask(originStream, desStream);
+
+                        originStream.Dispose();
+                        desStream.Dispose();
+
+                        originFile.Delete();
+                    }
+                    else
+                    {
+                        throw new Exception("Cannot overwrite file " + desPath);
+                    }
+                }
+                else
+                {
+                    var desStream = File.Create(desPath);
+                    CopyToNotTask(originStream, desStream);
+
+                    originStream.Dispose();
+                    desStream.Dispose();
+
+                    originFile.Delete();
+                }
+            }
+            else
+            {
+                throw new FileNotFoundException("Could not find the origin file!", originPath);
+            }
+#endif
+        }
+
         // Note to self: Don't use async
+        /// <summary>
+        /// Runs before MelonLoader fully initializes
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public override void OnPreInitialization()
@@ -1156,7 +1240,9 @@ namespace MelonAutoUpdater
                     }
                     foreach (var dependency in dependencies)
                     {
+#pragma warning disable CS0618 // Type or member is obsolete
                         string userLibsDirectory = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
+#pragma warning restore CS0618 // Type or member is obsolete
                         string packageName = dependency.Key[0];
                         string assemblyName = dependency.Key.Count > 1 ? dependency.Key[1] : dependency.Key[0];
                         var userLibs = Directory.GetFiles(userLibsDirectory);
@@ -1169,17 +1255,20 @@ namespace MelonAutoUpdater
                         {
                             LoggerInstance.Error($"{packageName.Pastel(theme.FileNameColor)} is not loaded, installing");
 
+#pragma warning disable CS0618 // Type or member is obsolete
                             string path = Path.Combine(MelonUtils.BaseDirectory, $"{packageName}.{dependency.Value}.nupkg");
+#pragma warning restore CS0618 // Type or member is obsolete
                             LoggerInstance.Msg("Downloading file");
-                            WebClient webClient = new WebClient();
-                            webClient.DownloadFile($"https://api.nuget.org/v3-flatcontainer/{packageName.ToLower()}/{dependency.Value}/{packageName.ToLower()}.{dependency.Value}.nupkg", path);
+                            DownloadFile($"https://api.nuget.org/v3-flatcontainer/{packageName.ToLower()}/{dependency.Value}/{packageName.ToLower()}.{dependency.Value}.nupkg", path);
                             if (File.Exists(path))
                             {
                                 LoggerInstance.Msg("Downloaded successfully, extracting files");
                                 FileInfo fileInfo = new FileInfo(path);
                                 string zip_Path = Path.ChangeExtension(path, "zip");
-                                fileInfo.MoveTo(zip_Path);
+                                FileMoveTo(fileInfo.FullName, zip_Path, true);
+#pragma warning disable CS0618 // Type or member is obsolete
                                 string dirPath = Path.Combine(MelonUtils.BaseDirectory, $"{packageName}.{dependency.Value}-dependency");
+#pragma warning restore CS0618 // Type or member is obsolete
                                 UnzipFromStream_NotTask(File.Open(zip_Path, FileMode.Open), dirPath);
                                 if (Directory.Exists(dirPath))
                                 {
@@ -1196,7 +1285,7 @@ namespace MelonAutoUpdater
                                             foreach (var dllFile in dllFiles)
                                             {
                                                 LoggerInstance.Msg("Installing " + dllFile.Name.Pastel(theme.FileNameColor));
-                                                dllFile.MoveTo(Path.Combine(userLibsDirectory, dllFile.Name));
+                                                FileMoveTo(dllFile.FullName, Path.Combine(userLibsDirectory, dllFile.Name), true);
                                                 dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
                                             }
                                         }
@@ -1219,7 +1308,7 @@ namespace MelonAutoUpdater
                                                     foreach (var dllFile in dllFiles2)
                                                     {
                                                         LoggerInstance.Msg("Installing " + dllFile.Name.Pastel(theme.FileNameColor));
-                                                        dllFile.MoveTo(Path.Combine(userLibsDirectory, dllFile.Name));
+                                                        FileMoveTo(dllFile.FullName, Path.Combine(userLibsDirectory, dllFile.Name), true);
                                                         dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
                                                     }
                                                 }

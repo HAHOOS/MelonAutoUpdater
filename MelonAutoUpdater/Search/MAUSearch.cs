@@ -65,16 +65,16 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         /// <param name="url">URL retrieved from mod/plugin that needs to be checked</param>
         /// <param name="currentVersion">Current version of the mod/plugin</param>
-        /// <returns><see cref="ModData"/> if able to retrieve information from link, otherwise <see cref="null"/></returns>
+        /// <returns><see cref="ModData"/> if able to retrieve information from link, otherwise <see langword="null"/></returns>
         public abstract Task<ModData> Search(string url, SemVersion currentVersion);
 
         /// <summary>
-        /// Called when the extension needs to perform a search with provided Author & Name
+        /// Called when the extension needs to perform a search with provided Author and Name
         /// </summary>
         /// <param name="name">Name provided with mod/plugin being checked</param>
         /// <param name="author">Author provided with mod/plugin being checked</param>
         /// <param name="currentVersion">Current version of mod/plugin</param>
-        /// <returns><see cref="ModData"/> if able to retrieve information from name & author, otherwise <see cref="null"></returns>
+        /// <returns><see cref="ModData"/> if able to retrieve information from name and author, otherwise <see langword="null"/></returns>
         public virtual Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
         {
             return Empty();
@@ -216,7 +216,7 @@ namespace MelonAutoUpdater.Search
         /// Checks if assembly is an extension
         /// </summary>
         /// <param name="assembly"><see cref="Assembly"/> to check if is an extension</param>
-        /// <returns>If <see cref="true">, it is an extension, otherwise, <see cref="false"></returns>
+        /// <returns>If <see langword="true"/>, it is an extension, otherwise, <see langword="false"/></returns>
         public static bool IsExtension(Assembly assembly)
         {
             return assembly.GetTypes()

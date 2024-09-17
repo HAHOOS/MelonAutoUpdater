@@ -9,14 +9,14 @@ namespace MelonAutoUpdater.Attributes
     public class MAUIgnoreAttribute : Attribute
     {
         /// <summary>
-        /// If <see cref="true" />, the mod/plugin will not be checked and/or updated
+        /// If <see langword="true" />, the mod/plugin will not be checked and/or updated
         /// </summary>
         public bool Ignore;
 
         /// <summary>
         /// Creates an instance of <see cref="MAUIgnoreAttribute" />
         /// </summary>
-        /// <param name="Ignore">If <see cref="true" />, the mod/plugin will not be checked and/or updated</param>
+        /// <param name="Ignore">If <see langword="true" />, the mod/plugin will not be checked and/or updated</param>
         public MAUIgnoreAttribute(bool Ignore = false) => this.Ignore = Ignore;
     }
 }

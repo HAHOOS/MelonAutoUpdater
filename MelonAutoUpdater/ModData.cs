@@ -15,15 +15,15 @@ namespace MelonAutoUpdater
         public SemVersion LatestVersion { get; internal set; }
 
         /// <summary>
-        /// The URLs & to download the latest version of a mod & Content Type if provided
+        /// The URLs and to download the latest version of a mod and Content Type if provided
         /// </summary>
         public List<FileData> DownloadFiles { get; internal set; }
 
         /// <summary>
-        /// Creates new instance of <see cref="ModData">
+        /// Creates new instance of <see cref="ModData" />
         /// </summary>
         /// <param name="latestVersion">Latest version available in the API</param>
-        /// <param name="downloadFiles">List of <see cref="FileData"></param>
+        /// <param name="downloadFiles">List of <see cref="FileData" /></param>
         public ModData(SemVersion latestVersion, List<FileData> downloadFiles)
         {
             this.LatestVersion = latestVersion;
@@ -31,17 +31,16 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Creates new instance of <see cref="ModData">
+        /// Creates new instance of <see cref="ModData" />
         /// </summary>
         /// <param name="latestVersion">Latest version available in the API</param>
-        /// <param name="downloadFiles">List of <see cref="FileData"></param>
         public ModData(SemVersion latestVersion)
         {
             this.LatestVersion = latestVersion;
         }
 
         /// <summary>
-        /// Creates new instance of <see cref="ModData">
+        /// Creates new instance of <see cref="ModData" />
         /// </summary>
         public ModData()
         {
@@ -53,8 +52,19 @@ namespace MelonAutoUpdater
     /// </summary>
     public enum FileType
     {
+        /// <summary>
+        /// Has attribute MelonInfo with type MelonMod or MelonModInfo
+        /// </summary>
         MelonMod = 1,
+
+        /// <summary>
+        /// Has attribute MelonInfo with type MelonPlugin or MelonPluginInfo
+        /// </summary>
         MelonPlugin = 2,
+
+        /// <summary>
+        /// Has no attribute identifying Melon's
+        /// </summary>
         Other = 3
     }
 
