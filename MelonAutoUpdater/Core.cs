@@ -92,9 +92,6 @@ namespace MelonAutoUpdater
                 "net35",
                 new Dictionary<string, string> {
                     {
-                        "Rackspace.Threading", "2.0.0-alpha001"
-                    },
-                    {
                         "TaskParallelLibrary", "1.0.2856"
                     },
                     {
@@ -1144,7 +1141,7 @@ namespace MelonAutoUpdater
 #endif
             int downloaded = 0;
             int needDownload = dependencies.Count;
-            if (dependencies != null)
+            if (dependencies != null && needDownload > 0)
             {
                 Thread thread = new Thread(() =>
                 {
@@ -1157,12 +1154,12 @@ namespace MelonAutoUpdater
                     {
                         if (allAssemblies.Where(x => x.GetName().Name == dependency.Key).Any())
                         {
-                            LoggerInstance.Msg($"{dependency.Key} v{dependency.Value} is loaded!");
+                            LoggerInstance.Msg($"{dependency.Key.Pastel(theme.FileNameColor)} is loaded!");
                             downloaded++;
                         }
                         else
                         {
-                            LoggerInstance.Error($"{dependency.Key} v{dependency.Value} is not loaded, installing");
+                            LoggerInstance.Error($"{dependency.Key} is not loaded, installing");
 
                             string path = Path.Combine(MelonUtils.BaseDirectory, $"{dependency.Key}.{dependency.Value}.nupkg");
                             LoggerInstance.Msg("Downloading file");
@@ -1192,7 +1189,7 @@ namespace MelonAutoUpdater
                                             LoggerInstance.Msg("Found dependency in lib directory");
                                             foreach (var dllFile in dllFiles)
                                             {
-                                                LoggerInstance.Msg("Installing " + dllFile.Name);
+                                                LoggerInstance.Msg("Installing " + dllFile.Name.Pastel(theme.FileNameColor));
                                                 dllFile.MoveTo(Path.Combine(userLibsDirectory, dllFile.Name));
                                                 dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
                                             }
@@ -1215,7 +1212,7 @@ namespace MelonAutoUpdater
                                                 {
                                                     foreach (var dllFile in dllFiles2)
                                                     {
-                                                        LoggerInstance.Msg("Installing " + dllFile.Name);
+                                                        LoggerInstance.Msg("Installing " + dllFile.Name.Pastel(theme.FileNameColor));
                                                         dllFile.MoveTo(Path.Combine(userLibsDirectory, dllFile.Name));
                                                         dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
                                                     }
