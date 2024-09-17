@@ -1,9 +1,10 @@
+<div align="center"><a href="https://github.com/HAHOOS/MelonAutoUpdater/wiki/Icon"><img src="https://github.com/HAHOOS/MelonAutoUpdater/blob/master/.github/Images/MAUIcon.png" /></a></div>
 
 <h1 align="center">MAU | Melon Auto Updater</h1>
 
 <p align="center">
-<a href="github.com/HAHOOS/MelonAutoUpdater/releases/latest"><img src="https://img.shields.io/github/v/release/HAHOOS/MelonAutoUpdater?include_prereleases&sort=semver&display_name=tag&style=for-the-badge"></a>
-<a href="github.com/HAHOOS/MelonAutoUpdater/releases/"><img src="https://img.shields.io/github/downloads/HAHOOS/MelonAutoUpdater/total?style=for-the-badge"></a>
+<a href="https://github.com/HAHOOS/MelonAutoUpdater/releases/latest"><img src="https://img.shields.io/github/v/release/HAHOOS/MelonAutoUpdater?include_prereleases&sort=semver&display_name=tag&style=for-the-badge"></a>
+<a href="https://github.com/HAHOOS/MelonAutoUpdater/releases/"><img src="https://img.shields.io/github/downloads/HAHOOS/MelonAutoUpdater/total?style=for-the-badge"></a>
 <a href="https://github.com/HAHOOS/MelonAutoUpdater/blob/master/LICENSE.txt"><img src="https://img.shields.io/github/license/HAHOOS/MelonAutoUpdater?style=for-the-badge"></a>
 <a href="https://github.com/LavaGang/MelonLoader/releases"><img src="https://img.shields.io/badge/ML_Support-v0.5.3_or_later-blue?style=for-the-badge&labelColor=gray&color=blue"></a>
 </p>
@@ -25,14 +26,14 @@ Tested Games & Versions:
 To install the plugin, you obviously need to have MelonLoader installed in your game.<br/>
 <br/>
 
-You can use the **MAUHelper Plugin** to determine if u need to install `MAU-net6` or `MAU-net32`, it is also capable of checking if the MelonAutoUpdater is of correct version or not<br/>
+You can use the **MAUHelper Plugin** to determine if u need to install `MelonAutoUpdater-net6.dll` or `MelonAutoUpdater-net35.dll`, it is also capable of checking if the MelonAutoUpdater is of correct version or not<br/>
 
 If you do not want to use MAUHelper:
-  - For MelonLoader v0.6.0 and later, download `MAU-net6.zip` (if there are errors, it is possible that you might need to download `MAU-net32.zip` instead)<br/>
-  - For MelonLoader v0.5.7 and earlier, download `MAU-net32.zip`
+  - For MelonLoader v0.6.0 and later, download `MelonAutoUpdater-net6.dll` (if there are errors, it is possible that you might need to download `MelonAutoUpdater-net35.dll` instead)<br/>
+  - For MelonLoader v0.5.7 and earlier, download `MelonAutoUpdater-net35.dll`
 <br/>
 
-When downloaded, extract the files from the downloaded ZIP and drag the extracted folders into the game.<br/>
+When downloaded, put the DLL file into the `Mods` folder<br/>
 
 And now, you're done! Enjoy your mods being automatically updated! 🎉
 
@@ -42,7 +43,7 @@ And now, you're done! Enjoy your mods being automatically updated! 🎉
 | --- | --- |
 | Enabled | If true, the plugin will update the mods |
 | Ignore List | List of mods (file names without extension example ".dll") that will not be updated |
-| Brute Check | If enabled, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author. **Currently Github is not supported in brute checking due to extremely strict rate limits** |
+| Brute Check | If enabled, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author. **WARNING: You may get rate-limited with large amounts of mods/plugins, use with caution** |
 
 <h2 align="center">Themes</h2>
 
@@ -77,3 +78,7 @@ Third-party Libraries bundled in Binary Form:
 
 Assets from Third-party Libraries used as Source Code and/or bundled in Binary Form:
 - [db.json](https://github.com/jshttp/mime-db/blob/master/db.json) from [mime-db](https://github.com/jshttp/mime-db) is licensed under the MIT License. See [LICENSE](https://github.com/jshttp/mime-db/blob/master/LICENSE) for the full License.
+
+MelonAutoUpdater is not sponsored by, affiliated with or endorsed by Lava Gang or its affiliates.
+
+"MelonLoader" is a trademark or a registered trademark of Lava Gang or its affiliates in the U.S. and elsewhere.
