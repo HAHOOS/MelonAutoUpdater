@@ -9,3 +9,5 @@ updates:
     directory: "/MelonAutoUpdater"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "Mono.Cecil"
