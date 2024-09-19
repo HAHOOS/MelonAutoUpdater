@@ -24,7 +24,7 @@ namespace MelonAutoUpdater.Search.Included
         private bool disableAPI = false;
         private long apiReset;
 
-        internal Task<ModData> Check(string packageName, string namespaceName)
+        internal Task<MelonData> Check(string packageName, string namespaceName)
         {
             HttpClient request = new HttpClient();
             request.DefaultRequestHeaders.Add("User-Agent", UserAgent);
@@ -62,7 +62,7 @@ namespace MelonAutoUpdater.Search.Included
                             return Empty();
                         }
 
-                        return Task.Factory.StartNew<ModData>(() => new ModData()
+                        return Task.Factory.StartNew<MelonData>(() => new MelonData()
                         {
                             LatestVersion = semver,
                             DownloadFiles = files,
@@ -104,7 +104,7 @@ namespace MelonAutoUpdater.Search.Included
             return Empty();
         }
 
-        public override Task<ModData> Search(string url, SemVersion currentVersion)
+        public override Task<MelonData> Search(string url, SemVersion currentVersion)
         {
             Regex regex = new Regex(@"(https:\/\/|http:\/\/)(?:.+\.)?thunderstore\.io");
             if (regex.IsMatch(url))
@@ -127,7 +127,7 @@ namespace MelonAutoUpdater.Search.Included
             return Empty();
         }
 
-        public override Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
+        public override Task<MelonData> BruteCheck(string name, string author, SemVersion currentVersion)
         {
             return Check(name.Replace(" ", ""), author.Replace(" ", ""));
         }

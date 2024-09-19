@@ -65,8 +65,8 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         /// <param name="url">URL retrieved from mod/plugin that needs to be checked</param>
         /// <param name="currentVersion">Current version of the mod/plugin</param>
-        /// <returns><see cref="ModData"/> if able to retrieve information from link, otherwise <see langword="null"/></returns>
-        public abstract Task<ModData> Search(string url, SemVersion currentVersion);
+        /// <returns><see cref="MelonData"/> if able to retrieve information from link, otherwise <see langword="null"/></returns>
+        public abstract Task<MelonData> Search(string url, SemVersion currentVersion);
 
         /// <summary>
         /// Called when the extension needs to perform a search with provided Author and Name
@@ -74,8 +74,8 @@ namespace MelonAutoUpdater.Search
         /// <param name="name">Name provided with mod/plugin being checked</param>
         /// <param name="author">Author provided with mod/plugin being checked</param>
         /// <param name="currentVersion">Current version of mod/plugin</param>
-        /// <returns><see cref="ModData"/> if able to retrieve information from name and author, otherwise <see langword="null"/></returns>
-        public virtual Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
+        /// <returns><see cref="MelonData"/> if able to retrieve information from name and author, otherwise <see langword="null"/></returns>
+        public virtual Task<MelonData> BruteCheck(string name, string author, SemVersion currentVersion)
         {
             return Empty();
         }
@@ -150,12 +150,12 @@ namespace MelonAutoUpdater.Search
         public static string GetMAUVersion() => Core.Version;
 
         /// <summary>
-        /// Returns an empty of a task with returning type <see cref="ModData"/>
+        /// Returns an empty of a task with returning type <see cref="MelonData"/>
         /// </summary>
-        /// <returns>Task with returning type <see cref="ModData"/></returns>
-        public static Task<ModData> Empty()
+        /// <returns>Task with returning type <see cref="MelonData"/></returns>
+        public static Task<MelonData> Empty()
         {
-            TaskCompletionSource<ModData> taskCompletionSource = new TaskCompletionSource<ModData>();
+            TaskCompletionSource<MelonData> taskCompletionSource = new TaskCompletionSource<MelonData>();
             taskCompletionSource.SetResult(null);
             return taskCompletionSource.Task;
         }

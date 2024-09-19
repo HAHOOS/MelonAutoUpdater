@@ -220,7 +220,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
             }
         }
 
-        internal Task<ModData> Check(string author, string repo)
+        internal Task<MelonData> Check(string author, string repo)
         {
             HttpClient client = new HttpClient();
             client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
@@ -271,7 +271,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                             Logger.Error($"Failed to parse version");
                             return Empty();
                         }
-                        return Task.Factory.StartNew(() => new ModData(semver, downloadURLs));
+                        return Task.Factory.StartNew(() => new MelonData(semver, downloadURLs));
                     }
                     else
                     {
@@ -339,7 +339,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
             return Empty();
         }
 
-        public override Task<ModData> Search(string url, SemVersion currentVersion)
+        public override Task<MelonData> Search(string url, SemVersion currentVersion)
         {
             Regex regex = new Regex(@"(?<=(?<=http:\/\/|https:\/\/)github.com\/)(.*?)(?>\/)(.*?)(?=\/|$)");
             var match = regex.Match(url);
@@ -353,7 +353,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
             return Empty();
         }
 
-        public override Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
+        public override Task<MelonData> BruteCheck(string name, string author, SemVersion currentVersion)
         {
             return Check(author, name);
         }

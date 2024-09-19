@@ -15,7 +15,13 @@ using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
 using MelonAutoUpdater.Attributes;
+using MelonAutoUpdater.JSONObjects;
+using MelonLoader.TinyJSON;
+
+#if NET35_OR_GREATER
 using System.Net;
+#endif
+
 using System.Threading;
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
@@ -23,14 +29,13 @@ using System.Threading;
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: MelonColor(ConsoleColor.Green)]
 #pragma warning restore CS0618 // Type or member is obsolete
-
+[assembly: VerifyLoaderVersion("0.5.3", true)]
 [assembly: AssemblyProduct("MelonAutoUpdater")]
 [assembly: AssemblyVersion("0.3.0.0")]
 [assembly: AssemblyFileVersion("0.3.0")]
 [assembly: AssemblyTitle("MelonAutoUpdater")]
 [assembly: AssemblyCompany("HAHOOS")]
 [assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
-[assembly: VerifyLoaderVersion("0.5.3", true)]
 
 namespace MelonAutoUpdater
 {
@@ -114,32 +119,32 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Main Category in Preferences
         /// </summary>
-        internal MelonPreferences_Category MainCategory { get; private set; }
+        internal static MelonPreferences_Category MainCategory { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a list of mods/plugins that will not be updated
         /// </summary>
-        internal MelonPreferences_Entry Entry_ignore { get; private set; }
+        internal static MelonPreferences_Entry Entry_ignore { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin work
         /// </summary>
-        internal MelonPreferences_Entry Entry_enabled { get; private set; }
+        internal static MelonPreferences_Entry Entry_enabled { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not it should forcefully check the API for the mod/plugins if no download link was provided with it
         /// </summary>
-        internal MelonPreferences_Entry Entry_bruteCheck { get; private set; }
+        internal static MelonPreferences_Entry Entry_bruteCheck { get; private set; }
 
         /// <summary>
         /// Themes Category in Preferences
         /// </summary>
-        internal MelonPreferences_ReflectiveCategory ThemesCategory { get; private set; }
+        internal static MelonPreferences_ReflectiveCategory ThemesCategory { get; private set; }
 
         /// <summary>
         /// Extensions Category in Preferences
         /// </summary>
-        internal MelonPreferences_Category ExtensionsCategory { get; private set; }
+        internal static MelonPreferences_Category ExtensionsCategory { get; private set; }
 
         /// <summary>
         /// Dictionary of included extensions and their Enable entry
@@ -343,24 +348,44 @@ namespace MelonAutoUpdater
         /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 5000)</param>
         /// <param name="url">URL of the website used to check for connection (Default: <c>http://www.gstatic.com/generate_204</c>)</param>
         /// <returns>If <see langword="true"/>, there's internet connection, otherwise not</returns>
-        [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        internal static Task<bool> CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
+        internal static bool CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
         {
             try
             {
-                var request = new HttpClient
-                {
-                    Timeout = TimeSpan.FromMilliseconds(timeoutMs)
-                };
-                var response = request.GetAsync(url);
-                response.Wait();
-                return Task.Factory.StartNew<bool>(() => response.Result.IsSuccessStatusCode);
+#if NET35_OR_GREATER
+                var request = new WebClient();
+                request.DownloadData(url);
+#elif NET6_0_OR_GREATER
+                var request = new HttpClient();
+                var res = request.GetAsync(url);
+                res.Wait();
+                res.Result.EnsureSuccessStatusCode();
+#endif
+                return true;
             }
             catch
             {
-                return Task.Factory.StartNew<bool>(() => false);
+                return false;
             }
+        }
+
+        internal static bool CanSearch(MAUSearch extension, MelonConfig melonConfig)
+        {
+            if (melonConfig == null) return true;
+            if (extension == null) throw new ArgumentNullException(nameof(extension));
+            if (melonConfig.platform != null)
+            {
+                if (melonConfig.platform.list == null) return true;
+                if (melonConfig.platform.whitelist)
+                {
+                    if (melonConfig.platform.list.Where(x => x == extension.Name).Any()) return true;
+                }
+                else
+                {
+                    if (!melonConfig.platform.list.Where(x => x == extension.Name).Any()) return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -369,33 +394,41 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="downloadLink">Download Link, possibly included in the <see cref="MelonInfoAttribute"/></param>
         /// <param name="currentVersion">Current version of the Melon in question</param>
-        /// <returns>If found, returns a <see cref="ModData"/> object which includes the latest version of the mod online and the download link(s)</returns>
-        internal Task<ModData> GetModData(string downloadLink, SemVersion currentVersion)
+        /// <param name="melonConfig">Config, if found, of the Melon</param>
+        /// <returns>If found, returns a <see cref="MelonData"/> object which includes the latest version of the mod online and the download link(s)</returns>
+        internal Task<MelonData> GetModData(string downloadLink, SemVersion currentVersion, MelonConfig melonConfig)
         {
             if (string.IsNullOrEmpty(downloadLink))
             {
                 LoggerInstance.Msg("No download link was provided with the mod");
-                TaskCompletionSource<ModData> _res = new TaskCompletionSource<ModData>();
+                TaskCompletionSource<MelonData> _res = new TaskCompletionSource<MelonData>();
                 _res.SetResult(null);
                 return _res.Task;
             }
             foreach (var ext in extensions)
             {
-                LoggerInstance.Msg($"Checking {ext.Name.Pastel(ext.NameColor)}");
-                ext.Setup();
-                var result = ext.Search(downloadLink, currentVersion);
-                result.Wait();
-                if (result == null || result.Result == null)
+                if (CanSearch(ext, melonConfig))
                 {
-                    LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                    LoggerInstance.Msg($"Checking {ext.Name.Pastel(ext.NameColor)}");
+                    ext.Setup();
+                    var result = ext.Search(downloadLink, currentVersion);
+                    result.Wait();
+                    if (result == null || result.Result == null)
+                    {
+                        LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                    }
+                    else
+                    {
+                        LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                        return result;
+                    }
                 }
                 else
                 {
-                    LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                    return result;
+                    LoggerInstance.Msg($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured in the Melon to not be used");
                 }
             }
-            TaskCompletionSource<ModData> res = new TaskCompletionSource<ModData>();
+            TaskCompletionSource<MelonData> res = new TaskCompletionSource<MelonData>();
             res.SetResult(null);
             return res.Task;
         }
@@ -405,33 +438,40 @@ namespace MelonAutoUpdater
         /// Github is not supported in brute checking due to extremely strict rate limits
         /// Currently Supported: Thunderstore
         /// </summary>
-        /// <returns>If found, returns a <see cref="ModData"/> object which includes the latest version of the mod online and the download link(s)</returns>
-        internal Task<ModData> GetModDataFromInfo(string name, string author, SemVersion currentVersion)
+        /// <returns>If found, returns a <see cref="MelonData"/> object which includes the latest version of the mod online and the download link(s)</returns>
+        internal Task<MelonData> GetModDataFromInfo(string name, string author, SemVersion currentVersion, MelonConfig melonConfig)
         {
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author))
             {
                 LoggerInstance.Msg("Name/Author was not provided with the mod");
-                TaskCompletionSource<ModData> _res = new TaskCompletionSource<ModData>();
+                TaskCompletionSource<MelonData> _res = new TaskCompletionSource<MelonData>();
                 _res.SetResult(null);
                 return _res.Task;
             }
             foreach (var ext in extensions)
             {
-                ModData result = null;
+                MelonData result = null;
                 if (ext.BruteCheckEnabled)
                 {
-                    LoggerInstance.Msg($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
-                    var task = ext.BruteCheck(name, author, currentVersion);
-                    task.Wait();
-                    result = task.Result;
-                    if (result == null || result.LatestVersion == null)
+                    if (CanSearch(ext, melonConfig))
                     {
-                        LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                        LoggerInstance.Msg($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
+                        var task = ext.BruteCheck(name, author, currentVersion);
+                        task.Wait();
+                        result = task.Result;
+                        if (result == null || result.LatestVersion == null)
+                        {
+                            LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                        }
+                        else
+                        {
+                            LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                            return Task.Factory.StartNew(() => result);
+                        }
                     }
                     else
                     {
-                        LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                        return Task.Factory.StartNew(() => result);
+                        LoggerInstance.Msg($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured in the Melon to not be used");
                     }
                 }
                 else
@@ -440,7 +480,7 @@ namespace MelonAutoUpdater
                 }
             }
 
-            TaskCompletionSource<ModData> res = new TaskCompletionSource<ModData>();
+            TaskCompletionSource<MelonData> res = new TaskCompletionSource<MelonData>();
             res.SetResult(null);
             return res.Task;
         }
@@ -632,43 +672,28 @@ namespace MelonAutoUpdater
             return null;
         }
 
-        /// <summary>
-        /// Retrieve information from the <see cref="MAUIgnoreAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MAUIgnoreAttribute"/></returns>
-        internal static MAUIgnoreAttribute GetMAUIgnoreAttribute(AssemblyDefinition assembly)
+        internal MelonConfig GetMelonConfig(AssemblyDefinition assembly)
         {
-            foreach (var attr in assembly.CustomAttributes)
+            var resources = assembly.MainModule.Resources;
+            var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
+            foreach (EmbeddedResource resource in resources.Cast<EmbeddedResource>())
             {
-                if (attr.AttributeType.Name == nameof(MAUIgnoreAttribute))
+                if (resource.Name == $"{assemblyName}.mau.json")
                 {
-                    bool isTrue = Get<bool>(attr, 0);
-                    assembly.Dispose();
-                    return new MAUIgnoreAttribute(isTrue);
+                    try
+                    {
+                        var stream = resource.GetResourceStream();
+                        var streamReader = new StreamReader(stream);
+                        string jsonString = streamReader.ReadToEnd();
+                        var json = JSON.Load(jsonString).Make<MelonConfig>();
+                        return json;
+                    }
+                    catch (Exception e)
+                    {
+                        LoggerInstance.Error($"An unexpected error was thrown while getting mau.json\n{e}");
+                    }
                 }
             }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="MAUIgnoreAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MAUIgnoreAttribute"/></returns>
-        internal static MAUDownloadFilesAllowedAttribute GetMAUDownloadFilesAllowedAttribute(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-                if (attr.AttributeType.Name == nameof(MAUDownloadFilesAllowedAttribute))
-                {
-                    List<string> list = Get<List<string>>(attr, 0);
-                    assembly.Dispose();
-                    return new MAUDownloadFilesAllowedAttribute(list);
-                }
-            }
-            assembly.Dispose();
             return null;
         }
 
@@ -847,6 +872,9 @@ namespace MelonAutoUpdater
             List<string> ignore = GetEntryValue<List<string>>(Entry_ignore);
 
             List<string> fileNameIgnore = new List<string>();
+
+            (int success, int warn, int error, List<(string name, SemVersion oldVersion, SemVersion newVersion, bool threwError, int success, int failed)> updates) result = (0, 0, 0, new List<(string name, SemVersion oldVersion, SemVersion newVersion, bool threwError, int success, int failed)>());
+
             files.ForEach(x =>
             {
                 if (ignore != null && ignore.Count > 0)
@@ -855,7 +883,7 @@ namespace MelonAutoUpdater
                     if (ignore.Contains(fileName))
                     {
                         LoggerInstance.Msg($"{fileName} is in ignore list, removing from update list");
-                        fileNameIgnore.Add(fileName);
+                        fileNameIgnore.Add(x);
                     }
                 }
             });
@@ -863,17 +891,22 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
             foreach (string path in files)
             {
-                AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
-                bool _ignore = GetMAUIgnoreAttribute(mainAssembly) != null;
-                var melonAssemblyInfo = GetMelonInfo(mainAssembly);
                 string fileName = Path.GetFileName(path);
+                LoggerInstance.Msg($"File: {fileName.Pastel(theme.FileNameColor)}");
+                AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
+                var config = GetMelonConfig(mainAssembly);
+                if (config != null)
+                {
+                    LoggerInstance.Msg("Found MAU config associated with Melon");
+                }
+                bool _ignore = config != null && config.disable;
+                var melonAssemblyInfo = GetMelonInfo(mainAssembly);
                 if (_ignore)
                 {
                     LoggerInstance.Msg($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
                     LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
                     continue;
                 }
-                LoggerInstance.Msg($"File: {fileName.Pastel(theme.FileNameColor)}");
                 FileType fileType = GetFileType(melonAssemblyInfo);
                 if (fileType != FileType.Other)
                 {
@@ -882,14 +915,14 @@ namespace MelonAutoUpdater
                     {
                         if (!CheckCompability(mainAssembly)) { mainAssembly.Dispose(); continue; }
                         SemVersion currentVersion = SemVersion.Parse(melonAssemblyInfo.Version);
-                        var data = GetModData(melonAssemblyInfo.DownloadLink, currentVersion);
+                        var data = GetModData(melonAssemblyInfo.DownloadLink, currentVersion, config);
                         data.Wait();
-                        if (data.Result == null && string.IsNullOrEmpty(melonAssemblyInfo.DownloadLink))
+                        if (data.Result == null || string.IsNullOrEmpty(melonAssemblyInfo.DownloadLink))
                         {
                             if (GetEntryValue<bool>(Entry_bruteCheck))
                             {
                                 LoggerInstance.Msg("Running " + "brute check..".Pastel(Color.Red));
-                                data = GetModDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author, currentVersion);
+                                data = GetModDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author, currentVersion, config);
                                 data.Wait();
                             }
                         }
@@ -903,7 +936,9 @@ namespace MelonAutoUpdater
                                     {
                                         LoggerInstance.Msg($"A new version " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ", updating");
                                         LoggerInstance.Msg("Downloading file(s)");
-                                        MAUDownloadFilesAllowedAttribute downloadFilesAllowed = GetMAUDownloadFilesAllowedAttribute(mainAssembly);
+                                        int success = 0;
+                                        int failed = 0;
+                                        bool threwError = false;
                                         foreach (var retFile in data.Result.DownloadFiles)
                                         {
                                             var httpClient = new HttpClient();
@@ -929,7 +964,7 @@ namespace MelonAutoUpdater
                                                         }
                                                         else
                                                         {
-                                                            LoggerInstance.Error("Content-Type is not associated with any file type, continuing without downloading & installing file");
+                                                            LoggerInstance.Warning("Content-Type is not associated with any file type, continuing without downloading & installing file");
                                                             response.Dispose();
                                                             httpClient.Dispose();
                                                             continue;
@@ -937,7 +972,7 @@ namespace MelonAutoUpdater
                                                     }
                                                     else
                                                     {
-                                                        LoggerInstance.Error("Could not determine Content-Type, continuing without downloading & installing file");
+                                                        LoggerInstance.Warning("Could not determine Content-Type, continuing without downloading & installing file");
                                                         response.Dispose();
                                                         httpClient.Dispose();
                                                         continue;
@@ -955,7 +990,7 @@ namespace MelonAutoUpdater
                                                         }
                                                         else
                                                         {
-                                                            LoggerInstance.Error("Content-Type is not associated with any file type, continuing without downloading file");
+                                                            LoggerInstance.Warning("Content-Type is not associated with any file type, continuing without downloading file");
                                                             response.Dispose();
                                                             httpClient.Dispose();
                                                             continue;
@@ -963,7 +998,7 @@ namespace MelonAutoUpdater
                                                     }
                                                     else
                                                     {
-                                                        LoggerInstance.Error("Could not determine Content-Type, continuing without downloading file");
+                                                        LoggerInstance.Warning("Could not determine Content-Type, continuing without downloading file");
                                                         response.Dispose();
                                                         httpClient.Dispose();
                                                         continue;
@@ -971,19 +1006,21 @@ namespace MelonAutoUpdater
                                                 }
                                                 else
                                                 {
-                                                    LoggerInstance.Error("No Content Type was provided, continuing without downloading file");
+                                                    LoggerInstance.Warning("No Content Type was provided, continuing without downloading file");
+
                                                     response.Dispose();
                                                     httpClient.Dispose();
                                                     continue;
                                                 }
-                                                if (downloadFilesAllowed != null && contentType != null && !string.IsNullOrEmpty(retFile.FileName))
+                                                if (config != null && config.allowedFileDownloads != null && contentType != null && !string.IsNullOrEmpty(retFile.FileName))
                                                 {
                                                     string _fileName = Path.GetFileName(pathToSave);
-                                                    if (!string.IsNullOrEmpty(_fileName) && downloadFilesAllowed.AllowedFiles != null && downloadFilesAllowed.AllowedFiles.Any())
+                                                    if (!string.IsNullOrEmpty(_fileName) && config.allowedFileDownloads != null && config.allowedFileDownloads.Any())
                                                     {
-                                                        if (!downloadFilesAllowed.AllowedFiles.Contains(_fileName))
+                                                        if (!config.allowedFileDownloads.Contains(_fileName))
                                                         {
                                                             LoggerInstance.Msg($"{_fileName} was configured to not be downloaded & installed, aborting download");
+                                                            continue;
                                                         }
                                                     }
                                                 }
@@ -1007,9 +1044,6 @@ namespace MelonAutoUpdater
                                             if (downloadedFile != null)
                                             {
                                                 downloadedFile.Dispose();
-                                                bool threwError = false;
-                                                int failed = 0;
-                                                int success = 0;
                                                 if (Path.GetExtension(pathToSave) == ".zip")
                                                 {
                                                     LoggerInstance.Msg("File is a ZIP, extracting files...");
@@ -1030,9 +1064,13 @@ namespace MelonAutoUpdater
                                                         foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
                                                         foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
                                                     }
+                                                    var allContent = new List<string>();
+                                                    var extracedDirectories = Directory.GetDirectories(extractPath).ToList();
                                                     var extractedFiles = Directory.GetFiles(extractPath).ToList();
-                                                    Directory.GetDirectories(extractPath).ToList().ForEach((x) => extractedFiles.Add(x));
-                                                    foreach (string extPath in extractedFiles)
+                                                    extractedFiles.ForEach(x => allContent.Add(x));
+                                                    extracedDirectories.ForEach((x) => allContent.Add(x));
+                                                    LoggerInstance.Msg($"Found {extractedFiles.Count} files and {extracedDirectories.Count} directories");
+                                                    foreach (string extPath in allContent)
                                                     {
                                                         if (Directory.Exists(extPath))
                                                         {
@@ -1059,7 +1097,7 @@ namespace MelonAutoUpdater
                                                                     if (res1.threwError) threwError = true;
                                                                 }
                                                             }
-                                                            if (checkedDirs < Directory.GetDirectories(extPath).Length)
+                                                            if (checkedDirs <= Directory.GetDirectories(extPath).Length)
                                                             {
                                                                 LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -1077,6 +1115,10 @@ namespace MelonAutoUpdater
                                                             if (res.success) success += 1;
                                                             else failed += 1;
                                                         }
+                                                        else
+                                                        {
+                                                            LoggerInstance.Warning($"Not moving {Path.GetFileName(extPath)}, as it seems useless, sorry in advance");
+                                                        }
                                                     }
                                                     Directory.Delete(extractPath, true);
                                                     File.Delete(pathToSave);
@@ -1091,21 +1133,27 @@ namespace MelonAutoUpdater
                                                 }
                                                 else
                                                 {
-                                                    LoggerInstance.Warning($"An unknown file extension {Path.GetExtension(pathToSave)} was found that was not coded to be installed");
+                                                    LoggerInstance.Warning($"Not moving {Path.GetFileName(pathToSave)}, as it seems useless, sorry in advance");
                                                 }
-                                                LoggerInstance.Msg(
-                                                    threwError
-                                                    ? $"Failed to update {assemblyName}".Pastel(Color.Red)
-                                                    : success + failed > 0
-                                                    ? $"Updated {assemblyName.Pastel(theme.FileNameColor)} from " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + " --> " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + ", " + $"({success}/{success + failed})".Pastel(theme.DownloadCountColor) + " installed successfully"
-                                                    : "No mods and/or plugins were installed".Pastel(Color.Yellow)
-                                                    );
                                             }
                                             else
                                             {
-                                                LoggerInstance.Error("Downloaded file is empty, unable to update mod");
+                                                LoggerInstance.Error("Downloaded file is empty, unable to update melon");
                                             }
                                         }
+                                        LoggerInstance.Msg(
+                                            threwError
+                                                ? $"Failed to update {assemblyName}".Pastel(Color.Red)
+                                                : success + failed > 0
+                                                ? $"Updated {assemblyName.Pastel(theme.FileNameColor)} from " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + " --> " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + ", " + $"({success}/{success + failed})".Pastel(theme.DownloadCountColor) + " melons installed successfully"
+                                                : "No melons were installed".Pastel(Color.Yellow)
+                                        );
+
+                                        if (threwError) result.error++;
+                                        else if (success + failed > 0) result.success++;
+                                        else result.warn++;
+
+                                        result.updates.Add((assemblyName, currentVersion, data.Result.LatestVersion, threwError, success, failed));
                                     }
                                     else
                                     {
@@ -1129,10 +1177,37 @@ namespace MelonAutoUpdater
                 }
                 else
                 {
-                    LoggerInstance.Warning($"{fileName} does not seem to be a MelonLoader Mod");
+                    LoggerInstance.Warning($"{fileName} does not seem to be a Melon");
                 }
                 LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
             }
+            LoggerInstance.Msg($"Results ({result.updates.Count} updates):");
+            if (result.updates.Count > 0)
+            {
+                foreach (var help in result.updates)
+                {
+                    if (!help.threwError)
+                    {
+                        if (help.success + help.failed > 0)
+                        {
+                            LoggerInstance.Msg($"[V] {help.name} v{help.oldVersion} ---> v{help.newVersion} ({help.success}/{help.success + help.failed} melons installed successfully)".Pastel(Color.LawnGreen));
+                        }
+                        else
+                        {
+                            LoggerInstance.Msg($"[?] {help.name} v{help.oldVersion} ---> v{help.newVersion} ({help.success}/{help.success + help.failed} melons installed successfully)".Pastel(Color.Yellow));
+                        }
+                    }
+                    else
+                    {
+                        LoggerInstance.Msg($"[X] {help.name} v{help.oldVersion} ---> v{help.newVersion} ({help.success}/{help.success + help.failed} melons installed successfully)".Pastel(Color.Red));
+                    }
+                }
+            }
+            else
+            {
+                LoggerInstance.Msg("All melons are up to date!".Pastel(theme.UpToDateVersionColor));
+            }
+            LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
         }
 
         internal void DownloadFile(string url, string path)
@@ -1160,7 +1235,7 @@ namespace MelonAutoUpdater
 #endif
         }
 
-        internal void FileMoveTo(string originPath, string desPath, bool overwrite = false)
+        internal static void FileMoveTo(string originPath, string desPath, bool overwrite = false)
         {
 #if NET6_0_OR_GREATER
             var originFile = new FileInfo(originPath);
@@ -1231,124 +1306,118 @@ namespace MelonAutoUpdater
             int needDownload = dependencies.Count;
             if (dependencies != null && needDownload > 0)
             {
-                Thread thread = new Thread(() =>
+                var allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+                foreach (var assembly in allAssemblies)
                 {
-                    var allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-                    foreach (var assembly in allAssemblies)
-                    {
-                        LoggerInstance.Msg(assembly.GetName().Name);
-                    }
-                    foreach (var dependency in dependencies)
-                    {
+                    LoggerInstance.Msg(assembly.GetName().Name);
+                }
+                foreach (var dependency in dependencies)
+                {
 #pragma warning disable CS0618 // Type or member is obsolete
-                        string userLibsDirectory = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
+                    string userLibsDirectory = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
 #pragma warning restore CS0618 // Type or member is obsolete
-                        string packageName = dependency.Key[0];
-                        string assemblyName = dependency.Key.Count > 1 ? dependency.Key[1] : dependency.Key[0];
-                        var userLibs = Directory.GetFiles(userLibsDirectory);
-                        if (allAssemblies.Where(x => x.GetName().Name == assemblyName).Any() || File.Exists(Path.Combine(userLibsDirectory, $"{packageName}.dll")) || File.Exists(Path.Combine(userLibsDirectory, $"{assemblyName}.dll")))
-                        {
-                            LoggerInstance.Msg($"{packageName.Pastel(theme.FileNameColor)} is loaded!");
-                            downloaded++;
-                        }
-                        else
-                        {
-                            LoggerInstance.Error($"{packageName.Pastel(theme.FileNameColor)} is not loaded, installing");
+                    string packageName = dependency.Key[0];
+                    string assemblyName = dependency.Key.Count > 1 ? dependency.Key[1] : dependency.Key[0];
+                    var userLibs = Directory.GetFiles(userLibsDirectory);
+                    if (allAssemblies.Where(x => x.GetName().Name == assemblyName).Any() || File.Exists(Path.Combine(userLibsDirectory, $"{packageName}.dll")) || File.Exists(Path.Combine(userLibsDirectory, $"{assemblyName}.dll")))
+                    {
+                        LoggerInstance.Msg($"{packageName.Pastel(theme.FileNameColor)} is loaded!");
+                        downloaded++;
+                    }
+                    else
+                    {
+                        LoggerInstance.Error($"{packageName.Pastel(theme.FileNameColor)} is not loaded, installing");
 
 #pragma warning disable CS0618 // Type or member is obsolete
-                            string path = Path.Combine(MelonUtils.BaseDirectory, $"{packageName}.{dependency.Value}.nupkg");
+                        string path = Path.Combine(MelonUtils.BaseDirectory, $"{packageName}.{dependency.Value}.nupkg");
 #pragma warning restore CS0618 // Type or member is obsolete
-                            LoggerInstance.Msg("Downloading file");
-                            DownloadFile($"https://api.nuget.org/v3-flatcontainer/{packageName.ToLower()}/{dependency.Value}/{packageName.ToLower()}.{dependency.Value}.nupkg", path);
-                            if (File.Exists(path))
-                            {
-                                LoggerInstance.Msg("Downloaded successfully, extracting files");
-                                FileInfo fileInfo = new FileInfo(path);
-                                string zip_Path = Path.ChangeExtension(path, "zip");
-                                FileMoveTo(fileInfo.FullName, zip_Path, true);
+                        LoggerInstance.Msg("Downloading file");
+                        DownloadFile($"https://api.nuget.org/v3-flatcontainer/{packageName.ToLower()}/{dependency.Value}/{packageName.ToLower()}.{dependency.Value}.nupkg", path);
+                        if (File.Exists(path))
+                        {
+                            LoggerInstance.Msg("Downloaded successfully, extracting files");
+                            FileInfo fileInfo = new FileInfo(path);
+                            string zip_Path = Path.ChangeExtension(path, "zip");
+                            FileMoveTo(fileInfo.FullName, zip_Path, true);
 #pragma warning disable CS0618 // Type or member is obsolete
-                                string dirPath = Path.Combine(MelonUtils.BaseDirectory, $"{packageName}.{dependency.Value}-dependency");
+                            string dirPath = Path.Combine(MelonUtils.BaseDirectory, $"{packageName}.{dependency.Value}-dependency");
 #pragma warning restore CS0618 // Type or member is obsolete
-                                UnzipFromStream_NotTask(File.Open(zip_Path, FileMode.Open), dirPath);
-                                if (Directory.Exists(dirPath))
+                            UnzipFromStream_NotTask(File.Open(zip_Path, FileMode.Open), dirPath);
+                            if (Directory.Exists(dirPath))
+                            {
+                                LoggerInstance.Msg("Extracted successfully, installing");
+                                var libDir = new DirectoryInfo(Path.Combine(dirPath, "lib"));
+                                if (libDir.Exists)
                                 {
-                                    LoggerInstance.Msg("Extracted successfully, installing");
-                                    var libDir = new DirectoryInfo(Path.Combine(dirPath, "lib"));
-                                    if (libDir.Exists)
+                                    List<string> dependencyFiles = new List<string>();
+                                    LoggerInstance.Msg("Found lib directory, finding dependency");
+                                    var dllFiles = libDir.GetFiles();
+                                    if (dllFiles.Length > 0)
                                     {
-                                        List<string> dependencyFiles = new List<string>();
-                                        LoggerInstance.Msg("Found lib directory, finding dependency");
-                                        var dllFiles = libDir.GetFiles();
-                                        if (dllFiles.Length > 0)
+                                        LoggerInstance.Msg("Found dependency in lib directory");
+                                        foreach (var dllFile in dllFiles)
                                         {
-                                            LoggerInstance.Msg("Found dependency in lib directory");
-                                            foreach (var dllFile in dllFiles)
-                                            {
-                                                LoggerInstance.Msg("Installing " + dllFile.Name.Pastel(theme.FileNameColor));
-                                                FileMoveTo(dllFile.FullName, Path.Combine(userLibsDirectory, dllFile.Name), true);
-                                                dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
-                                            }
-                                        }
-                                        else
-                                        {
-                                            LoggerInstance.Msg("Looking for corresponding net version in libraries");
-#if NET6_0_OR_GREATER
-                                            string netVer = "net6";
-#elif NET35_OR_GREATER
-                                            string netVer = "net35";
-#endif
-                                            var _netDir = Directory.GetDirectories(libDir.FullName).Where(x => GetDirName(x).ToLower().StartsWith(netVer));
-                                            if (_netDir.Any())
-                                            {
-                                                var netDir = new DirectoryInfo(_netDir.First());
-                                                LoggerInstance.Msg("Found corresponding net version in libraries, installing");
-                                                var dllFiles2 = netDir.GetFiles();
-                                                if (dllFiles2.Length > 0)
-                                                {
-                                                    foreach (var dllFile in dllFiles2)
-                                                    {
-                                                        LoggerInstance.Msg("Installing " + dllFile.Name.Pastel(theme.FileNameColor));
-                                                        FileMoveTo(dllFile.FullName, Path.Combine(userLibsDirectory, dllFile.Name), true);
-                                                        dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
-                                                    }
-                                                }
-                                            }
-                                            else
-                                            {
-                                                LoggerInstance.Error("Could not find corresponding NET version in dependency, unable to install");
-                                            }
-                                        }
-                                        foreach (var file in dependencyFiles)
-                                        {
-                                            if (Path.GetExtension(file) == ".dll")
-                                            {
-                                                Assembly.LoadFrom(file);
-                                            }
+                                            LoggerInstance.Msg("Installing " + dllFile.Name.Pastel(theme.FileNameColor));
+                                            FileMoveTo(dllFile.FullName, Path.Combine(userLibsDirectory, dllFile.Name), true);
+                                            dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
                                         }
                                     }
                                     else
                                     {
-                                        LoggerInstance.Error("Could not find 'lib' directory in downloaded NuGet package");
+                                        LoggerInstance.Msg("Looking for corresponding net version in libraries");
+#if NET6_0_OR_GREATER
+                                        string netVer = "net6";
+#elif NET35_OR_GREATER
+                                        string netVer = "net35";
+#endif
+                                        var _netDir = Directory.GetDirectories(libDir.FullName).Where(x => GetDirName(x).ToLower().StartsWith(netVer));
+                                        if (_netDir.Any())
+                                        {
+                                            var netDir = new DirectoryInfo(_netDir.First());
+                                            LoggerInstance.Msg("Found corresponding net version in libraries, installing");
+                                            var dllFiles2 = netDir.GetFiles();
+                                            if (dllFiles2.Length > 0)
+                                            {
+                                                foreach (var dllFile in dllFiles2)
+                                                {
+                                                    LoggerInstance.Msg("Installing " + dllFile.Name.Pastel(theme.FileNameColor));
+                                                    FileMoveTo(dllFile.FullName, Path.Combine(userLibsDirectory, dllFile.Name), true);
+                                                    dependencyFiles.Add(Path.Combine(userLibsDirectory, dllFile.Name));
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            LoggerInstance.Error("Could not find corresponding NET version in dependency, unable to install");
+                                        }
                                     }
-                                    Directory.Delete(dirPath, true);
+                                    foreach (var file in dependencyFiles)
+                                    {
+                                        if (Path.GetExtension(file) == ".dll")
+                                        {
+                                            Assembly.LoadFrom(file);
+                                        }
+                                    }
                                 }
                                 else
                                 {
-                                    LoggerInstance.Error("Download failed");
+                                    LoggerInstance.Error("Could not find 'lib' directory in downloaded NuGet package");
                                 }
-                                File.Delete(zip_Path);
-                                downloaded++;
-                            };
-                        }
+                                Directory.Delete(dirPath, true);
+                            }
+                            else
+                            {
+                                LoggerInstance.Error("Download failed");
+                            }
+                            File.Delete(zip_Path);
+                            downloaded++;
+                        };
                     }
-                });
-                thread.Start();
-                thread.Join();
+                }
             }
             LoggerInstance.Msg("Checking if internet is connected");
-            /*var internetConnected = CheckForInternetConnection();
-            internetConnected.Wait();
-            if (internetConnected.Result)
+            var internetConnected = CheckForInternetConnection();
+            if (internetConnected)
             {
                 LoggerInstance.Msg("Internet is connected!");
             }
@@ -1356,10 +1425,10 @@ namespace MelonAutoUpdater
             {
                 LoggerInstance.Msg("Internet is not connected, aborting");
                 return;
-            }*/
+            }
 
             logger = LoggerInstance;
-            UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
+            UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods and plugins";
             Version = this.Info.Version;
             MAUSearch.UserAgent = UserAgent;
 
@@ -1392,10 +1461,7 @@ namespace MelonAutoUpdater
 
             LoggerInstance.Msg("Setup Melon Preferences");
 
-            lock (this)
-            {
-                SetupPreferences();
-            }
+            SetupPreferences();
 
             theme = ThemesCategory.GetValue<Theme>();
 
@@ -1415,7 +1481,7 @@ namespace MelonAutoUpdater
             foreach (FileInfo file in extFiles)
             {
                 LoggerInstance.Msg($"Checking {file.Name.Pastel(theme.FileNameColor)}");
-                AssemblyDefinition assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(file.FullName);
+                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(file.FullName);
                 bool isExtension = false;
                 foreach (var attr in assembly.CustomAttributes)
                 {

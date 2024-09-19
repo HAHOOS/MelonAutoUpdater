@@ -4,13 +4,13 @@ using System.Collections.Generic;
 namespace MelonAutoUpdater
 {
     /// <summary>
-    /// Class that contains data about mod<br/>
+    /// Class that contains data about a Melon<br/>
     /// Like: Latest Version and Download Files
     /// </summary>
-    public class ModData
+    public class MelonData
     {
         /// <summary>
-        /// Latest version available online of a mod
+        /// Latest version available online of the Melon
         /// </summary>
         public SemVersion LatestVersion { get; internal set; }
 
@@ -20,29 +20,29 @@ namespace MelonAutoUpdater
         public List<FileData> DownloadFiles { get; internal set; }
 
         /// <summary>
-        /// Creates new instance of <see cref="ModData" />
+        /// Creates new instance of <see cref="MelonData" />
         /// </summary>
         /// <param name="latestVersion">Latest version available in the API</param>
         /// <param name="downloadFiles">List of <see cref="FileData" /></param>
-        public ModData(SemVersion latestVersion, List<FileData> downloadFiles)
+        public MelonData(SemVersion latestVersion, List<FileData> downloadFiles)
         {
             this.LatestVersion = latestVersion;
             this.DownloadFiles = downloadFiles;
         }
 
         /// <summary>
-        /// Creates new instance of <see cref="ModData" />
+        /// Creates new instance of <see cref="MelonData" />
         /// </summary>
         /// <param name="latestVersion">Latest version available in the API</param>
-        public ModData(SemVersion latestVersion)
+        public MelonData(SemVersion latestVersion)
         {
             this.LatestVersion = latestVersion;
         }
 
         /// <summary>
-        /// Creates new instance of <see cref="ModData" />
+        /// Creates new instance of <see cref="MelonData" />
         /// </summary>
-        public ModData()
+        public MelonData()
         {
         }
     }

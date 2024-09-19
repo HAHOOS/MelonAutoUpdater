@@ -11,7 +11,7 @@ namespace MelonAutoUpdater.Attributes
         /// <summary>
         /// If <see langword="true"/>, assembly is a MAU Search Extension
         /// </summary>
-        public bool Value;
+        public bool Value { get; internal set; }
 
         /// <summary>
         /// Creates a new instance of <see cref="IsMAUSearchExtensionAttribute"/> <see cref="Attribute" />
