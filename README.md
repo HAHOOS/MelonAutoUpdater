@@ -67,7 +67,7 @@ To implement auto-updating into your code mod, simply set a correct **download l
 
 MelonAutoUpdater (MAU) is licensed under the MIT License. See [LICENSE](https://github.com/HAHOOS/MelonAutoUpdater/blob/master/LICENSE.txt) for the full License.
 
-Third-party Libraries bundled in Binary Form:
+Third-party Libraries used as Source Code and/or bundled in Binary Form:
 - [MelonLoader](https://github.com/LavaGang/MelonLoader) is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/LavaGang/MelonLoader/blob/master/LICENSE.md) for the full License.
 - [Mono.Cecil](https://github.com/jbevain/cecil) is licensed under the MIT License. See [LICENSE](https://github.com/jbevain/cecil/blob/master/LICENSE.txt) for the full License.
 - [Rackspace.Threading](https://github.com/tunnelvisionlabs/dotnet-threading) is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/tunnelvisionlabs/dotnet-threading/blob/master/LICENSE) for the full License.
