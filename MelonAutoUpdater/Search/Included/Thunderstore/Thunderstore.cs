@@ -7,7 +7,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace MelonAutoUpdater.Search.Included
+namespace MelonAutoUpdater.Search.Included.Thunderstore
 {
     internal class Thunderstore : MAUSearch
     {
@@ -62,7 +62,7 @@ namespace MelonAutoUpdater.Search.Included
                             return Empty();
                         }
 
-                        return Task.Factory.StartNew<MelonData>(() => new MelonData()
+                        return Task.Factory.StartNew(() => new MelonData()
                         {
                             LatestVersion = semver,
                             DownloadFiles = files,

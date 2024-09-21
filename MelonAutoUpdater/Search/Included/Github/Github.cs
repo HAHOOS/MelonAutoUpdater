@@ -10,8 +10,9 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using MelonLoader;
 using System.Drawing;
+using MelonAutoUpdater.Utils;
 
-namespace MelonAutoUpdater.Search.Included
+namespace MelonAutoUpdater.Search.Included.Github
 {
     internal class Github : MAUSearch
     {
@@ -49,9 +50,9 @@ namespace MelonAutoUpdater.Search.Included
         public override void OnInitialization()
         {
             category = CreateCategory();
-            entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
+            entry_useDeviceFlow = category.CreateEntry("UseDeviceFlow", true, "Use Device Flow",
                 description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 1000)");
-            entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
+            entry_accessToken = category.CreateEntry("AccessToken", string.Empty, "Access Token",
                 description: "Access Token used to make authenticated requests (Do not edit if you do not know what you're doing)");
 
             category.SaveToFile();
@@ -64,7 +65,7 @@ namespace MelonAutoUpdater.Search.Included
                 var accessToken = GetEntryValue<string>(entry_accessToken);
                 if (!string.IsNullOrEmpty(accessToken))
                 {
-                    this.AccessToken = accessToken;
+                    AccessToken = accessToken;
                     Logger.Msg("Access token found, validating");
                     HttpClient client2 = new HttpClient();
                     client2.DefaultRequestHeaders.Add("Accept", "application/json");
