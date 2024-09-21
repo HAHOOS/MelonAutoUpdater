@@ -6,7 +6,7 @@
 		<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Title>Melon Auto Updater</Title>
+		<Title>MelonAutoUpdater</Title>
 		<Authors>HAHOOS</Authors>
 		<Company>$(Authors)</Company>
 		<Description>Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!
@@ -24,29 +24,8 @@ This package exists to easily reference the plugin for developers</Description>
 		<Version>0.3.1</Version>
 	</PropertyGroup>
 
-	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
-		<Reference Include="MelonLoader">
-			<HintPath>$(GameDirectory)\MelonLoader\net6\MelonLoader.dll</HintPath>
-		</Reference>
-	</ItemGroup>
-
 	<ItemGroup>
 	  <None Remove="Embedded\mime-types.json" />
-	</ItemGroup>
-
-	<ItemGroup Label="NoFrameworkCondition">
-		<Reference Include="Tomlet">
-			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
-		</Reference>
-	</ItemGroup>
-
-	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35FrameworkCondition">
-		<Reference Include="MelonLoader">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
-		</Reference>
-		<Reference Include="ValueTupleBridge">
-			<HintPath>$(GameDirectory)\MelonLoader\Managed\ValueTupleBridge.dll</HintPath>
-		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -70,6 +49,7 @@ This package exists to easily reference the plugin for developers</Description>
 
 	<ItemGroup>
 		<PackageReference Include="Mono.Cecil" Version="0.10.4" />
+		<PackageReference Include="LavaGang.MelonLoader" Version="0.6.4" />
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
