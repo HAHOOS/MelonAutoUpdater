@@ -1,6 +1,7 @@
 using MelonLoader;
 using System.Drawing;
 using System;
+using MelonAutoUpdater.Utils;
 
 namespace MelonAutoUpdater.Search
 {

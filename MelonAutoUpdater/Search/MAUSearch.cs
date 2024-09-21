@@ -7,6 +7,7 @@ using System.Linq;
 using System.Drawing;
 using MelonLoader;
 using System.IO;
+using MelonAutoUpdater.Utils;
 
 namespace MelonAutoUpdater.Search
 {
