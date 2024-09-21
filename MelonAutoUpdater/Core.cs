@@ -22,8 +22,6 @@ using MelonLoader.TinyJSON;
 using System.Net;
 #endif
 
-using System.Threading;
-
 [assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.0", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
 #pragma warning disable CS0618 // Type or member is obsolete
