@@ -51,6 +51,7 @@ This package exists to easily reference the plugin for developers</Description>
 		<PackageReference Include="Mono.Cecil" Version="0.10.4" />
 		<PackageReference Include="LavaGang.MelonLoader" Version="0.6.4" />
 		<PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
+		<PackageReference Include="WebSocket4Net" Version="0.15.2" />
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
