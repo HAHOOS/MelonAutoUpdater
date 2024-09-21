@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace MelonAutoUpdater
+namespace MelonAutoUpdater.Utils
 {
     /// <summary>
     /// Content Type that can be retrieved from Mime Type or File Extension

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
-namespace MelonAutoUpdater
+namespace MelonAutoUpdater.Utils
 {
     /// <summary>
     /// Controls colored console output by <see langword="Pastel"/>.
