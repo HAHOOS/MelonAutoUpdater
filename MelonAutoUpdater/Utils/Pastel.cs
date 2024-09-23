@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MelonLoader;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
@@ -100,18 +101,9 @@ namespace MelonAutoUpdater.Utils
             })
         });
 
-        private static bool IsUnix
-        {
-            get
-            {
-                int p = (int)Environment.OSVersion.Platform;
-                return p == 4 || p == 6 || p == 128;
-            }
-        }
-
         static ConsoleExtensions()
         {
-            if (IsUnix)
+            if (Platform.IsUnix)
             {
                 Enable();
                 return;
