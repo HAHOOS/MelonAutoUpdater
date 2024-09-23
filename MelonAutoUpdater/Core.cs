@@ -35,6 +35,7 @@ using System.Net;
 [assembly: AssemblyTitle("MelonAutoUpdater")]
 [assembly: AssemblyCompany("HAHOOS")]
 [assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
+[assembly: AssemblyInformationalVersion("0.3.1")]
 
 namespace MelonAutoUpdater
 {
@@ -1163,9 +1164,14 @@ namespace MelonAutoUpdater
                     bool isLoaded = nuget.Internal_IsLoaded(dependency.Key, true, dependency.Value, true);
                     if (!isLoaded)
                     {
+                        LoggerInstance.Msg($"{dependency.Key.Pastel(theme.FileNameColor)} is not loaded!");
                         // Install package
 
                         nuget.InstallPackage(dependency.Key, dependency.Value);
+                    }
+                    else
+                    {
+                        LoggerInstance.Msg($"{dependency.Key.Pastel(theme.FileNameColor)} is loaded!");
                     }
                 }
             }
