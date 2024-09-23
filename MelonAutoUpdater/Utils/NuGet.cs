@@ -200,7 +200,12 @@ namespace MelonAutoUpdater.Utils
             }
 
 #elif NET6_0_OR_GREATER
-            var client = new HttpClient();
+            HttpClientHandler handler = new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+
+            var client = new HttpClient(handler);
             client.DefaultRequestHeaders.Add("User-Agent", Core.UserAgent);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
             var res = client.GetAsync(apiUrl);
@@ -211,16 +216,21 @@ namespace MelonAutoUpdater.Utils
                 body.Wait();
                 if (!string.IsNullOrEmpty(body.Result))
                 {
+                    body.Dispose();
+                    res.Dispose();
                     return ProcessLatestVerBody(body.Result, includePreRelease);
                 }
                 else
                 {
                     OnLog($"Failed to retrieve latest version: \nBody is empty", LogSeverity.ERROR);
+                    body.Dispose();
+                    res.Dispose();
                     return null;
                 }
             }
             else
             {
+                res.Dispose();
                 OnLog($"Failed to retrieve latest version: \n{res.Result.StatusCode}: {res.Result.ReasonPhrase}", LogSeverity.ERROR);
                 return null;
             }
