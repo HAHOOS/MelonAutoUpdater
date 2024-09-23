@@ -107,7 +107,7 @@ namespace MelonAutoUpdater.Search
         public MelonPreferences_Category CreateCategory(string category = "")
         {
             MelonPreferences_Category _Category = MelonPreferences.CreateCategory(!string.IsNullOrEmpty(category) ? category : Name);
-            _Category.SetFilePath(Path.Combine(Core.extConfigFolderPath, $"{Name}.cfg"));
+            _Category.SetFilePath(Path.Combine(Files.ExtConfigFolder, $"{Name}.cfg"));
             return _Category;
         }
 
