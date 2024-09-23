@@ -44,31 +44,6 @@ namespace MelonAutoUpdater
     public class Core : MelonPlugin
     {
         /// <summary>
-        /// Path of the Temporary Files folder where downloaded files and uncompressed zip files get put temporarily
-        /// </summary>
-        internal static string tempFilesPath = "";
-
-        /// <summary>
-        /// Path of MelonAutoUpdate folder containing all the other folders
-        /// </summary>
-        internal static string mainFolderPath = "";
-
-        /// <summary>
-        /// Path of Backup folder where old versions of mods are saved
-        /// </summary>
-        internal static string backupFolderPath = "";
-
-        /// <summary>
-        /// Path of Config folder for all extension config's
-        /// </summary>
-        internal static string extConfigFolderPath = "";
-
-        /// <summary>
-        /// Path of Packages folder where all packages are temporarily stored
-        /// </summary>
-        internal static string packagesPath = "";
-
-        /// <summary>
         /// Version of MAU
         /// </summary>
         public static string Version { get; private set; }
@@ -162,7 +137,7 @@ namespace MelonAutoUpdater
         {
             // Main Category
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
-            MainCategory.SetFilePath(Path.Combine(mainFolderPath, "config.cfg"));
+            MainCategory.SetFilePath(Path.Combine(Files.MainFolder, "config.cfg"));
             Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
                 description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
             Entry_enabled = MainCategory.CreateEntry<bool>("Enabled", true, "Enabled",
@@ -175,13 +150,13 @@ namespace MelonAutoUpdater
             // Themes Category
 
             ThemesCategory = MelonPreferences.CreateCategory<Theme>("Theme", "Theme");
-            ThemesCategory.SetFilePath(Path.Combine(mainFolderPath, "theme.cfg"));
+            ThemesCategory.SetFilePath(Path.Combine(Files.MainFolder, "theme.cfg"));
             ThemesCategory.SaveToFile(false);
 
             // Extensions Category
 
             ExtensionsCategory = MelonPreferences.CreateCategory("Extensions", "Extensions");
-            ExtensionsCategory.SetFilePath(Path.Combine(mainFolderPath, "extensions.cfg"));
+            ExtensionsCategory.SetFilePath(Path.Combine(Files.MainFolder, "extensions.cfg"));
 
             foreach (Type type in
                     Assembly.GetExecutingAssembly().GetTypes()
@@ -495,7 +470,7 @@ namespace MelonAutoUpdater
                     else
                     {
                         if (!File.Exists(_path)) File.Move(file, _path);
-                        else File.Replace(file, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
+                        else File.Replace(file, _path, Path.Combine(Files.BackupFolder, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
                         LoggerInstance.Msg($"[{prefix}] Successfully copied {Path.GetFileName(file)}");
                     }
                 }
@@ -681,7 +656,7 @@ namespace MelonAutoUpdater
                     string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(path));
 #pragma warning restore CS0618 // Type or member is obsolete
                     if (!File.Exists(_path)) File.Move(path, _path);
-                    else File.Replace(path, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                    else File.Replace(path, _path, Path.Combine(Files.BackupFolder, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
                     success = true;
 
                     LoggerInstance.Msg("Checking if mod version is valid");
@@ -736,7 +711,7 @@ namespace MelonAutoUpdater
                     string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(path));
 #pragma warning restore CS0618 // Type or member is obsolete
                     if (!File.Exists(_path)) File.Move(path, _path);
-                    else File.Replace(path, _path, Path.Combine(backupFolderPath, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
+                    else File.Replace(path, _path, Path.Combine(Files.BackupFolder, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
 
                     LoggerInstance.Msg("Checking if plugin version is valid");
                     var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
@@ -890,7 +865,7 @@ namespace MelonAutoUpdater
                                                         contentType = _contentType;
                                                         if (!string.IsNullOrEmpty(_contentType.Extension))
                                                         {
-                                                            pathToSave = Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.{_contentType.Extension}");
+                                                            pathToSave = Path.Combine(Files.TemporaryMelonsFolder, $"{name.Replace(" ", "")}.{_contentType.Extension}");
                                                         }
                                                         else
                                                         {
@@ -916,7 +891,7 @@ namespace MelonAutoUpdater
                                                         contentType = _contentType;
                                                         if (!string.IsNullOrEmpty(_contentType.Extension))
                                                         {
-                                                            pathToSave = Path.Combine(tempFilesPath, $"{name.Replace(" ", "")}.{_contentType.Extension}");
+                                                            pathToSave = Path.Combine(Files.TemporaryMelonsFolder, $"{name.Replace(" ", "")}.{_contentType.Extension}");
                                                         }
                                                         else
                                                         {
@@ -976,7 +951,7 @@ namespace MelonAutoUpdater
                                                 if (Path.GetExtension(pathToSave) == ".zip")
                                                 {
                                                     LoggerInstance.Msg("File is a ZIP, extracting files...");
-                                                    string extractPath = Path.Combine(tempFilesPath, name.Replace(" ", "-"));
+                                                    string extractPath = Path.Combine(Files.TemporaryMelonsFolder, name.Replace(" ", "-"));
                                                     try
                                                     {
                                                         UnzipFromStream(File.OpenRead(pathToSave), extractPath);
@@ -988,7 +963,7 @@ namespace MelonAutoUpdater
                                                         threwError = true;
                                                         LoggerInstance.Error($"An exception occurred while extracting files from a ZIP file{ex}");
                                                         File.Delete(pathToSave);
-                                                        DirectoryInfo tempDir = new DirectoryInfo(tempFilesPath);
+                                                        DirectoryInfo tempDir = new DirectoryInfo(Files.TemporaryMelonsFolder);
                                                         foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
                                                         foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
                                                     }
@@ -1112,22 +1087,22 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg($"Results ({result.updates.Count} updates):");
             if (result.updates.Count > 0)
             {
-                foreach (var help in result.updates)
+                foreach (var (name, oldVersion, newVersion, threwError, success, failed) in result.updates)
                 {
-                    if (!help.threwError)
+                    if (!threwError)
                     {
-                        if (help.success + help.failed > 0)
+                        if (success + failed > 0)
                         {
-                            LoggerInstance.Msg($"[V] {help.name} v{help.oldVersion} ---> v{help.newVersion} ({help.success}/{help.success + help.failed} melons installed successfully)".Pastel(Color.LawnGreen));
+                            LoggerInstance.Msg($"[V] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.LawnGreen));
                         }
                         else
                         {
-                            LoggerInstance.Msg($"[?] {help.name} v{help.oldVersion} ---> v{help.newVersion} ({help.success}/{help.success + help.failed} melons installed successfully)".Pastel(Color.Yellow));
+                            LoggerInstance.Msg($"[?] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Yellow));
                         }
                     }
                     else
                     {
-                        LoggerInstance.Msg($"[X] {help.name} v{help.oldVersion} ---> v{help.newVersion} ({help.success}/{help.success + help.failed} melons installed successfully)".Pastel(Color.Red));
+                        LoggerInstance.Msg($"[X] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Red));
                     }
                 }
             }
@@ -1147,26 +1122,12 @@ namespace MelonAutoUpdater
         public override void OnPreInitialization()
         {
             LoggerInstance.Msg("Creating folders in UserData");
-#pragma warning disable CS0618 // Type or member is obsolete
-            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(MelonUtils.UserDataDirectory, "MelonAutoUpdater"));
-#pragma warning restore CS0618 // Type or member is obsolete
-            DirectoryInfo tempDir = mainDir.CreateSubdirectory("Temporary");
-            DirectoryInfo packagesDir = tempDir.CreateSubdirectory("Packages");
-            DirectoryInfo melonsDir = tempDir.CreateSubdirectory("Melons");
-            DirectoryInfo backupDir = mainDir.CreateSubdirectory("Backups");
-            DirectoryInfo extensionsDir = mainDir.CreateSubdirectory("SearchExtensions");
 
-            DirectoryInfo net35ExtDir = extensionsDir.CreateSubdirectory("net35");
-            DirectoryInfo net6ExtDir = extensionsDir.CreateSubdirectory("net6");
+            Files.Setup();
 
-            DirectoryInfo extConfigDir = extensionsDir.CreateSubdirectory("Config");
+            LoggerInstance.Msg("Clearing possibly left temporary files");
 
-            extConfigFolderPath = extConfigDir.FullName;
-
-            tempFilesPath = melonsDir.FullName;
-            mainFolderPath = mainDir.FullName;
-            backupFolderPath = backupDir.FullName;
-            packagesPath = packagesDir.FullName;
+            Files.Clear(TempDirectory.Melons);
 
             LoggerInstance.Msg("Loading necessary dependencies");
 #if NET35_OR_GREATER
@@ -1179,17 +1140,18 @@ namespace MelonAutoUpdater
             nuget.Log += (sender, args) =>
             {
                 string msg = $"[" + "NuGet".Pastel(Color.Cyan) + $"] {args.Message}";
+                string msg_nopastel = $"[NuGet] {args.Message}";
                 if (args.Severity == NuGet.LogSeverity.MESSAGE)
                 {
                     LoggerInstance.Msg(msg);
                 }
                 else if (args.Severity == NuGet.LogSeverity.WARNING)
                 {
-                    LoggerInstance.Warning(msg);
+                    LoggerInstance.Warning(msg_nopastel);
                 }
                 else if (args.Severity == NuGet.LogSeverity.ERROR)
                 {
-                    LoggerInstance.Error(msg);
+                    LoggerInstance.Error(msg_nopastel);
                 }
             };
 
@@ -1198,20 +1160,10 @@ namespace MelonAutoUpdater
             {
                 foreach (var dependency in dependencies)
                 {
-                    if (!nuget.IsLoaded(dependency.Key, true, dependency.Value, true))
+                    bool isLoaded = nuget.Internal_IsLoaded(dependency.Key, true, dependency.Value, true);
+                    if (!isLoaded)
                     {
-                        // Check if file exists
-
-                        var userLibs = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
-                        var libs = Directory.GetFiles(userLibs, "*.dll");
-                        var assemblyName = nuget.GetAssemblyNameOfNuGetPackage(dependency.Key, dependency.Value, true);
-                        if (assemblyName != null)
-                        {
-                            if (libs.Where(x => x.ToLower().EndsWith($"{assemblyName.ToLower()}.dll")).Any()) continue;
-                        }
-                        if (libs.Where(x => x.ToLower().EndsWith($"{dependency.Key.ToLower()}.dll")).Any()) continue;
-
-                        // Install
+                        // Install package
 
                         nuget.InstallPackage(dependency.Key, dependency.Value);
                     }
@@ -1234,14 +1186,6 @@ namespace MelonAutoUpdater
             Version = this.Info.Version;
             MAUSearch.UserAgent = UserAgent;
 
-            LoggerInstance.Msg("Clearing possibly left temporary files");
-
-            List<string> tempPaths = Directory.GetFiles(tempFilesPath).ToList();
-            tempPaths.AddRange(Directory.GetDirectories(tempFilesPath));
-
-            foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
-            foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
-
             LoggerInstance.Msg("Setup Melon Preferences");
 
             SetupPreferences();
@@ -1259,7 +1203,7 @@ namespace MelonAutoUpdater
             ContentType.Load();
 
             LoggerInstance.Msg("Load search extensions");
-            FileInfo[] extFiles = Environment.Version.Major >= 6 ? net6ExtDir.GetFiles("*.dll") : net35ExtDir.GetFiles("*.dll");
+            FileInfo[] extFiles = Environment.Version.Major >= 6 ? new DirectoryInfo(Files.Net6ExtFolder).GetFiles("*.dll") : new DirectoryInfo(Files.Net35ExtFolder).GetFiles("*.dll");
             List<Assembly> assemblies = new List<Assembly> { System.Reflection.Assembly.GetExecutingAssembly() };
             foreach (FileInfo file in extFiles)
             {
