@@ -7,10 +7,10 @@ using Mono.Cecil;
 using Semver;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 
 #if NET6_0_OR_GREATER
 
@@ -32,17 +32,14 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         public event EventHandler<LogEventArgs> Log;
 
-        internal string TempFolder;
-
         /// <summary>
         /// Creates new instance of <see cref="NuGet"/>
         /// </summary>
         public NuGet()
         {
-            TempFolder = Core.packagesPath;
         }
 
-        internal void DownloadFile(string url, string path)
+        internal static void DownloadFile(string url, string path)
         {
 #if NET35_OR_GREATER
             WebClient webClient = new WebClient();
@@ -67,59 +64,6 @@ namespace MelonAutoUpdater.Utils
 #endif
         }
 
-        internal static void FileMoveTo(string originPath, string desPath, bool overwrite = false)
-        {
-#if NET6_0_OR_GREATER
-            var originFile = new FileInfo(originPath);
-            if (originFile.Exists)
-            {
-                originFile.MoveTo(desPath, overwrite);
-            }
-            else
-            {
-                throw new FileNotFoundException("Could not find the origin file!", originPath);
-            }
-#elif NET35_OR_GREATER
-            var originFile = new FileInfo(originPath);
-            if (originFile.Exists)
-            {
-                var originStream = originFile.OpenRead();
-                var desFile = new FileInfo(desPath);
-                if (desFile.Exists)
-                {
-                    if (overwrite)
-                    {
-                        var desStream = desFile.OpenWrite();
-                        originStream.CopyTo(desStream);
-
-                        originStream.Dispose();
-                        desStream.Dispose();
-
-                        originFile.Delete();
-                    }
-                    else
-                    {
-                        throw new Exception("Cannot overwrite file " + desPath);
-                    }
-                }
-                else
-                {
-                    var desStream = File.Create(desPath);
-                    originStream.CopyTo(desStream);
-
-                    originStream.Dispose();
-                    desStream.Dispose();
-
-                    originFile.Delete();
-                }
-            }
-            else
-            {
-                throw new FileNotFoundException("Could not find the origin file!", originPath);
-            }
-#endif
-        }
-
         /// <summary>
         /// Get name of a directory
         /// </summary>
@@ -127,15 +71,7 @@ namespace MelonAutoUpdater.Utils
         /// <returns>Name of directory</returns>
         internal static string GetDirName(string path)
         {
-            if (Directory.Exists(path))
-            {
-                var info = new DirectoryInfo(path);
-                if (info != null)
-                {
-                    return info.Name;
-                }
-            }
-            return path;
+            return Path.GetFileName(path);
         }
 
         /// <summary>
@@ -143,35 +79,58 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         /// <param name="zipStream"><see cref="Stream"/> of the ZIP File</param>
         /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip</param>
-        internal static bool UnzipFromStream(Stream zipStream, string outFolder)
+        /// <param name="dirName">Name of directory, will be removed later</param>
+        /// <param name="isRedirect">If <see langword="true"/>, this will be treated as a redirect to the Documents folder and if the path is exceeded, an error will be thrown</param>
+        /// <exception cref="PathTooLongException">A path was too long, redirect was already done</exception>
+        internal string UnzipFromStream(Stream zipStream, string outFolder, string dirName, bool isRedirect = false)
         {
-            using (var zipInputStream = new ZipInputStream(zipStream))
+            OnLog("Unzipping content", LogSeverity.MESSAGE);
+            try
             {
-                while (zipInputStream.GetNextEntry() is ZipEntry zipEntry)
+                zipStream.Seek(0, SeekOrigin.Begin);
+                using (var zipInputStream = new ZipInputStream(zipStream))
                 {
-                    var entryFileName = zipEntry.Name;
-
-                    var buffer = new byte[4096];
-
-                    var fullZipToPath = Path.Combine(outFolder, entryFileName);
-                    var directoryName = Path.GetDirectoryName(fullZipToPath);
-
-                    if (directoryName.Length > 0)
-                        Directory.CreateDirectory(directoryName);
-                    if (Path.GetFileName(fullZipToPath).Length == 0)
+                    while (zipInputStream.GetNextEntry() is ZipEntry zipEntry)
                     {
-                        continue;
-                    }
-                    using (FileStream streamWriter = File.Create(fullZipToPath))
-                    {
-                        StreamUtils.Copy(zipInputStream, streamWriter, buffer);
+                        var entryFileName = zipEntry.Name;
+
+                        var buffer = new byte[4096];
+
+                        var fullZipToPath = Path.Combine(outFolder, entryFileName);
+                        if (fullZipToPath.Length >= 256 && !isRedirect)
+                        {
+                            var _outFolder = new DirectoryInfo(Files.Redirect_CachePackagesFolder).CreateSubdirectory(dirName);
+                            return UnzipFromStream(zipStream, _outFolder.FullName, dirName, true);
+                        }
+                        else if (fullZipToPath.Length > 256 && isRedirect)
+                        {
+                            throw new PathTooLongException(fullZipToPath);
+                        }
+                        var directoryName = Path.GetDirectoryName(fullZipToPath);
+
+                        if (directoryName.Length > 0)
+                            Directory.CreateDirectory(directoryName);
+                        if (Path.GetFileName(fullZipToPath).Length == 0)
+                        {
+                            continue;
+                        }
+                        using (FileStream streamWriter = File.Create(fullZipToPath))
+                        {
+                            StreamUtils.Copy(zipInputStream, streamWriter, buffer);
+                        }
                     }
                 }
+                OnLog("Successfully unzipped content", LogSeverity.MESSAGE);
+                return outFolder;
             }
-            return true;
+            catch (Exception ex)
+            {
+                OnLog($"An unexpected error occurred while unzipping content: \n {ex}", LogSeverity.ERROR);
+                return null;
+            }
         }
 
-        internal SemVersion _ProcessLatestVerBody(string body, bool includePreRelease)
+        private SemVersion ProcessLatestVerBody(string body, bool includePreRelease)
         {
             var res = JSON.Load(body);
             int count = (int)res["count"];
@@ -184,16 +143,19 @@ namespace MelonAutoUpdater.Utils
                     var list = versions.ToList();
                     list.Sort(delegate (Variant x, Variant y)
                     {
-                        var x_ver = SemVersion.Parse(x["catalogEntry"]["version"].ToString());
-                        var y_ver = SemVersion.Parse(y["catalogEntry"]["version"].ToString());
-                        if (x_ver == null && y_ver == null) return 0;
-                        else if (x_ver == null) return -1;
-                        else if (y_ver == null) return 1;
-                        else if (!string.IsNullOrEmpty(x_ver.Prerelease) && !includePreRelease) return -1;
-                        else if (!string.IsNullOrEmpty(y_ver.Prerelease) && !includePreRelease) return 1;
+                        var x_parse = SemVersion.TryParse(x["catalogEntry"]["version"].ToString(), out SemVersion x_ver);
+                        var y_parse = SemVersion.TryParse(y["catalogEntry"]["version"].ToString(), out SemVersion y_ver);
+                        if (!x_parse && !y_parse) return 0;
+                        else if (!x_parse) return 1;
+                        else if (!y_parse) return -1;
+                        else if (x_ver == null && y_ver == null) return 0;
+                        else if (x_ver == null) return 1;
+                        else if (y_ver == null) return -1;
+                        else if (!string.IsNullOrEmpty(x_ver.Prerelease) && !includePreRelease) return 1;
+                        else if (!string.IsNullOrEmpty(y_ver.Prerelease) && !includePreRelease) return -1;
                         else return y_ver.CompareTo(x_ver);
                     });
-                    var latest = list[0];
+                    var latest = list.First();
                     var latest_ver = SemVersion.Parse(latest["catalogEntry"]["version"].ToString());
                     return latest_ver.ToString();
                 }
@@ -213,15 +175,17 @@ namespace MelonAutoUpdater.Utils
         internal SemVersion GetLatestNuGetVersion(string name, bool includePreRelease)
         {
             OnLog($"Checking for latest version of {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
-            string apiUrl = $"https://api.nuget.org/v3/registration5-semver1/{name.ToLower()}/index.json";
+            string apiUrl = $"https://api.nuget.org/v3/registration5-gz-semver2/{name.ToLower()}/index.json";
 #if NET35_OR_GREATER
             try
             {
-                var client = new WebClient();
+                var client = new GZIPWebClient();
+                client.Headers.Add("User-Agent", Core.UserAgent);
+                client.Headers.Add("Accept", "application/json");
                 string response = client.DownloadString(apiUrl);
-                if (response != null)
+                if (!string.IsNullOrEmpty(response))
                 {
-                    return _ProcessLatestVerBody(response, includePreRelease);
+                    return ProcessLatestVerBody(response, includePreRelease);
                 }
                 else
                 {
@@ -237,6 +201,8 @@ namespace MelonAutoUpdater.Utils
 
 #elif NET6_0_OR_GREATER
             var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", Core.UserAgent);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
             var res = client.GetAsync(apiUrl);
             res.Wait();
             if (res.Result.IsSuccessStatusCode)
@@ -245,7 +211,7 @@ namespace MelonAutoUpdater.Utils
                 body.Wait();
                 if (!string.IsNullOrEmpty(body.Result))
                 {
-                    return _ProcessLatestVerBody(body.Result, includePreRelease);
+                    return ProcessLatestVerBody(body.Result, includePreRelease);
                 }
                 else
                 {
@@ -271,29 +237,32 @@ namespace MelonAutoUpdater.Utils
         public void InstallPackage(string name, string version = "", bool includePreRelease = false)
         {
             OnLog($"Installing {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
-            var package = DownloadPackage(name, version, includePreRelease);
+            var (DLLFile, AllFiles) = DownloadPackage(name, version, includePreRelease);
 #pragma warning disable CS0618 // Type or member is obsolete
             var userLibs = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
 #pragma warning restore CS0618 // Type or member is obsolete
-            if (package.DLLFile != null && package.AllFiles != null)
+            if (DLLFile != null && AllFiles != null && AllFiles.Count > 0)
             {
-                foreach (var file in package.AllFiles)
+                var files = new List<FileInfo>();
+                foreach (var file in AllFiles)
                 {
                     if (File.Exists(file))
                     {
                         var fileName = Path.GetFileName(file);
                         OnLog($"Moving {fileName.Pastel(Theme.Instance.FileNameColor)} to UserLibs", LogSeverity.MESSAGE);
-                        FileMoveTo(file, Path.Combine(userLibs, fileName), true);
+                        var fileInfo = new FileInfo(file);
+                        files.Add(fileInfo);
+                        fileInfo.CopyTo(Path.Combine(userLibs, fileName), true);
                     }
                 }
-                foreach (var file in package.AllFiles)
+                foreach (var file in files)
                 {
-                    if (File.Exists(file))
+                    if (file.Exists)
                     {
-                        string extension = Path.GetExtension(file);
-                        if (extension == ".dll")
+                        if (file.Extension == ".dll")
                         {
-                            System.Reflection.Assembly.LoadFile(file);
+                            OnLog($"Loading {file.Name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
+                            System.Reflection.Assembly.LoadFile(file.FullName);
                         }
                     }
                 }
@@ -305,12 +274,11 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         /// <param name="name">Name of the NuGet package</param>
         /// <param name="version">Version of the NuGet package (Optional)</param>
-        /// <param name="includePreRelease">If <see langword="true"/>, when checking for latest version it will include prereleases</param>
+        /// <param name="includePreRelease">If <see langword="true"/>, when checking for latest version it will include prerelease's</param>
+        /// <param name="silent">If <see langword="true"/>, no logs will be sent</param>
         /// <returns>A <see cref="ValueTuple"/> with values DLLFile - path of main DLL file and AllFiles - path of all downloaded files</returns>
-        public (string DLLFile, List<string> AllFiles) DownloadPackage(string name, string version = "", bool includePreRelease = false)
+        public (string DLLFile, List<string> AllFiles) DownloadPackage(string name, string version = "", bool includePreRelease = false, bool silent = false)
         {
-            OnLog($"Downloading {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
-
             if (string.IsNullOrEmpty(version))
             {
                 var latest = GetLatestNuGetVersion(name, includePreRelease);
@@ -324,51 +292,77 @@ namespace MelonAutoUpdater.Utils
                 }
             }
 
-            var tempDir = Directory.CreateDirectory(Path.Combine(TempFolder, $"{name}-{version}"));
-            if (tempDir.GetFiles("*.dll").Length > 0)
+            var tempDir = Directory.CreateDirectory(Path.Combine(Files.CachePackagesFolder, $"{name}-{version}"));
+            if (tempDir.Exists && tempDir.GetFiles("*.dll").Length > 0)
             {
-                OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.MESSAGE);
+                if (!silent) OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.MESSAGE);
                 var dllFile = tempDir.GetFiles("*.dll")[0].FullName;
                 List<string> allFiles = new List<string>();
                 tempDir.GetFiles().ToList().ForEach(x => allFiles.Add(x.FullName));
                 return (dllFile, allFiles);
             }
 
+            var tempDir2 = Directory.CreateDirectory(Path.Combine(Files.Redirect_CachePackagesFolder, $"{name}-{version}"));
+            if (tempDir2.Exists && tempDir2.GetFiles("*.dll").Length > 0)
+            {
+                if (!silent) OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.MESSAGE);
+                var dllFile = tempDir2.GetFiles("*.dll")[0].FullName;
+                List<string> allFiles = new List<string>();
+                tempDir2.GetFiles().ToList().ForEach(x => allFiles.Add(x.FullName));
+                return (dllFile, allFiles);
+            }
+            else
+            {
+                tempDir2.Delete();
+            }
+
+            if (!silent) OnLog($"Downloading {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
+
             (string DLLFile, List<string> AllFiles) result;
             result.DLLFile = string.Empty;
             result.AllFiles = new List<string>();
-
-#pragma warning disable CS0618 // Type or member is obsolete
             string path = Path.Combine(tempDir.FullName, $"{name}.{version}.nupkg");
-#pragma warning restore CS0618 // Type or member is obsolete
-            OnLog("Downloading file", LogSeverity.MESSAGE);
+            if (!silent) OnLog("Downloading file", LogSeverity.MESSAGE);
             DownloadFile($"https://api.nuget.org/v3-flatcontainer/{name.ToLower()}/{version}/{name.ToLower()}.{version}.nupkg", path);
             if (File.Exists(path))
             {
-                OnLog("Downloaded successfully, extracting files", LogSeverity.MESSAGE);
+                if (!silent) OnLog("Downloaded successfully, extracting files", LogSeverity.MESSAGE);
                 FileInfo fileInfo = new FileInfo(path);
                 string zip_Path = Path.ChangeExtension(path, "zip");
-                FileMoveTo(fileInfo.FullName, zip_Path, true);
-#pragma warning disable CS0618 // Type or member is obsolete
-                string dirPath = Path.Combine(tempDir.FullName, $"{name}.{version}-dependency");
-#pragma warning restore CS0618 // Type or member is obsolete
-                UnzipFromStream(File.Open(zip_Path, FileMode.Open), dirPath);
+                fileInfo.MoveTo(zip_Path, true);
+                string dirPath = Path.Combine(tempDir.FullName, $"{name}.{version}");
+                string unzip = UnzipFromStream(File.Open(zip_Path, FileMode.Open), dirPath, $"{name}.{version}");
+                if (unzip == null) return (null, null);
+                if (unzip != dirPath)
+                {
+                    tempDir2 = new DirectoryInfo(unzip).Root;
+                }
+                dirPath = unzip;
                 if (Directory.Exists(dirPath))
                 {
-                    OnLog("Extracted successfully", LogSeverity.MESSAGE);
+                    if (!silent) OnLog("Extracted successfully", LogSeverity.MESSAGE);
                     var libDir = new DirectoryInfo(Path.Combine(dirPath, "lib"));
                     if (libDir.Exists)
                     {
                         List<string> dependencyFiles = new List<string>();
-                        OnLog("Found lib directory, finding dependency", LogSeverity.MESSAGE);
+                        if (!silent) OnLog("Found lib directory", LogSeverity.MESSAGE);
                         var dllFiles = libDir.GetFiles();
                         if (dllFiles.Length > 0)
                         {
-                            OnLog("Found dependency in lib directory", LogSeverity.MESSAGE);
+                            foreach (var dllFile in dllFiles)
+                            {
+                                var dllFile2 = Path.Combine(tempDir.FullName, dllFile.Name);
+                                dllFile.MoveTo(dllFile2, true);
+                                result.AllFiles.Add(dllFile2);
+                                if (dllFile.Extension == ".dll")
+                                {
+                                    result.DLLFile = dllFile2;
+                                }
+                            }
                         }
                         else
                         {
-                            OnLog("Looking for corresponding net version in libraries", LogSeverity.MESSAGE);
+                            if (!silent) OnLog("Looking for corresponding net version in libraries", LogSeverity.MESSAGE);
 #if NET6_0_OR_GREATER
                             string netVer = "net6";
 #elif NET35_OR_GREATER
@@ -378,32 +372,37 @@ namespace MelonAutoUpdater.Utils
                             if (_netDir.Any())
                             {
                                 var netDir = new DirectoryInfo(_netDir.First());
-                                OnLog("Found corresponding net version in libraries, installing", LogSeverity.MESSAGE);
+                                if (!silent) OnLog("Found corresponding net version in libraries", LogSeverity.MESSAGE);
                                 var dllFiles2 = netDir.GetFiles();
                                 if (dllFiles2.Length > 0)
                                 {
                                     foreach (var dllFile in dllFiles2)
                                     {
-                                        FileMoveTo(dllFile.FullName, Path.Combine(tempDir.FullName, dllFile.Name), true);
-                                        result.AllFiles.Add(Path.Combine(tempDir.FullName, dllFile.Name));
+                                        var dllFile2 = Path.Combine(tempDir.FullName, dllFile.Name);
+                                        dllFile.MoveTo(dllFile2, true);
+                                        result.AllFiles.Add(dllFile2);
+                                        if (dllFile.Extension == ".dll")
+                                        {
+                                            result.DLLFile = dllFile2;
+                                        }
                                     }
                                 }
                             }
                             else
                             {
-                                OnLog("Could not find corresponding NET version in dependency, unable to install", LogSeverity.ERROR);
+                                if (!silent) OnLog("Could not find corresponding NET version in dependency, unable to install", LogSeverity.ERROR);
                             }
                         }
                     }
                     else
                     {
-                        OnLog("Could not find 'lib' directory in downloaded NuGet package", LogSeverity.ERROR);
+                        if (!silent) OnLog("Could not find 'lib' directory in downloaded NuGet package", LogSeverity.ERROR);
                     }
                     Directory.Delete(dirPath, true);
                 }
                 else
                 {
-                    OnLog("Download failed", LogSeverity.ERROR);
+                    if (!silent) OnLog("Download failed", LogSeverity.ERROR);
                 }
                 File.Delete(zip_Path);
             };
@@ -412,25 +411,33 @@ namespace MelonAutoUpdater.Utils
         }
 
         /// <summary>
-        /// Checks if a NuGet Package is loaded
+        /// Checks if a NuGet Package is loaded in the assembly
         /// </summary>
         /// <param name="name">Name of the NuGet package</param>
         /// <param name="advancedCheck">If true, it will download and cache the requested package, and check the name used</param>
-        /// <param name="version">Version of the NuGet package (Optional)</param>
+        /// <param name="version">
+        /// Version of the NuGet package (Optional)<br/>
+        /// If not set, the version will not be checked if its equal to the version of an installed dependency if found
+        /// </param>
         /// <param name="includePreRelease">If <see langword="true"/>, when checking for latest version it will include prereleases</param>
-        /// <returns><see langword="true"/> if is loaded, otherwise <see langword="false"/></returns>
-        public bool IsLoaded(string name, bool advancedCheck, string version = "", bool includePreRelease = false)
+        /// <returns>
+        /// isLoaded - <see langword="true"/> if is loaded, otherwise <see langword="false"/><br/>
+        /// dllFile - path to DLL file found when using <b>advancedCheck</b>
+        /// </returns>
+        public (bool isLoaded, string dllFile) IsLoaded(string name, bool advancedCheck, string version = "", bool includePreRelease = false)
         {
-            OnLog($"Checking for {name} {(!string.IsNullOrEmpty(version) ? $"v{version}" : "")}", LogSeverity.MESSAGE);
+            OnLog($"Checking for {name.Pastel(Theme.Instance.FileNameColor)}{(!string.IsNullOrEmpty(version) ? $" v{version}".Pastel(Theme.Instance.NewVersionColor) : "".Pastel(Theme.Instance.NewVersionColor))}", LogSeverity.MESSAGE);
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
             string assName = name; // This is meant as assembly name, not ass name, didn't have any other ideas, although the name could be horrible
+            string dllFile = string.Empty;
             if (advancedCheck)
             {
-                var package = DownloadPackage(name, includePreRelease: includePreRelease);
-                if (package.DLLFile != null && package.AllFiles != null)
+                var (DLLFile, AllFiles) = DownloadPackage(name, includePreRelease: includePreRelease, silent: true);
+                if (DLLFile != null) dllFile = DLLFile;
+                if (DLLFile != null && AllFiles != null)
                 {
-                    AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(package.DLLFile);
+                    AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile);
                     var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
                     assName = assemblyName; // Once again, this is not meant to be read as ass, but as a short of assembly.
                 }
@@ -441,23 +448,61 @@ namespace MelonAutoUpdater.Utils
                 foreach (var assembly in assemblies)
                 {
                     var assemblyName = assembly.GetName();
-                    if (assemblyName.Name == name)
+                    if (assemblyName.Name == assName)
                     {
                         if (!string.IsNullOrEmpty(version))
                         {
                             if (assemblyName.Version == new Version(version))
                             {
-                                return true;
+                                return (true, dllFile);
                             }
                         }
                         else
                         {
-                            return true;
+                            return (true, dllFile);
                         }
                     }
                 }
             }
-            return false;
+            return (false, dllFile);
+        }
+
+        /// <summary>
+        /// Checks if a NuGet Package is loaded, by checking if its loaded in the assembly and if the file is present in UserLibs
+        /// </summary>
+        /// <param name="name">Name of the NuGet package</param>
+        /// <param name="advancedCheck">If true, it will download and cache the requested package, and check the name used</param>
+        /// <param name="version">
+        /// Version of the NuGet package (Optional)<br/>
+        /// If not set, the version will not be checked if its equal to the version of an installed dependency if found
+        /// </param>
+        /// <param name="includePreRelease">If <see langword="true"/>, when checking for latest version it will include prereleases</param>
+        /// <returns>
+        /// <see langword="true"/> if is loaded, otherwise <see langword="false"/>
+        /// </returns>
+        public bool Internal_IsLoaded(string name, bool advancedCheck, string version = "", bool includePreRelease = false)
+        {
+            var (isLoaded, dllFile) = IsLoaded(name, advancedCheck, version, includePreRelease);
+            if (!isLoaded)
+            {
+                // Check if file exists
+
+#pragma warning disable CS0618 // Type or member is obsolete
+                var userLibs = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
+#pragma warning restore CS0618 // Type or member is obsolete
+                var libs = Directory.GetFiles(userLibs, "*.dll");
+                var assemblyName = GetAssemblyNameOfNuGetPackage(dllFile);
+                if (!string.IsNullOrEmpty(dllFile))
+                {
+                    var found = libs.Where(x => x.ToLower().EndsWith($"{Path.GetFileName(dllFile).ToLower()}"));
+                    if (found.Any())
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -467,7 +512,7 @@ namespace MelonAutoUpdater.Utils
         /// <param name="version">Version of the NuGet package (Optional)</param>
         /// <param name="includePreRelease">If <see langword="true"/>, when checking for latest version it will include prereleases</param>
         /// <returns></returns>
-        public string GetAssemblyNameOfNuGetPackage(string name, string version, bool includePreRelease = false)
+        public string GetAssemblyNameOfNuGetPackage(string name, string version = "", bool includePreRelease = false)
         {
             if (string.IsNullOrEmpty(version))
             {
@@ -482,10 +527,26 @@ namespace MelonAutoUpdater.Utils
                 }
             }
 
-            var package = DownloadPackage(name, version, includePreRelease: includePreRelease);
-            if (package.DLLFile != null && package.AllFiles != null)
+            var (DLLFile, AllFiles) = DownloadPackage(name, version, includePreRelease: includePreRelease);
+            if (DLLFile != null && AllFiles != null)
             {
-                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(package.DLLFile);
+                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile);
+                var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
+                return assemblyName;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets name of assembly of a NuGet package
+        /// </summary>
+        /// <param name="DLLFile">Path to the DLL file</param>
+        /// <returns></returns>
+        public string GetAssemblyNameOfNuGetPackage(string DLLFile)
+        {
+            if (DLLFile != null && Path.GetExtension(DLLFile) == ".dll")
+            {
+                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile);
                 var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
                 return assemblyName;
             }
