@@ -38,13 +38,11 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         internal static void Load()
         {
-            Core.logger.Msg("Loading saved Mime-Types");
             System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
             var stream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Embedded.mime-types.json");
             StreamReader streamReader = new StreamReader(stream);
             string text_json = streamReader.ReadToEnd();
             _db = new MimeTypeDB() { mimeTypes = JSON.Load(text_json).Make<Dictionary<string, MimeType>>() };
-            Core.logger.Msg($"Successfully loaded {_db.mimeTypes.Count} Mime-Types with {_db.mimeTypes.Where(x => x.Value.extensions != null).Count()} of them having a file extension associated!");
         }
 
         /// <summary>
