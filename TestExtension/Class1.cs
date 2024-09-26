@@ -8,7 +8,7 @@ using System.IO;
 using System.Reflection;
 using System;
 using MelonAutoUpdater.Helper;
-using MelonLoader.Pastel;
+using MelonAutoUpdater.Utils;
 
 // Determines whether or not this is a MAU Search extension, set to true if you want it to be treated like that
 [assembly: IsMAUSearchExtension(true)]
@@ -75,13 +75,13 @@ namespace TestExtension
                 }
             }
 
-            Logger.Msg($"My file name is {MelonAutoUpdater.ConsoleExtensions.Pastel(Path.GetFileName(Assembly.GetExecutingAssembly().Location), Theme.Instance.FileNameColor)}");
+            Logger.Msg($"My file name is {MelonAutoUpdater.Utils.ConsoleExtensions.Pastel(Path.GetFileName(Assembly.GetExecutingAssembly().Location), Theme.Instance.FileNameColor)}");
             // ^^ The example above uses two things
             // 1. Pastel method, which is available only since MelonLoader v0.6.0, but is in MAU regardless of ML version. The method adds ANSI colors to text
             // 2. Theme object, which holds data regarding used theme. Themes in MAU let you customize colors of things like the Dividing line, File name etc.
             // U can get the data using Theme.Instance, the colors are in HEX
 
-            Logger.Msg(MelonAutoUpdater.ConsoleExtensions.PastelBg("My background is read!", Color.Red));
+            Logger.Msg(MelonAutoUpdater.Utils.ConsoleExtensions.PastelBg("My background is read!", Color.Red));
             // Sets the text background to red using ANSI
 
             Logger.Msg($"Current Unix timestamp in seconds is {DateTimeOffset.Now.ToUnixTimeSeconds()}");
@@ -93,14 +93,14 @@ namespace TestExtension
         }
 
         // Triggered when plugin is performing a search with your extension
-        public override Task<ModData> Search(string url, SemVersion latestVersion)
+        public override Task<MelonData> Search(string url, SemVersion latestVersion)
         {
             Logger.Msg(Color.Red, "I don't like you >:(");
             return Empty(); // Returns a task with an empty ModData object, use this instead of null
         }
 
         // Triggered when plugin is performing a brute check with your extension
-        public override Task<ModData> BruteCheck(string name, string author, SemVersion currentVersion)
+        public override Task<MelonData> BruteCheck(string name, string author, SemVersion currentVersion)
         {
             Logger.Msg(Color.Red, "I don't really know what you're talking about");
             return Empty();
