@@ -7,16 +7,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Reference Include="MelonLoader">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
-		</Reference>
-		<Reference Include="Tomlet">
-			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
-		</Reference>
-		<Reference Include="Mono.Cecil">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\Mono.Cecil.dll</HintPath>
-		</Reference>		
-
+		<PackageReference Include="Mono.Cecil" Version="0.10.4" />
+		<PackageReference Include="LavaGang.MelonLoader" Version="0.6.5" />
+		<PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
