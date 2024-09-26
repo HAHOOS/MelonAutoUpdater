@@ -117,19 +117,11 @@ namespace MelonAutoUpdater.Search
         /// <typeparam name="T">Type to return</typeparam>
         /// <param name="entry">The entry to get value from</param>
         /// <returns>Value with provided type</returns>
-        public T GetEntryValue<T>(MelonPreferences_Entry entry)
+        public static T GetEntryValue<T>(MelonPreferences_Entry entry)
         {
-            if (entry != null && entry.BoxedValue != null)
+            if (entry != null)
             {
-                try
-                {
-                    return (T)entry.BoxedValue;
-                }
-                catch (InvalidCastException)
-                {
-                    Logger.Error($"Preference '{entry.DisplayName}' is of incorrect type");
-                    return default;
-                }
+                return MelonPreferences.GetEntryValue<T>(entry.Category.Identifier, entry.Identifier);
             }
             return default;
         }
