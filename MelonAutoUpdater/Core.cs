@@ -217,7 +217,7 @@ namespace MelonAutoUpdater
         /// Unzip a file from <see cref="Stream"/><br/>
         /// </summary>
         /// <param name="zipStream"><see cref="Stream"/> of the ZIP File</param>
-        /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip</param>
+        /// <param name="outFolder">Path to folder which will have the content of the zip</param>
         /// <returns>A <see cref="Task"/> that returns true if completed successfully</returns>
         internal static bool UnzipFromStream(Stream zipStream, string outFolder)
         {
@@ -315,23 +315,23 @@ namespace MelonAutoUpdater
             {
                 if (CanSearch(ext, melonConfig))
                 {
-                    LoggerInstance.Msg($"Checking {ext.Name.Pastel(ext.NameColor)}");
+                    LoggerInstance._MsgPastel($"Checking {ext.Name.Pastel(ext.NameColor)}");
                     ext.Setup();
                     var result = ext.Search(downloadLink, currentVersion);
                     result.Wait();
                     if (result == null || result.Result == null)
                     {
-                        LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                        LoggerInstance._MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                     }
                     else
                     {
-                        LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                        LoggerInstance._MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
                         return result;
                     }
                 }
                 else
                 {
-                    LoggerInstance.Msg($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured in the Melon to not be used");
+                    LoggerInstance._MsgPastel($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured in the Melon to not be used");
                 }
             }
             TaskCompletionSource<MelonData> res = new TaskCompletionSource<MelonData>();
@@ -361,28 +361,28 @@ namespace MelonAutoUpdater
                 {
                     if (CanSearch(ext, melonConfig))
                     {
-                        LoggerInstance.Msg($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
+                        LoggerInstance._MsgPastel($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
                         var task = ext.BruteCheck(name, author, currentVersion);
                         task.Wait();
                         result = task.Result;
                         if (result == null || result.LatestVersion == null)
                         {
-                            LoggerInstance.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                            LoggerInstance._MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                         }
                         else
                         {
-                            LoggerInstance.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                            LoggerInstance._MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
                             return Task.Factory.StartNew(() => result);
                         }
                     }
                     else
                     {
-                        LoggerInstance.Msg($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured in the Melon to not be used");
+                        LoggerInstance._MsgPastel($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured in the Melon to not be used");
                     }
                 }
                 else
                 {
-                    LoggerInstance.Msg($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
+                    LoggerInstance._MsgPastel($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
                 }
             }
 
@@ -444,12 +444,13 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Move all files from one directory to another
         /// </summary>
-        /// <param name="path">A <see cref="Path"/> to directory to copy from</param>
-        /// <param name="directory">A <see cref="Path"/> to directory to copy to</param>
+        /// <param name="path">A path to directory to copy from</param>
+        /// <param name="directory">A path to directory to copy to</param>
         /// <param name="mainDirectoryName">Only used in prefix, just set <see cref="string.Empty"/></param>
         /// <param name="latestVersion">The latest version of the mod the files are from</param>
+        /// <param name="config">Config of the Melon</param>
         /// <returns>Info about mod/plugin install (times when it succeeded, times when it failed, and if it threw an error)</returns>
-        internal (int success, int failed, bool threwError) MoveAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion)
+        internal (int success, int failed, bool threwError) MoveAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion, MelonConfig config)
         {
             int success = 0;
             int failed = 0;
@@ -457,7 +458,12 @@ namespace MelonAutoUpdater
             string prefix = (string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{GetDirName(directory)}" : GetDirName(directory)).Pastel(Color.Cyan);
             foreach (string file in Directory.GetFiles(path))
             {
-                LoggerInstance.Msg($"[{prefix}] {Path.GetFileName(file)} found, copying file to folder");
+                if (!config.CanInclude(file))
+                {
+                    LoggerInstance._MsgPastel($"[{prefix}] {Path.GetFileName(file)} will not be loaded due to the Melon being configured this way");
+                    continue;
+                }
+                LoggerInstance._MsgPastel($"[{prefix}] {Path.GetFileName(file)} found, copying file to folder");
                 try
                 {
                     string _path = Path.Combine(directory, Path.GetFileName(file));
@@ -472,7 +478,7 @@ namespace MelonAutoUpdater
                     {
                         if (!File.Exists(_path)) File.Move(file, _path);
                         else File.Replace(file, _path, Path.Combine(Files.BackupFolder, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
-                        LoggerInstance.Msg($"[{prefix}] Successfully copied {Path.GetFileName(file)}");
+                        LoggerInstance._MsgPastel($"[{prefix}] Successfully copied {Path.GetFileName(file)}");
                     }
                 }
                 catch (Exception ex)
@@ -482,12 +488,17 @@ namespace MelonAutoUpdater
             }
             foreach (string dir in Directory.GetDirectories(path))
             {
+                if (!config.CanInclude(dir))
+                {
+                    LoggerInstance.Msg($"[{prefix}] {GetDirName(dir)} will not be loaded due to the Melon being configured this way");
+                    continue;
+                }
                 LoggerInstance.Msg($"[{prefix}] Found folder {GetDirName(dir)}, going through files");
                 try
                 {
                     string _path = Path.Combine(directory, GetDirName(dir));
                     if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
-                    var res = MoveAllFiles(dir, _path, prefix, latestVersion);
+                    var res = MoveAllFiles(dir, _path, prefix, latestVersion, config);
                     if (res.threwError) threwError = true;
                     success += res.success;
                     failed += res.failed;
@@ -635,10 +646,10 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Installs mod/plugin from path
+        /// Installs melon from path
         /// </summary>
-        /// <param name="path"><see cref="Path"/> of mod/plugin</param>
-        /// <param name="latestVersion">Latest version of mod/plugin, used to modify <see cref="MelonInfoAttribute"/> in case the version is not correct</param>
+        /// <param name="path">Path of melon</param>
+        /// <param name="latestVersion">Latest version of melon, used to modify <see cref="MelonInfoAttribute"/> in case the version is not correct</param>
         /// <returns>A <see langword="Tuple"/>, success and threwError, self explanatory</returns>
         internal (bool success, bool threwError) InstallPackage(string path, SemVersion latestVersion)
         {
@@ -651,7 +662,7 @@ namespace MelonAutoUpdater
             {
                 try
                 {
-                    LoggerInstance.Msg("Installing mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
+                    LoggerInstance._MsgPastel("Installing mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
                     if (!CheckCompability(_assembly)) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
 #pragma warning disable CS0618 // Type or member is obsolete
                     string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(path));
@@ -692,7 +703,7 @@ namespace MelonAutoUpdater
                     fileStream.Flush();
                     fileStream.Dispose();
                     _assembly.Dispose();
-                    LoggerInstance.Msg("Successfully installed mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
+                    LoggerInstance._MsgPastel("Successfully installed mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
                 }
                 catch (Exception ex)
                 {
@@ -705,7 +716,7 @@ namespace MelonAutoUpdater
             {
                 try
                 {
-                    LoggerInstance.Msg("Installing plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
+                    LoggerInstance._MsgPastel("Installing plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
                     if (!CheckCompability(_assembly)) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
 #pragma warning disable CS0618 // Type or member is obsolete
                     string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
@@ -749,7 +760,7 @@ namespace MelonAutoUpdater
 
                     //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
                     LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
-                    LoggerInstance.Msg("Successfully installed plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
+                    LoggerInstance._MsgPastel("Successfully installed plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
                     success = true;
                 }
                 catch (Exception ex)
@@ -769,7 +780,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Check directory for mods and plugins that can be updated
         /// </summary>
-        /// <param name="directory"><see cref="Path"/> to the directory</param>
+        /// <param name="directory">Path to the directory</param>
         /// <param name="automatic">If <see langword="true"/>, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
         internal void CheckDirectory(string directory, bool automatic = true)
         {
@@ -794,7 +805,7 @@ namespace MelonAutoUpdater
                 }
             });
             files.RemoveAll(x => fileNameIgnore.Contains(x));
-            LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
+            LoggerInstance._MsgPastel("------------------------------".Pastel(theme.LineColor));
             foreach (string path in files)
             {
                 string fileName = Path.GetFileName(path);
@@ -809,8 +820,8 @@ namespace MelonAutoUpdater
                 var melonAssemblyInfo = GetMelonInfo(mainAssembly);
                 if (_ignore)
                 {
-                    LoggerInstance.Msg($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
-                    LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
+                    LoggerInstance._MsgPastel($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
+                    LoggerInstance._MsgPastel("------------------------------".Pastel(theme.LineColor));
                     continue;
                 }
                 FileType fileType = GetFileType(melonAssemblyInfo);
@@ -827,7 +838,7 @@ namespace MelonAutoUpdater
                         {
                             if (GetEntryValue<bool>(Entry_bruteCheck))
                             {
-                                LoggerInstance.Msg("Running " + "brute check..".Pastel(Color.Red));
+                                LoggerInstance._MsgPastel("Running " + "brute check..".Pastel(Color.Red));
                                 data = GetModDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author, currentVersion, config);
                                 data.Wait();
                             }
@@ -840,7 +851,7 @@ namespace MelonAutoUpdater
                                 {
                                     if (automatic)
                                     {
-                                        LoggerInstance.Msg($"A new version " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ", updating");
+                                        LoggerInstance._MsgPastel($"A new version " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ", updating");
                                         LoggerInstance.Msg("Downloading file(s)");
                                         int success = 0;
                                         int failed = 0;
@@ -993,7 +1004,7 @@ namespace MelonAutoUpdater
                                                                 if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
                                                                 {
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                    var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.Result.LatestVersion);
+                                                                    var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.Result.LatestVersion, config);
 #pragma warning restore CS0618 // Type or member is obsolete
                                                                     checkedDirs++;
                                                                     success += res1.success;
@@ -1005,7 +1016,7 @@ namespace MelonAutoUpdater
                                                             {
                                                                 LoggerInstance.Msg($"Found {dirName}, installing all content from it...");
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                var res1 = MoveAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.Result.LatestVersion);
+                                                                var res1 = MoveAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.Result.LatestVersion, config);
                                                                 success += res1.success;
                                                                 failed += res1.failed;
                                                                 if (res1.threwError) threwError = true;
@@ -1045,7 +1056,7 @@ namespace MelonAutoUpdater
                                                 LoggerInstance.Error("Downloaded file is empty, unable to update melon");
                                             }
                                         }
-                                        LoggerInstance.Msg(
+                                        LoggerInstance._MsgPastel(
                                             threwError
                                                 ? $"Failed to update {assemblyName}".Pastel(Color.Red)
                                                 : success + failed > 0
@@ -1061,18 +1072,18 @@ namespace MelonAutoUpdater
                                     }
                                     else
                                     {
-                                        LoggerInstance.Msg($"A new version " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ". We recommend that you update, go to this site to download: " + melonAssemblyInfo.DownloadLink);
+                                        LoggerInstance._MsgPastel($"A new version " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ". We recommend that you update, go to this site to download: " + melonAssemblyInfo.DownloadLink);
                                     }
                                 }
                                 else
                                 {
                                     if (data.Result.LatestVersion == currentVersion)
                                     {
-                                        LoggerInstance.Msg("Version is up-to-date!".Pastel(theme.UpToDateVersionColor));
+                                        LoggerInstance._MsgPastel("Version is up-to-date!".Pastel(theme.UpToDateVersionColor));
                                     }
                                     else if (data.Result.LatestVersion < currentVersion)
                                     {
-                                        LoggerInstance.Msg("Current version is newer than in the API".Pastel(theme.UpToDateVersionColor));
+                                        LoggerInstance._MsgPastel("Current version is newer than in the API".Pastel(theme.UpToDateVersionColor));
                                     }
                                 }
                             }
@@ -1083,7 +1094,7 @@ namespace MelonAutoUpdater
                 {
                     LoggerInstance.Warning($"{fileName} does not seem to be a Melon");
                 }
-                LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
+                LoggerInstance._MsgPastel("------------------------------".Pastel(theme.LineColor));
             }
             LoggerInstance.Msg($"Results ({result.updates.Count} updates):");
             if (result.updates.Count > 0)
@@ -1094,24 +1105,24 @@ namespace MelonAutoUpdater
                     {
                         if (success + failed > 0)
                         {
-                            LoggerInstance.Msg($"[V] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.LawnGreen));
+                            LoggerInstance._MsgPastel($"[V] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.LawnGreen));
                         }
                         else
                         {
-                            LoggerInstance.Msg($"[?] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Yellow));
+                            LoggerInstance._MsgPastel($"[?] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Yellow));
                         }
                     }
                     else
                     {
-                        LoggerInstance.Msg($"[X] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Red));
+                        LoggerInstance._MsgPastel($"[X] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Red));
                     }
                 }
             }
             else
             {
-                LoggerInstance.Msg("All melons are up to date!".Pastel(theme.UpToDateVersionColor));
+                LoggerInstance._MsgPastel("All melons are up to date!".Pastel(theme.UpToDateVersionColor));
             }
-            LoggerInstance.Msg("------------------------------".Pastel(theme.LineColor));
+            LoggerInstance._MsgPastel("------------------------------".Pastel(theme.LineColor));
         }
 
         // Note to self: Don't use async
@@ -1144,7 +1155,7 @@ namespace MelonAutoUpdater
                 string msg_nopastel = $"[NuGet] {args.Message}";
                 if (args.Severity == NuGet.LogSeverity.MESSAGE)
                 {
-                    LoggerInstance.Msg(msg);
+                    LoggerInstance._MsgPastel(msg);
                 }
                 else if (args.Severity == NuGet.LogSeverity.WARNING)
                 {
@@ -1164,14 +1175,14 @@ namespace MelonAutoUpdater
                     bool isLoaded = nuget.Internal_IsLoaded(dependency.Key, true, dependency.Value, true);
                     if (!isLoaded)
                     {
-                        LoggerInstance.Msg($"{dependency.Key.Pastel(theme.FileNameColor)} is not loaded!");
+                        LoggerInstance._MsgPastel($"{dependency.Key.Pastel(theme.FileNameColor)} is not loaded!");
                         // Install package
 
                         nuget.InstallPackage(dependency.Key, dependency.Value);
                     }
                     else
                     {
-                        LoggerInstance.Msg($"{dependency.Key.Pastel(theme.FileNameColor)} is loaded!");
+                        LoggerInstance._MsgPastel($"{dependency.Key.Pastel(theme.FileNameColor)} is loaded!");
                     }
                 }
             }
@@ -1213,7 +1224,7 @@ namespace MelonAutoUpdater
             List<Assembly> assemblies = new List<Assembly> { System.Reflection.Assembly.GetExecutingAssembly() };
             foreach (FileInfo file in extFiles)
             {
-                LoggerInstance.Msg($"Checking {file.Name.Pastel(theme.FileNameColor)}");
+                LoggerInstance._MsgPastel($"Checking {file.Name.Pastel(theme.FileNameColor)}");
                 AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(file.FullName);
                 bool isExtension = false;
                 foreach (var attr in assembly.CustomAttributes)
@@ -1230,14 +1241,14 @@ namespace MelonAutoUpdater
 
                 if (isExtension)
                 {
-                    LoggerInstance.Msg($"{file.Name.Pastel(theme.FileNameColor)} is a MAU Search Extension");
+                    LoggerInstance._MsgPastel($"{file.Name.Pastel(theme.FileNameColor)} is a MAU Search Extension");
                     System.Reflection.Assembly assembly1 = System.Reflection.Assembly.LoadFile(file.FullName);
                     assemblies.Add(assembly1);
                     LoggerInstance.Msg("Loading dependencies");
                 }
                 else
                 {
-                    LoggerInstance.Msg($"{file.Name.Pastel(theme.FileNameColor)} is not a MAU Search Extension, continuing without loading");
+                    LoggerInstance._MsgPastel($"{file.Name.Pastel(theme.FileNameColor)} is not a MAU Search Extension, continuing without loading");
                 }
             }
 
