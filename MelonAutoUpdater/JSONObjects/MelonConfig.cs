@@ -1,4 +1,6 @@
 ﻿using MelonLoader.TinyJSON;
+using System.IO;
+using System.Linq;
 
 namespace MelonAutoUpdater.JSONObjects
 {
@@ -12,14 +14,14 @@ namespace MelonAutoUpdater.JSONObjects
         /// </summary>
         [Include]
         [DecodeAlias("disabled", "Disable", "Disabled")]
-        public bool disable { get; internal set; }
+        public bool disable { get; set; }
 
         /// <summary>
         /// List of file names that are allowed to be downloaded and installed through e.g. Github
         /// </summary>
         [Include]
         [DecodeAlias("AllowedFileDownloads")]
-        public string[] allowedFileDownloads { get; internal set; }
+        public string[] allowedFileDownloads { get; set; }
 
         /// <summary>
         /// List of files/directories that should not be installed/copied over. Below are examples for format
@@ -30,31 +32,99 @@ namespace MelonAutoUpdater.JSONObjects
         /// </summary>
         [Include]
         [DecodeAlias("DontInclude", "doNotInclude", "DoNotInclude")]
-        public string[] dontInclude { get; internal set; }
+        public string[] dontInclude { get; set; }
 
-        /// <inheritdoc cref="MelonAutoUpdater.JSONObjects.Platform" />
+        /// <inheritdoc cref="JSONObjects.MelonConfig.Platform" />
         [Include]
         [DecodeAlias("Platform", "extension", "Extension")]
-        public Platform platform { get; internal set; }
-    }
-
-    /// <summary>
-    /// Config regarding allowed/disallowed platform for class <see cref="MelonConfig"/>
-    /// </summary>
-    public class Platform
-    {
-        /// <summary>
-        /// If true, list will be treated as whitelist, otherwise list will be treated as blacklist
-        /// </summary>
-        [Include]
-        [DecodeAlias("Whitelist")]
-        public bool whitelist { get; internal set; }
+        public Platform platform { get; set; }
 
         /// <summary>
-        /// List of all platforms that are whitelisted/blacklisted, depending on the <see cref="whitelist"/> property
+        /// Checks if file or directory can be included
         /// </summary>
-        [Include]
-        [DecodeAlias("List", "Platforms")]
-        public string[] list { get; internal set; }
+        /// <param name="path">Path to the file directory</param>
+        /// <returns>If <see langword="true"/>, file/directory can be included</returns>
+        public bool CanInclude(string path)
+        {
+            foreach (string format in dontInclude)
+            {
+                var file = new FileInfo(path);
+                var directory = new DirectoryInfo(path);
+                if (Path.HasExtension(path) && file.Exists)
+                {
+                    string fileName = file.Name;
+                    string[] args = format.Split('/');
+                    if (args.Length > 1)
+                    {
+                        args[args.Length] = null;
+                        DirectoryInfo _rootPath = file.Directory;
+                        bool _break = false;
+                        foreach (var parent in args.Reverse())
+                        {
+                            if (_rootPath.Name != parent)
+                            {
+                                _break = true;
+                                break;
+                            }
+                            else
+                            {
+                                _rootPath = _rootPath.Parent;
+                            }
+                        }
+                        if (!_break) return false;
+                    }
+                    else
+                    {
+                        if (fileName == format) return false;
+                    }
+                }
+                else if (directory.Exists)
+                {
+                    string[] args = format.Split('/');
+                    if (args.Length > 1)
+                    {
+                        args[args.Length] = null;
+                        DirectoryInfo _rootPath = directory.Parent;
+                        bool _break = false;
+                        foreach (var parent in args.Reverse())
+                        {
+                            if (_rootPath.Name != parent)
+                            {
+                                _break = true;
+                                break;
+                            }
+                            else
+                            {
+                                _rootPath = _rootPath.Parent;
+                            }
+                        }
+                        if (!_break) return false;
+                    }
+                    else
+                    if (directory.Name == format) return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Config regarding allowed/disallowed platform for class <see cref="MelonConfig"/>
+        /// </summary>
+        public class Platform
+        {
+            /// <summary>
+            /// If true, list will be treated as whitelist, otherwise list will be treated as blacklist
+            /// </summary>
+            [Include]
+            [DecodeAlias("Whitelist")]
+            public bool whitelist { get; set; }
+
+            /// <summary>
+            /// List of all platforms that are whitelisted/blacklisted, depending on the <see cref="whitelist"/> property
+            /// </summary>
+            [Include]
+            [DecodeAlias("List", "Platforms")]
+            public string[] list { get; set; }
+        }
     }
 }
