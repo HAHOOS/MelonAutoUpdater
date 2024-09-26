@@ -7,7 +7,6 @@ using Mono.Cecil;
 using Semver;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -78,7 +77,7 @@ namespace MelonAutoUpdater.Utils
         /// Unzip a file from <see cref="Stream"/><br/>
         /// </summary>
         /// <param name="zipStream"><see cref="Stream"/> of the ZIP File</param>
-        /// <param name="outFolder"><see cref="Path"/> to folder which will have the content of the zip</param>
+        /// <param name="outFolder">Path to folder which will have the content of the zip</param>
         /// <param name="dirName">Name of directory, will be removed later</param>
         /// <param name="isRedirect">If <see langword="true"/>, this will be treated as a redirect to the Documents folder and if the path is exceeded, an error will be thrown</param>
         /// <exception cref="PathTooLongException">A path was too long, redirect was already done</exception>
@@ -552,7 +551,7 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         /// <param name="DLLFile">Path to the DLL file</param>
         /// <returns></returns>
-        public string GetAssemblyNameOfNuGetPackage(string DLLFile)
+        public static string GetAssemblyNameOfNuGetPackage(string DLLFile)
         {
             if (DLLFile != null && Path.GetExtension(DLLFile) == ".dll")
             {
