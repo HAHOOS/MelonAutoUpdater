@@ -490,10 +490,10 @@ namespace MelonAutoUpdater
             {
                 if (!config.CanInclude(dir))
                 {
-                    LoggerInstance.Msg($"[{prefix}] {GetDirName(dir)} will not be loaded due to the Melon being configured this way");
+                    LoggerInstance._MsgPastel($"[{prefix}] {GetDirName(dir)} will not be loaded due to the Melon being configured this way");
                     continue;
                 }
-                LoggerInstance.Msg($"[{prefix}] Found folder {GetDirName(dir)}, going through files");
+                LoggerInstance._MsgPastel($"[{prefix}] Found folder {GetDirName(dir)}, going through files");
                 try
                 {
                     string _path = Path.Combine(directory, GetDirName(dir));
@@ -809,7 +809,7 @@ namespace MelonAutoUpdater
             foreach (string path in files)
             {
                 string fileName = Path.GetFileName(path);
-                LoggerInstance.Msg($"File: {fileName.Pastel(theme.FileNameColor)}");
+                LoggerInstance._MsgPastel($"File: {fileName.Pastel(theme.FileNameColor)}");
                 AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
                 var config = GetMelonConfig(mainAssembly);
                 if (config != null)

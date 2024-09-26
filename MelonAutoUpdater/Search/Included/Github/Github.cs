@@ -114,7 +114,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                     if (body.Result != null)
                     {
                         var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
-                        Logger.Msg($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
+                        Logger.MsgPastel($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
 
 Go to {data["verification_uri"].ToString().Pastel(Color.Cyan)} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
 You have {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes to enter the code before it expires!
@@ -170,7 +170,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                                     entry_accessToken.BoxedValue = _data["access_token"].ToString();
                                                     AccessToken = _data["access_token"].ToString();
                                                     category.SaveToFile();
-                                                    Logger.Msg("Successfully retrieved access token".Pastel(Color.LawnGreen));
+                                                    Logger.MsgPastel("Successfully retrieved access token".Pastel(Color.LawnGreen));
 
                                                     client.Dispose();
                                                     res.Dispose();
