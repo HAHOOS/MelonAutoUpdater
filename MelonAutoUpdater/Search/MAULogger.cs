@@ -2,6 +2,7 @@ using MelonLoader;
 using System.Drawing;
 using System;
 using MelonAutoUpdater.Utils;
+using MelonAutoUpdater.Helper;
 
 namespace MelonAutoUpdater.Search
 {
@@ -64,6 +65,47 @@ namespace MelonAutoUpdater.Search
         public void Msg(Color txt_color, string txt, params object[] args) => InternalMsg(DefaultMAUSEColor, txt_color, Name, string.Format(txt, args));
 
         /// <summary>
+        /// Send a message to console
+        /// </summary>
+        /// <param name="obj">Object that will be converted to string to be sent</param>
+        public void MsgPastel(object obj) => InternalMsgPastel(DefaultMAUSEColor, DefaultTextColor, Name, obj.ToString());
+
+        /// <summary>
+        /// Send a message to console
+        /// </summary>
+        /// <param name="txt">The text that will be sent</param>
+        public void MsgPastel(string txt) => InternalMsgPastel(DefaultMAUSEColor, DefaultTextColor, Name, txt);
+
+        /// <summary>
+        /// Send a message to console
+        /// </summary>
+        /// <param name="txt">The text that will be sent</param>
+        /// <param name="args">The arguments in text</param>
+        public void MsgPastel(string txt, params object[] args) => InternalMsgPastel(DefaultMAUSEColor, DefaultTextColor, Name, string.Format(txt, args));
+
+        /// <summary>
+        /// Send a message to console
+        /// </summary>
+        /// <param name="txt_color">Color of the text</param>
+        /// <param name="obj">Object that will be converted to string to be sent</param>
+        public void MsgPastel(Color txt_color, object obj) => InternalMsgPastel(DefaultMAUSEColor, txt_color, Name, obj.ToString());
+
+        /// <summary>
+        /// Send a message to console
+        /// </summary>
+        /// <param name="txt_color">Color of the text</param>
+        /// <param name="txt">The text that will be sent</param>
+        public void MsgPastel(Color txt_color, string txt) => InternalMsgPastel(DefaultMAUSEColor, txt_color, Name, txt);
+
+        /// <summary>
+        /// Send a message to console
+        /// </summary>
+        /// <param name="txt_color">Color of the text</param>
+        /// <param name="txt">The text that will be sent</param>
+        /// <param name="args">The arguments in text</param>
+        public void MsgPastel(Color txt_color, string txt, params object[] args) => InternalMsgPastel(DefaultMAUSEColor, txt_color, Name, string.Format(txt, args));
+
+        /// <summary>
         /// Send a warning to console
         /// </summary>
         /// <param name="obj">Object that will be converted to string to be sent</param>
@@ -118,6 +160,12 @@ namespace MelonAutoUpdater.Search
         {
             string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}]";
             logger.Msg($"{extString} {text.Pastel(textColor)}");
+        }
+
+        internal void InternalMsgPastel(Color extColor, Color textColor, string ext, string text)
+        {
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}]";
+            logger._MsgPastel($"{extString} {text.Pastel(textColor)}");
         }
 
         internal void InternalWarning(string ext, string text)
