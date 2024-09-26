@@ -6,37 +6,24 @@
 	<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
   </PropertyGroup>
 
-	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35FrameworkCondition">
-		<Reference Include="System.Threading">
-			<HintPath>$(GameDirectory)\MelonLoader\Managed\System.Threading.dll</HintPath>
-		</Reference>
-		<Reference Include="Rackspace.Threading">
-			<HintPath>$(GameDirectory)\MelonLoader\Managed\Rackspace.Threading.dll</HintPath>
-		</Reference>
-		<Reference Include="Net35.Http">
-			<HintPath>$(GameDirectory)\MelonLoader\Managed\Net35.Http.dll</HintPath>
-		</Reference>
-		<Reference Include="MelonLoader">
-			<HintPath>$(GameDirectory)\MelonLoader\net35\MelonLoader.dll</HintPath>
-		</Reference>
-		<Reference Include="MelonAutoUpdater">
-			<HintPath>$(GameDirectory)\Plugins\net35\MelonAutoUpdater.dll</HintPath>
-		</Reference>
-	</ItemGroup>
+  <ItemGroup Label="NoSpecificNETVersion_Dependencies">
+    <PackageReference Include="LavaGang.MelonLoader" Version="0.6.5" />
+  </ItemGroup>
+	
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35_Dependencies">
+	<PackageReference Include="Net35.Http" Version="1.0.0" />
+	<PackageReference Include="Rackspace.Threading" Version="2.0.0-alpha001" />
+	<PackageReference Include="TaskParallelLibrary" Version="1.0.2856" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Reference Include="MelonAutoUpdater" Condition=" '$(TargetFramework)' == 'net6' ">
+      <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins\MelonAutoUpdater.dll</HintPath>
+    </Reference>
+	  <Reference Include="MelonAutoUpdater" Condition=" '$(TargetFramework)' == 'net35' ">
+		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins\net35\MelonAutoUpdater.dll</HintPath>
+	  </Reference>
+  </ItemGroup>
 
-	<ItemGroup Condition=" '$(TargetFramework)' == 'net6' " Label="NET6FrameworkCondition">
-		<Reference Include="MelonLoader">
-			<HintPath>$(GameDirectory)\MelonLoader\net6\MelonLoader.dll</HintPath>
-		</Reference>
-		<Reference Include="MelonAutoUpdater">
-			<HintPath>$(GameDirectory)\Plugins\MelonAutoUpdater.dll</HintPath>
-		</Reference>
-	</ItemGroup>
-
-	<ItemGroup Label="NoFrameworkCondition">
-		<Reference Include="Tomlet">
-			<HintPath>$(GameDirectory)\MelonLoader\Dependencies\SupportModules\Tomlet.dll</HintPath>
-		</Reference>
-	</ItemGroup>
 
 </Project>
