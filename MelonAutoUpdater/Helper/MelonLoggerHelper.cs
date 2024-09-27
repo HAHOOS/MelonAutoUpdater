@@ -1,11 +1,8 @@
-﻿using MelonLoader;
+﻿using MelonAutoUpdater.Utils;
+using MelonLoader;
 using Semver;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MelonAutoUpdater.Helper
 {
@@ -23,13 +20,14 @@ namespace MelonAutoUpdater.Helper
             }
             else
             {
-                logger.MsgPastel(textColor, text);
+                logger.MsgPastel(text.Pastel(textColor));
             }
         }
 
         private static void Internal_MsgPastel(MelonLogger.Instance logger, Color textColor, string text)
         {
-            if (SemVersion.Parse(MelonLoader.BuildInfo.Version) >= new SemVersion(0, 6, 5))
+            Version MelonLoaderVersion = Core.MLAssembly.GetName().Version;
+            if (new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build) >= new SemVersion(0, 6, 5))
             {
                 UseMLMsgPastel(logger, textColor, text);
             }
@@ -41,7 +39,7 @@ namespace MelonAutoUpdater.Helper
                 }
                 else
                 {
-                    logger.Msg(textColor, text);
+                    logger.Msg(text.Pastel(textColor));
                 }
             }
         }
