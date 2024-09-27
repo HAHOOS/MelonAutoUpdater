@@ -8,6 +8,7 @@ using System.Drawing;
 using MelonLoader;
 using System.IO;
 using MelonAutoUpdater.Utils;
+using MelonAutoUpdater.Helper;
 
 namespace MelonAutoUpdater.Search
 {
@@ -182,17 +183,17 @@ namespace MelonAutoUpdater.Search
                     {
                         if (found.First().Value != null && Core.GetEntryValue<bool>(found.First().Value))
                         {
-                            Core.logger.Msg($"Loaded Included MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(Core.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                            Core.logger._MsgPastel($"Loaded Included MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(Core.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
                         }
                         else
                         {
-                            Core.logger.Msg($"Included MAU Search Extension {obj.Name.Pastel(obj.NameColor)} is disabled");
+                            Core.logger._MsgPastel($"Included MAU Search Extension {obj.Name.Pastel(obj.NameColor)} is disabled");
                             load = false;
                         }
                     }
                     else
                     {
-                        Core.logger.Msg($"Loaded MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(Core.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                        Core.logger._MsgPastel($"Loaded MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(Core.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
                     }
                     if (load)
                     {
