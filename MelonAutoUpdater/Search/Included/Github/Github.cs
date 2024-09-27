@@ -18,7 +18,7 @@ namespace MelonAutoUpdater.Search.Included.Github
     {
         public override string Name => "Github";
 
-        public override SemVersion Version => new SemVersion(1, 0, 0);
+        public override SemVersion Version => new SemVersion(1, 0, 1);
 
         public override string Author => "HAHOOS";
 
@@ -256,7 +256,10 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
 
                         foreach (var file in data["assets"] as ProxyArray)
                         {
-                            downloadURLs.Add(new FileData((string)file["browser_download_url"], Path.GetFileNameWithoutExtension((string)file["browser_download_url"]), (string)file["content_type"]));
+                            downloadURLs.Add
+                                (new FileData((string)file["browser_download_url"],
+                                Path.GetFileNameWithoutExtension((string)file["browser_download_url"]),
+                                (string)file["content_type"]));
                         }
 
                         client.Dispose();
@@ -272,7 +275,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                             Logger.Error($"Failed to parse version");
                             return Empty();
                         }
-                        return Task.Factory.StartNew(() => new MelonData(semver, downloadURLs));
+                        return Task.Factory.StartNew(() => new MelonData(semver, downloadURLs, new Uri($"https://github.com/{author}/{repo}")));
                     }
                     else
                     {

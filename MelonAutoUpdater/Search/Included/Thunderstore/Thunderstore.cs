@@ -3,6 +3,7 @@ using MelonLoader.TinyJSON;
 using Semver;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -13,7 +14,7 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
     {
         public override string Name => "Thunderstore";
 
-        public override SemVersion Version => new SemVersion(1, 0, 0);
+        public override SemVersion Version => new SemVersion(1, 0, 1);
 
         public override string Author => "HAHOOS";
 
@@ -62,10 +63,15 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
                             return Empty();
                         }
 
+                        var communityListings = _data["community_listings"] as ProxyArray;
+                        var first = communityListings.First();
+                        var community = first["community"];
+
                         return Task.Factory.StartNew(() => new MelonData()
                         {
                             LatestVersion = semver,
                             DownloadFiles = files,
+                            DownloadLink = new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}/")
                         });
                     }
                     else

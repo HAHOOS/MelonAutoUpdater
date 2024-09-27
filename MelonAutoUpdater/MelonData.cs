@@ -1,4 +1,5 @@
 ﻿using Semver;
+using System;
 using System.Collections.Generic;
 
 namespace MelonAutoUpdater
@@ -20,10 +21,28 @@ namespace MelonAutoUpdater
         public List<FileData> DownloadFiles { get; internal set; }
 
         /// <summary>
+        /// The URI to a website where you can download the melon from
+        /// </summary>
+        public Uri DownloadLink { get; internal set; }
+
+        /// <summary>
         /// Creates new instance of <see cref="MelonData" />
         /// </summary>
-        /// <param name="latestVersion">Latest version available in the API</param>
-        /// <param name="downloadFiles">List of <see cref="FileData" /></param>
+        /// <param name="latestVersion"><inheritdoc cref="LatestVersion"/></param>
+        /// <param name="downloadFiles"><inheritdoc cref="DownloadFiles"/></param>
+        /// <param name="downloadLink"><inheritdoc cref="DownloadLink"/></param>
+        public MelonData(SemVersion latestVersion, List<FileData> downloadFiles, Uri downloadLink)
+        {
+            this.LatestVersion = latestVersion;
+            this.DownloadFiles = downloadFiles;
+            this.DownloadLink = downloadLink;
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="MelonData" />
+        /// </summary>
+        /// <param name="latestVersion"><inheritdoc cref="LatestVersion"/></param>
+        /// <param name="downloadFiles"><inheritdoc cref="DownloadFiles"/></param>
         public MelonData(SemVersion latestVersion, List<FileData> downloadFiles)
         {
             this.LatestVersion = latestVersion;
@@ -33,7 +52,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Creates new instance of <see cref="MelonData" />
         /// </summary>
-        /// <param name="latestVersion">Latest version available in the API</param>
+        /// <param name="latestVersion"><inheritdoc cref="LatestVersion"/></param>
         public MelonData(SemVersion latestVersion)
         {
             this.LatestVersion = latestVersion;
