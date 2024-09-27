@@ -94,6 +94,16 @@ namespace MelonAutoUpdater
             },
         };
 
+        /// <summary>
+        /// If <see langword="true"/>, mods will only be checked the versions and not updated, even when available
+        /// </summary>
+        private bool dontUpdate = false;
+
+        /// <summary>
+        /// Assembly of MelonLoader
+        /// </summary>
+        internal static Assembly MLAssembly;
+
         #region Melon Preferences
 
         /// <summary>
@@ -115,6 +125,11 @@ namespace MelonAutoUpdater
         /// A Melon Preferences entry of a boolean value indicating whether or not it should forcefully check the API for the mod/plugins if no download link was provided with it
         /// </summary>
         internal static MelonPreferences_Entry Entry_bruteCheck { get; private set; }
+
+        /// <summary>
+        /// A Melon Preferences entry of a boolean value indicating whether or not should the melons be updated if available
+        /// </summary>
+        internal static MelonPreferences_Entry Entry_dontUpdate { get; private set; }
 
         /// <summary>
         /// Themes Category in Preferences
@@ -139,10 +154,17 @@ namespace MelonAutoUpdater
             // Main Category
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             MainCategory.SetFilePath(Path.Combine(Files.MainFolder, "config.cfg"));
+
             Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
                 description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
+
             Entry_enabled = MainCategory.CreateEntry<bool>("Enabled", true, "Enabled",
                 description: "If true, Mods & Plugins will update on every start");
+
+            Entry_dontUpdate = MainCategory.CreateEntry<bool>("DontUpdate", false, "Dont Update",
+                description: "If true, Melons will only be checked if they are outdated or not, they will not be updated automatically");
+            if (dontUpdate == false) dontUpdate = (bool)Entry_dontUpdate.BoxedValue;
+
             Entry_bruteCheck = MainCategory.CreateEntry<bool>("BruteCheck", false, "Brute Check",
                 description: "If true, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author\nWARNING: You may get rate-limited with large amounts of mods/plugins, use with caution");
 
@@ -200,6 +222,37 @@ namespace MelonAutoUpdater
         }
 
         #endregion Melon Preferences
+
+        #region Command Line Arguments
+
+        /// <summary>
+        /// If <see langword="true"/>, plugin will not continue execution
+        /// </summary>
+        private bool stopPlugin = false;
+
+        [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void HandleArguments()
+        {
+            var args = MelonLaunchOptions.ExternalArguments;
+
+            // Disable argument - melonautoupdater.disable
+            if (args.ContainsKey("melonautoupdater.disable"))
+            {
+                LoggerInstance.Msg("Disable argument found, disabling plugin..");
+                stopPlugin = true;
+            }
+
+            // Dont Update argument - melonautoupdater.dontupdate
+
+            if (args.ContainsKey("melonautoupdater.dontupdate"))
+            {
+                LoggerInstance.Msg("DontUpdate argument found, will only check versions");
+                dontUpdate = true;
+            }
+        }
+
+        #endregion Command Line Arguments
 
         /// <summary>
         /// Copied from MelonLoader v0.6.4 to make it work with older versions
@@ -792,6 +845,8 @@ namespace MelonAutoUpdater
 
             (int success, int warn, int error, List<(string name, SemVersion oldVersion, SemVersion newVersion, bool threwError, int success, int failed)> updates) result = (0, 0, 0, new List<(string name, SemVersion oldVersion, SemVersion newVersion, bool threwError, int success, int failed)>());
 
+            List<(string name, SemVersion oldVer, SemVersion newVer, Uri downloadLink)> manualUpdate = new List<(string name, SemVersion oldVer, SemVersion newVer, Uri downloadLink)>();
+
             files.ForEach(x =>
             {
                 if (ignore != null && ignore.Count > 0)
@@ -1072,7 +1127,8 @@ namespace MelonAutoUpdater
                                     }
                                     else
                                     {
-                                        LoggerInstance._MsgPastel($"A new version " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ". We recommend that you update, go to this site to download: " + melonAssemblyInfo.DownloadLink);
+                                        LoggerInstance._MsgPastel($"A new version " + $"v{data.Result.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ". We recommend that you update, go to this site to download: " + data.Result.DownloadLink);
+                                        manualUpdate.Add((assemblyName, currentVersion, data.Result.LatestVersion, data.Result.DownloadLink));
                                     }
                                 }
                                 else
@@ -1094,9 +1150,10 @@ namespace MelonAutoUpdater
                 {
                     LoggerInstance.Warning($"{fileName} does not seem to be a Melon");
                 }
+                mainAssembly.Dispose();
                 LoggerInstance._MsgPastel("------------------------------".Pastel(theme.LineColor));
             }
-            LoggerInstance.Msg($"Results ({result.updates.Count} updates):");
+            LoggerInstance.Msg($"Results " + (automatic ? $"({result.updates.Count} updates)" : $"({manualUpdate.Count} need to be updated)") + ":");
             if (result.updates.Count > 0)
             {
                 foreach (var (name, oldVersion, newVersion, threwError, success, failed) in result.updates)
@@ -1117,6 +1174,10 @@ namespace MelonAutoUpdater
                         LoggerInstance._MsgPastel($"[X] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Red));
                     }
                 }
+                foreach (var (name, oldVer, newVer, downloadLink) in manualUpdate)
+                {
+                    LoggerInstance._MsgPastel($"[!] New version available for {name}: v{oldVer} ---> v{newVer}. Go to {downloadLink.ToString().Pastel(Color.Aqua)} to download the new version");
+                }
             }
             else
             {
@@ -1129,10 +1190,23 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Runs before MelonLoader fully initializes
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public override void OnPreInitialization()
         {
+            MLAssembly = AppDomain.CurrentDomain.GetAssemblies().Where(x => x.GetName().Name == "MelonLoader").FirstOrDefault();
+            Version MelonLoaderVersion = MLAssembly.GetName().Version;
+
+            if (new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build) >= new SemVersion(0, 6, 5))
+            {
+                LoggerInstance.Msg("Checking command line arguments");
+                HandleArguments();
+            }
+            else
+            {
+                LoggerInstance.Msg($"Could not check command line arguments due to outdated MelonLoader version (Current is v{MelonLoaderVersion.Major}.{MelonLoaderVersion.Minor}.{MelonLoaderVersion.Build}, required is minimum v0.6.5)");
+            }
+
+            if (stopPlugin) return;
+
             LoggerInstance.Msg("Creating folders in UserData");
 
             Files.Setup();
