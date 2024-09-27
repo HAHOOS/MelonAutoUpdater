@@ -16,7 +16,7 @@ Currently supported links (this list will be expanded in the near future):<br/>
  - [Github](https://github.com/)
 
 Tested Games & Versions:
-- BONELAB (ML v0.6.4)
+- BONELAB (ML v0.6.4 & ML v0.6.5)
 - BONEWORKS (ML v0.5.4 & v0.5.3)
 
 
