@@ -6,14 +6,14 @@ using System.Runtime.InteropServices;
 #region Melon Attributes
 
 [assembly: MelonInfo(typeof(MelonAutoUpdater.MelonAutoUpdater), "MelonAutoUpdater", "0.3.1", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
-[assembly: MelonPriority(-100000000)]
 #pragma warning disable CS0618 // Type or member is obsolete
 // Using ConsoleColor for backwards compatibility
 [assembly: MelonColor(ConsoleColor.Green)]
 #pragma warning restore CS0618 // Type or member is obsolete
 [assembly: VerifyLoaderVersion("0.5.3", true)]
 // They are not optional, but this is to remove the warning as NuGet will install them
-[assembly: MelonOptionalDependencies("Net35.Http", "Rackspace.Threading", "System.Threading")]
+// Not in use anymore
+//[assembly: MelonOptionalDependencies("Net35.Http", "Rackspace.Threading", "System.Threading")]
 
 #endregion Melon Attributes
 
