@@ -242,10 +242,9 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Checks for internet connection
         /// </summary>
-        /// <param name="timeoutMs">Time in milliseconds after the request will be aborted if no response (Default: 5000)</param>
         /// <param name="url">URL of the website used to check for connection (Default: <c>http://www.gstatic.com/generate_204</c>)</param>
         /// <returns>If <see langword="true"/>, there's internet connection, otherwise <see langword="false"/></returns>
-        public static bool CheckForInternetConnection(int timeoutMs = 5000, string url = "http://www.gstatic.com/generate_204")
+        public static bool CheckForInternetConnection(string url = "http://www.gstatic.com/generate_204")
         {
             try
             {
