@@ -110,9 +110,11 @@ namespace MelonAutoUpdater.Search.Included.Github
                 client.Headers.Add("Accept", "application/json");
                 client.Headers.Add("User-Agent", UserAgent);
 
-                var _params = new NameValueCollection();
-                _params.Add("client_id", ClientID);
-                _params.Add("scope", scopes);
+                var _params = new NameValueCollection
+                {
+                    { "client_id", ClientID },
+                    { "scope", scopes }
+                };
 
                 byte[] response = null;
                 bool threwError = false;
@@ -164,10 +166,12 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                 {
                                     Logger.Msg("Checking if authorized");
 
-                                    var _params2 = new NameValueCollection();
-                                    _params2.Add("client_id", ClientID);
-                                    _params2.Add("device_code", data["device_code"]);
-                                    _params2.Add("grant_type", "urn:ietf:params:oauth:grant-type:device_code");
+                                    var _params2 = new NameValueCollection
+                                    {
+                                        { "client_id", ClientID },
+                                        { "device_code", data["device_code"] },
+                                        { "grant_type", "urn:ietf:params:oauth:grant-type:device_code" }
+                                    };
 
                                     byte[] res = null;
                                     bool threwError2 = false;
@@ -253,15 +257,16 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
             if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
             if (!disableGithubAPI)
             {
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+                // For some reason Visual Studio doesn't like me doing that
                 string response = null;
-                bool threwError = false;
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
                 try
                 {
                     response = client.DownloadString($"https://api.github.com/repos/{author}/{repo}/releases/latest");
                 }
                 catch (WebException e)
                 {
-                    threwError = true;
                     HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                     string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
                     if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
@@ -307,59 +312,48 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                     return null;
                 }
 
-                if (!threwError)
+                if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
+                    && client.ResponseHeaders.Contains("x-ratelimit-reset"))
                 {
-                    if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
-                        && client.ResponseHeaders.Contains("x-ratelimit-reset"))
+                    int remaining = int.Parse(client.ResponseHeaders.Get("x-ratelimit-remaining"));
+                    long reset = long.Parse(client.ResponseHeaders.Get("x-ratelimit-reset"));
+                    if (remaining <= 10)
                     {
-                        int remaining = int.Parse(client.ResponseHeaders.Get("x-ratelimit-remaining"));
-                        long reset = long.Parse(client.ResponseHeaders.Get("x-ratelimit-reset"));
-                        if (remaining <= 10)
-                        {
-                            Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
-                            githubResetDate = reset;
-                            disableGithubAPI = true;
-                        }
+                        Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
+                        githubResetDate = reset;
+                        disableGithubAPI = true;
                     }
-                    if (!string.IsNullOrEmpty(response))
+                }
+                if (!string.IsNullOrEmpty(response))
+                {
+                    var data = JSON.Load(response);
+                    string version = (string)data["tag_name"];
+                    List<FileData> downloadURLs = new List<FileData>();
+
+                    foreach (var file in data["assets"] as ProxyArray)
                     {
-                        var data = JSON.Load(response);
-                        string version = (string)data["tag_name"];
-                        List<FileData> downloadURLs = new List<FileData>();
-
-                        foreach (var file in data["assets"] as ProxyArray)
-                        {
-                            downloadURLs.Add
-                                (new FileData((string)file["browser_download_url"],
-                                Path.GetFileNameWithoutExtension((string)file["browser_download_url"]),
-                                (string)file["content_type"]));
-                        }
-
-                        client.Dispose();
-                        if (version.StartsWith("v"))
-                        {
-                            version = version.Substring(1);
-                        }
-                        bool isSemVerSuccess = SemVersion.TryParse(version, out SemVersion semver);
-                        if (!isSemVerSuccess)
-                        {
-                            Logger.Error($"Failed to parse version");
-                            return null;
-                        }
-                        return new MelonData(semver, downloadURLs, new Uri($"https://github.com/{author}/{repo}"));
+                        downloadURLs.Add
+                            (new FileData((string)file["browser_download_url"],
+                            Path.GetFileNameWithoutExtension((string)file["browser_download_url"]),
+                            (string)file["content_type"]));
                     }
-                    else
+
+                    client.Dispose();
+                    if (version.StartsWith("v"))
                     {
-                        Logger.Warning("Github API returned no body");
+                        version = version.Substring(1);
+                    }
+                    bool isSemVerSuccess = SemVersion.TryParse(version, out SemVersion semver);
+                    if (!isSemVerSuccess)
+                    {
+                        Logger.Error($"Failed to parse version");
                         return null;
                     }
+                    return new MelonData(semver, downloadURLs, new Uri($"https://github.com/{author}/{repo}"));
                 }
                 else
                 {
-                    Logger.Error("Github API returned no body, unable to fetch package information");
-
-                    client.Dispose();
-
+                    Logger.Warning("Github API returned no body");
                     return null;
                 }
             }
