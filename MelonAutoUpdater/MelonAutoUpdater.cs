@@ -16,6 +16,10 @@ using MelonAutoUpdater.Utils;
 
 #if NET35_OR_GREATER
 using System.Net;
+#elif NET6_0_OR_GREATER
+
+using System.Net.Http;
+
 #endif
 
 #region Melon Attributes
