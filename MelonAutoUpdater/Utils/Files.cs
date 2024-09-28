@@ -165,16 +165,6 @@ namespace MelonAutoUpdater.Utils
         /// <exception cref="FileNotFoundException">The origin file was not found</exception>
         public static void MoveTo(this FileInfo originFile, string desPath, bool overwrite = false)
         {
-#if NET6_0_OR_GREATER
-            if (originFile.Exists)
-            {
-                originFile.MoveTo(desPath, overwrite);
-            }
-            else
-            {
-                throw new FileNotFoundException("Could not find origin file", originFile.FullName);
-            }
-#elif NET35_OR_GREATER
             if (originFile.Exists)
             {
                 var originStream = originFile.OpenRead();
@@ -211,7 +201,6 @@ namespace MelonAutoUpdater.Utils
             {
                 throw new FileNotFoundException("Could not find the origin file!", originFile.FullName);
             }
-#endif
         }
 
         /// <summary>
@@ -224,16 +213,6 @@ namespace MelonAutoUpdater.Utils
         /// <exception cref="FileNotFoundException">The origin file was not found</exception>
         public static void MoveTo(this FileInfo originFile, FileInfo desFile, bool overwrite = false)
         {
-#if NET6_0_OR_GREATER
-            if (originFile.Exists)
-            {
-                originFile.MoveTo(desFile.FullName, overwrite);
-            }
-            else
-            {
-                throw new FileNotFoundException("Could not find origin file", originFile.FullName);
-            }
-#elif NET35_OR_GREATER
             if (originFile.Exists)
             {
                 var originStream = originFile.OpenRead();
@@ -269,7 +248,6 @@ namespace MelonAutoUpdater.Utils
             {
                 throw new FileNotFoundException("Could not find the origin file!", originFile.FullName);
             }
-#endif
         }
 
         /// <summary>
@@ -283,16 +261,6 @@ namespace MelonAutoUpdater.Utils
         public static void MoveTo(string originPath, string desPath, bool overwrite = false)
         {
             var originFile = new FileInfo(originPath);
-#if NET6_0_OR_GREATER
-            if (originFile.Exists)
-            {
-                originFile.MoveTo(desPath, overwrite);
-            }
-            else
-            {
-                throw new FileNotFoundException("Could not find origin file", originFile.FullName);
-            }
-#elif NET35_OR_GREATER
             if (originFile.Exists)
             {
                 var originStream = originFile.OpenRead();
@@ -329,7 +297,6 @@ namespace MelonAutoUpdater.Utils
             {
                 throw new FileNotFoundException("Could not find the origin file!", originFile.FullName);
             }
-#endif
         }
 
         /// <summary>
@@ -343,16 +310,6 @@ namespace MelonAutoUpdater.Utils
         public static void MoveTo(string originPath, FileInfo desFile, bool overwrite = false)
         {
             var originFile = new FileInfo(originPath);
-#if NET6_0_OR_GREATER
-            if (originFile.Exists)
-            {
-                originFile.MoveTo(desFile.FullName, overwrite);
-            }
-            else
-            {
-                throw new FileNotFoundException("Could not find origin file", originFile.FullName);
-            }
-#elif NET35_OR_GREATER
             if (originFile.Exists)
             {
                 var originStream = originFile.OpenRead();
@@ -388,7 +345,6 @@ namespace MelonAutoUpdater.Utils
             {
                 throw new FileNotFoundException("Could not find the origin file!", originFile.FullName);
             }
-#endif
         }
 
         /// <summary>

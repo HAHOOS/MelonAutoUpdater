@@ -10,17 +10,9 @@ using MelonLoader.Preferences;
 using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
-using MelonAutoUpdater.Attributes;
 using MelonAutoUpdater.JSONObjects;
 using MelonAutoUpdater.Utils;
-
-#if NET35_OR_GREATER
 using System.Net;
-#elif NET6_0_OR_GREATER
-
-using System.Net.Http;
-
-#endif
 
 namespace MelonAutoUpdater
 {
@@ -54,29 +46,8 @@ namespace MelonAutoUpdater
         /// </summary>
         internal IEnumerable<MAUSearch> extensions;
 
-        private readonly Dictionary<string, Dictionary<string, string>> NuGetPackages = new Dictionary<string, Dictionary<string, string>> {
-            {
-                "net6",
-                new Dictionary<string, string> {
-                }
-            },
-            {
-                "net35",
-                new Dictionary<string, string> {
-                    {
-                        "Rackspace.Threading", "2.0.0-alpha001"
-                    },
-                    {
-                        "TaskParallelLibrary", "1.0.2856"
-                    },
-                    {
-                         "Net35.Http", "1.0.0"
-                    },
-                    {
-                         "ValueTupleBridge", "0.1.5"
-                    }
-                }
-            },
+        private readonly Dictionary<string, string> NuGetPackages = new Dictionary<string, string>
+        {
         };
 
         /// <summary>
@@ -278,15 +249,8 @@ namespace MelonAutoUpdater
         {
             try
             {
-#if NET35_OR_GREATER
                 var request = new WebClient();
                 request.DownloadData(url);
-#elif NET6_0_OR_GREATER
-                var request = new HttpClient();
-                var res = request.GetAsync(url);
-                res.Wait();
-                res.Result.EnsureSuccessStatusCode();
-#endif
                 return true;
             }
             catch
@@ -671,12 +635,6 @@ namespace MelonAutoUpdater
             Files.Clear(TempDirectory.Melons);
 
             LoggerInstance.Msg("Loading necessary dependencies");
-#if NET35_OR_GREATER
-            var dependencies = NuGetPackages["net35"];
-#elif NET6_0_OR_GREATER
-            var dependencies = NuGetPackages["net6"];
-#endif
-
             var nuget = new NuGet();
             nuget.Log += (sender, args) =>
             {
@@ -708,10 +666,10 @@ namespace MelonAutoUpdater
                 }
             };
 
-            int needDownload = dependencies.Count;
-            if (dependencies != null && needDownload > 0)
+            int needDownload = NuGetPackages.Count;
+            if (NuGetPackages != null && needDownload > 0)
             {
-                foreach (var dependency in dependencies)
+                foreach (var dependency in NuGetPackages)
                 {
                     bool isLoaded = nuget.Internal_IsLoaded(dependency.Key, true, dependency.Value, true);
                     if (!isLoaded)
@@ -760,41 +718,8 @@ namespace MelonAutoUpdater
 
             ContentType.Load();
 
-            LoggerInstance.Msg("Load search extensions");
-            FileInfo[] extFiles = Environment.Version.Major >= 6 ? new DirectoryInfo(Files.Net6ExtFolder).GetFiles("*.dll") : new DirectoryInfo(Files.Net35ExtFolder).GetFiles("*.dll");
-            List<Assembly> assemblies = new List<Assembly> { System.Reflection.Assembly.GetExecutingAssembly() };
-            foreach (FileInfo file in extFiles)
-            {
-                LoggerInstance._MsgPastel($"Checking {file.Name.Pastel(theme.FileNameColor)}");
-                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(file.FullName);
-                bool isExtension = false;
-                foreach (var attr in assembly.CustomAttributes)
-                {
-                    if (attr.AttributeType.Name == nameof(IsMAUSearchExtensionAttribute))
-                    {
-                        bool value = Get<bool>(attr, 0);
-                        assembly.Dispose();
-                        isExtension = value;
-                        break;
-                    }
-                }
-                assembly.Dispose();
-
-                if (isExtension)
-                {
-                    LoggerInstance._MsgPastel($"{file.Name.Pastel(theme.FileNameColor)} is a MAU Search Extension");
-                    System.Reflection.Assembly assembly1 = System.Reflection.Assembly.LoadFile(file.FullName);
-                    assemblies.Add(assembly1);
-                    LoggerInstance.Msg("Loading dependencies");
-                }
-                else
-                {
-                    LoggerInstance._MsgPastel($"{file.Name.Pastel(theme.FileNameColor)} is not a MAU Search Extension, continuing without loading");
-                }
-            }
-
             LoggerInstance.Msg("Setting up search extensions");
-            extensions = MAUSearch.GetExtensions(assemblies.ToArray());
+            extensions = MAUSearch.GetExtensions(AppDomain.CurrentDomain.GetAssemblies());
 
 #pragma warning disable CS0618 // Type or member is obsolete
             string pluginsDir = Path.Combine(MelonUtils.BaseDirectory, "Plugins");

@@ -32,19 +32,21 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
             if (!disableAPI)
             {
                 string response = string.Empty;
+                bool threwError = false;
                 try
                 {
                     response = request.DownloadString($"https://thunderstore.io/api/experimental/package/{namespaceName}/{packageName}/");
                 }
                 catch (WebException e)
                 {
+                    threwError = true;
                     HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                     string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
                     if (statusCode == HttpStatusCode.NotFound)
                     {
                         Logger.Warning("Thunderstore API could not locate the mod/plugin");
                     }
-                    else if (statusCode == HttpStatusCode.Forbidden || statusCode == HttpStatusCode.too)))
+                    else if (statusCode == HttpStatusCode.Forbidden || statusCode == (HttpStatusCode)429)
                     {
                         disableAPI = true;
                         apiReset = DateTimeOffset.Now.AddMinutes(1).ToUnixTimeSeconds();
@@ -58,17 +60,13 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
 
                     return null;
                 }
-                if (response.Result.IsSuccessStatusCode)
+                if (!threwError)
                 {
-                    Task<string> body = response.Result.Content.ReadAsStringAsync();
-                    body.Wait();
-                    if (body.Result != null)
+                    if (!string.IsNullOrEmpty(response))
                     {
-                        var _data = JSON.Load(body.Result);
+                        var _data = JSON.Load(response);
 
                         request.Dispose();
-                        response.Dispose();
-                        body.Dispose();
 
                         List<FileData> files = new List<FileData>();
 
@@ -84,36 +82,30 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
                         if (!isSemVerSuccess)
                         {
                             Logger.Error($"Failed to parse version");
-                            return Empty();
+                            return null;
                         }
 
                         var communityListings = _data["community_listings"] as ProxyArray;
                         var first = communityListings.First();
                         var community = first["community"];
 
-                        return Task.Factory.StartNew(() => new MelonData()
+                        return new MelonData()
                         {
                             LatestVersion = semver,
                             DownloadFiles = files,
                             DownloadLink = new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}/")
-                        });
+                        };
                     }
                     else
                     {
-                        Logger.Error("Thunderstore API returned no body, unable to fetch package information");
-
-                        request.Dispose();
-                        response.Dispose();
-                        body.Dispose();
-
-                        return Empty();
+                        Logger.Warning("Thunderstore API returned no body");
                     }
                 }
             }
             return null;
         }
 
-        public override Task<MelonData> Search(string url, SemVersion currentVersion)
+        public override MelonData Search(string url, SemVersion currentVersion)
         {
             Regex regex = new Regex(@"(https:\/\/|http:\/\/)(?:.+\.)?thunderstore\.io");
             if (regex.IsMatch(url))
@@ -133,10 +125,10 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
                 }
                 return Check(packageName, namespaceName);
             }
-            return Empty();
+            return null;
         }
 
-        public override Task<MelonData> BruteCheck(string name, string author, SemVersion currentVersion)
+        public override MelonData BruteCheck(string name, string author, SemVersion currentVersion)
         {
             return Check(name.Replace(" ", ""), author.Replace(" ", ""));
         }

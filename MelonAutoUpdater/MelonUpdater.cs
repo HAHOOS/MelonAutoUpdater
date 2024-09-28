@@ -163,15 +163,14 @@ namespace MelonAutoUpdater
                     Logger.MsgPastel($"Checking {ext.Name.Pastel(ext.NameColor)}");
                     ext.Setup();
                     var result = ext.Search(downloadLink, currentVersion);
-                    result.Wait();
-                    if (result == null || result.Result == null)
+                    if (result == null)
                     {
                         Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                     }
                     else
                     {
                         Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                        return result.Result;
+                        return result;
                     }
                 }
                 else
@@ -197,23 +196,20 @@ namespace MelonAutoUpdater
             }
             foreach (var ext in extensions)
             {
-                MelonData result = null;
                 if (ext.BruteCheckEnabled)
                 {
                     if (CanSearch(ext, melonConfig))
                     {
                         Logger.MsgPastel($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
-                        var task = ext.BruteCheck(name, author, currentVersion);
-                        task.Wait();
-                        result = task.Result;
-                        if (result == null || result.LatestVersion == null)
+                        var result = ext.BruteCheck(name, author, currentVersion);
+                        if (result == null)
                         {
                             Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                         }
                         else
                         {
                             Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                            return task.Result;
+                            return result;
                         }
                     }
                     else

@@ -68,36 +68,39 @@ namespace MelonAutoUpdater.Search.Included.Github
                 {
                     AccessToken = accessToken;
                     Logger.Msg("Access token found, validating");
-                    HttpClient client2 = new HttpClient();
-                    client2.DefaultRequestHeaders.Add("Accept", "application/json");
-                    client2.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-                    client2.DefaultRequestHeaders.Add("Authorization", "Bearer " + accessToken);
-                    var response2 = client2.GetAsync("https://api.github.com/user");
-                    response2.Wait();
-                    if (response2.Result.IsSuccessStatusCode)
+                    WebClient client2 = new WebClient();
+                    client2.Headers.Add("Accept", "application/json");
+                    client2.Headers.Add("User-Agent", UserAgent);
+                    client2.Headers.Add("Authorization", "Bearer " + accessToken);
+                    string response2 = null;
+                    bool threwError2 = false;
+                    try
                     {
-                        Task<string> body2 = response2.Result.Content.ReadAsStringAsync();
-                        body2.Wait();
-                        if (body2.Result != null)
-                        {
-                            var data = JSON.Load(body2.Result).Make<Dictionary<string, string>>();
-                            Logger.Msg($"Successfully validated access token, belongs to {data["name"]} ({data["followers"]} Followers)");
-                            return;
-                        }
+                        response2 = client2.DownloadString("https://api.github.com/user");
                     }
-                    else
+                    catch (WebException e)
                     {
-                        if (response2.Result.StatusCode == System.Net.HttpStatusCode.Unauthorized || response2.Result.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        threwError2 = true;
+                        HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
+                        string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
+                        if (statusCode == System.Net.HttpStatusCode.Unauthorized || statusCode == System.Net.HttpStatusCode.Forbidden)
                         {
                             Logger.Warning("Access token expired or is incorrect");
                         }
                         else
                         {
-                            Logger.Msg("Error");
                             Logger.Error
-                                    ($"Failed to validate access token, returned {response2.Result.StatusCode} with following message:\n{response2.Result.ReasonPhrase}");
+                                    ($"Failed to validate access token, returned {statusCode} with following message:\n{statusDescription}");
                             client2.Dispose();
-                            response2.Dispose();
+                        }
+                    }
+                    if (!threwError2)
+                    {
+                        if (!string.IsNullOrEmpty(response2))
+                        {
+                            var data = JSON.Load(response2).Make<Dictionary<string, string>>();
+                            Logger.Msg($"Successfully validated access token, belongs to {data["name"]} ({data["followers"]} Followers)");
+                            return;
                         }
                     }
                 }
@@ -112,12 +115,14 @@ namespace MelonAutoUpdater.Search.Included.Github
                 _params.Add("scope", scopes);
 
                 byte[] response = null;
+                bool threwError = false;
                 try
                 {
                     response = client.UploadValues($"https://github.com/login/device/code", "POST", _params);
                 }
                 catch (WebException e)
                 {
+                    threwError = true;
                     HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                     string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
                     Logger.Msg("Error");
@@ -125,7 +130,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                             ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
                     client.Dispose();
                 }
-                if (response != null)
+                if (!threwError)
                 {
                     string body = Encoding.UTF8.GetString(response);
                     if (body != null)
@@ -164,20 +169,21 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                     _params2.Add("device_code", data["device_code"]);
                                     _params2.Add("grant_type", "urn:ietf:params:oauth:grant-type:device_code");
 
-                                    byte[] res;
+                                    byte[] res = null;
+                                    bool threwError2 = false;
                                     try
                                     {
                                         res = client.UploadValues($"https://github.com/login/oauth/access_token", "POST", _params2);
                                     }
                                     catch (WebException e)
                                     {
-                                        res = null;
+                                        threwError2 = true;
                                         HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                                         string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
                                         Logger.Error
                                                    ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
                                     }
-                                    if (res != null)
+                                    if (!threwError2)
                                     {
                                         string _body = Encoding.UTF8.GetString(res);
                                         if (_body != null)
@@ -238,24 +244,76 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
             }
         }
 
-        internal Task<MelonData> Check(string author, string repo)
+        internal MelonData Check(string author, string repo)
         {
-            HttpClient client = new HttpClient();
-            client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-            client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-            if (!string.IsNullOrEmpty(AccessToken)) client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
+            WebClient client = new WebClient();
+            client.Headers.Add("Accept", "application/vnd.github+json");
+            client.Headers.Add("User-Agent", UserAgent);
+            if (!string.IsNullOrEmpty(AccessToken)) client.Headers.Add("Authorization", "Bearer " + AccessToken);
             if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
             if (!disableGithubAPI)
             {
-                var response = client.GetAsync($"https://api.github.com/repos/{author}/{repo}/releases/latest", HttpCompletionOption.ResponseContentRead);
-                response.Wait();
-                if (response.Result.IsSuccessStatusCode)
+                string response = null;
+                bool threwError = false;
+                try
                 {
-                    if (response.Result.Headers.Contains("x-ratelimit-remaining")
-                        && response.Result.Headers.Contains("x-ratelimit-reset"))
+                    response = client.DownloadString($"https://api.github.com/repos/{author}/{repo}/releases/latest");
+                }
+                catch (WebException e)
+                {
+                    threwError = true;
+                    HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
+                    string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
+                    if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
+                        && client.ResponseHeaders.Contains("x-ratelimit-reset")
+                        && client.ResponseHeaders.Contains("x-ratelimit-limit"))
                     {
-                        int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                        long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
+                        int remaining = int.Parse(client.ResponseHeaders.Get("x-ratelimit-remaining"));
+                        int limit = int.Parse(client.ResponseHeaders.Get("x-ratelimit-limit"));
+                        long reset = long.Parse(client.ResponseHeaders.Get("x-ratelimit-reset"));
+                        if (remaining <= 0)
+                        {
+                            Logger.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
+                            githubResetDate = reset;
+                            disableGithubAPI = true;
+                        }
+                        else
+                        {
+                            if (statusCode == System.Net.HttpStatusCode.NotFound)
+                            {
+                                Logger.Warning("Github API could not find the mod/plugin");
+                            }
+                            else
+                            {
+                                Logger.Error
+                                    ($"Failed to fetch package information from Github, returned {statusCode} with following message:\n{statusDescription}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (statusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            Logger.Warning("Github API could not find the mod/plugin");
+                        }
+                        else
+                        {
+                            Logger.Error
+                                ($"Failed to fetch package information from Github, returned {statusCode} with following message:\n{statusDescription}");
+                        }
+                    }
+                    client.Dispose();
+
+                    return null;
+                }
+
+                if (!threwError)
+                {
+                    if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
+                        && client.ResponseHeaders.Contains("x-ratelimit-reset"))
+                    {
+                        int remaining = int.Parse(client.ResponseHeaders.Get("x-ratelimit-remaining"));
+                        long reset = long.Parse(client.ResponseHeaders.Get("x-ratelimit-reset"));
                         if (remaining <= 10)
                         {
                             Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
@@ -263,11 +321,9 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                             disableGithubAPI = true;
                         }
                     }
-                    Task<string> body = response.Result.Content.ReadAsStringAsync();
-                    body.Wait();
-                    if (body.Result != null)
+                    if (!string.IsNullOrEmpty(response))
                     {
-                        var data = JSON.Load(body.Result);
+                        var data = JSON.Load(response);
                         string version = (string)data["tag_name"];
                         List<FileData> downloadURLs = new List<FileData>();
 
@@ -280,8 +336,6 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                         }
 
                         client.Dispose();
-                        response.Dispose();
-                        body.Dispose();
                         if (version.StartsWith("v"))
                         {
                             version = version.Substring(1);
@@ -290,65 +344,23 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                         if (!isSemVerSuccess)
                         {
                             Logger.Error($"Failed to parse version");
-                            return Empty();
+                            return null;
                         }
-                        return Task.Factory.StartNew(() => new MelonData(semver, downloadURLs, new Uri($"https://github.com/{author}/{repo}")));
+                        return new MelonData(semver, downloadURLs, new Uri($"https://github.com/{author}/{repo}"));
                     }
                     else
                     {
-                        Logger.Error("Github API returned no body, unable to fetch package information");
-
-                        client.Dispose();
-                        response.Dispose();
-                        body.Dispose();
-
-                        return Empty();
+                        Logger.Warning("Github API returned no body");
+                        return null;
                     }
                 }
                 else
                 {
-                    if (response.Result.Headers.Contains("x-ratelimit-remaining")
-                       && response.Result.Headers.Contains("x-ratelimit-reset")
-                       && response.Result.Headers.Contains("x-ratelimit-limit"))
-                    {
-                        int remaining = int.Parse(response.Result.Headers.GetValues("x-ratelimit-remaining").First());
-                        int limit = int.Parse(response.Result.Headers.GetValues("x-ratelimit-limit").First());
-                        long reset = long.Parse(response.Result.Headers.GetValues("x-ratelimit-reset").First());
-                        if (remaining <= 0)
-                        {
-                            Logger.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
-                            githubResetDate = reset;
-                            disableGithubAPI = true;
-                        }
-                        else
-                        {
-                            if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
-                            {
-                                Logger.Warning("Github API could not find the mod/plugin");
-                            }
-                            else
-                            {
-                                Logger.Error
-                                    ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
-                        {
-                            Logger.Warning("Github API could not find the mod/plugin");
-                        }
-                        else
-                        {
-                            Logger.Error
-                                ($"Failed to fetch package information from Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                        }
-                    }
-                    client.Dispose();
-                    response.Dispose();
+                    Logger.Error("Github API returned no body, unable to fetch package information");
 
-                    return Empty();
+                    client.Dispose();
+
+                    return null;
                 }
             }
             else
@@ -357,10 +369,10 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                      "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
             }
 
-            return Empty();
+            return null;
         }
 
-        public override Task<MelonData> Search(string url, SemVersion currentVersion)
+        public override MelonData Search(string url, SemVersion currentVersion)
         {
             Regex regex = new Regex(@"(?<=(?<=http:\/\/|https:\/\/)github.com\/)(.*?)(?>\/)(.*?)(?=\/|$)");
             var match = regex.Match(url);
@@ -371,10 +383,10 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                 string namespaceName = split[0];
                 Check(namespaceName, packageName);
             }
-            return Empty();
+            return null;
         }
 
-        public override Task<MelonData> BruteCheck(string name, string author, SemVersion currentVersion)
+        public override MelonData BruteCheck(string name, string author, SemVersion currentVersion)
         {
             return Check(author, name);
         }

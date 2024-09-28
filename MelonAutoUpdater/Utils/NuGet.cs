@@ -11,12 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 
-#if NET6_0_OR_GREATER
-
-using System.Net.Http;
-
-#endif
-
 using static MelonAutoUpdater.Utils.NuGet;
 
 namespace MelonAutoUpdater.Utils
@@ -36,31 +30,6 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         public NuGet()
         {
-        }
-
-        internal static void DownloadFile(string url, string path)
-        {
-#if NET35_OR_GREATER
-            WebClient webClient = new WebClient();
-            webClient.DownloadFile(url, path);
-#elif NET6_0_OR_GREATER
-            HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("User-Agent", MelonAutoUpdater.UserAgent);
-            var get = httpClient.GetAsync(url);
-            get.Wait();
-            var response = get.Result;
-            response.EnsureSuccessStatusCode();
-            var fileStream = File.Open(path, FileMode.OpenOrCreate);
-            fileStream.Seek(0, SeekOrigin.Begin);
-            var resStream = response.Content.ReadAsStream();
-            resStream.Seek(0, SeekOrigin.Begin);
-
-            resStream.CopyTo(fileStream);
-
-            fileStream.Dispose();
-            resStream.Dispose();
-
-#endif
         }
 
         /// <summary>
@@ -175,7 +144,6 @@ namespace MelonAutoUpdater.Utils
         {
             OnLog($"Checking for latest version of {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
             string apiUrl = $"https://api.nuget.org/v3/registration5-gz-semver2/{name.ToLower()}/index.json";
-#if NET35_OR_GREATER
             try
             {
                 var client = new GZIPWebClient();
@@ -197,43 +165,6 @@ namespace MelonAutoUpdater.Utils
                 OnLog($"Failed to retrieve latest version: \n{ex}", LogSeverity.ERROR);
                 return null;
             }
-
-#elif NET6_0_OR_GREATER
-            HttpClientHandler handler = new HttpClientHandler()
-            {
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-            };
-
-            var client = new HttpClient(handler);
-            client.DefaultRequestHeaders.Add("User-Agent", MelonAutoUpdater.UserAgent);
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
-            var res = client.GetAsync(apiUrl);
-            res.Wait();
-            if (res.Result.IsSuccessStatusCode)
-            {
-                var body = res.Result.Content.ReadAsStringAsync();
-                body.Wait();
-                if (!string.IsNullOrEmpty(body.Result))
-                {
-                    body.Dispose();
-                    res.Dispose();
-                    return ProcessLatestVerBody(body.Result, includePreRelease);
-                }
-                else
-                {
-                    OnLog($"Failed to retrieve latest version: \nBody is empty", LogSeverity.ERROR);
-                    body.Dispose();
-                    res.Dispose();
-                    return null;
-                }
-            }
-            else
-            {
-                res.Dispose();
-                OnLog($"Failed to retrieve latest version: \n{res.Result.StatusCode}: {res.Result.ReasonPhrase}", LogSeverity.ERROR);
-                return null;
-            }
-#endif
         }
 
         /// <summary>
@@ -331,7 +262,8 @@ namespace MelonAutoUpdater.Utils
             result.AllFiles = new List<string>();
             string path = Path.Combine(tempDir.FullName, $"{name}.{version}.nupkg");
             OnLog("Downloading file", LogSeverity.DEBUG);
-            DownloadFile($"https://api.nuget.org/v3-flatcontainer/{name.ToLower()}/{version}/{name.ToLower()}.{version}.nupkg", path);
+            var webClient = new WebClient();
+            webClient.DownloadFile($"https://api.nuget.org/v3-flatcontainer/{name.ToLower()}/{version}/{name.ToLower()}.{version}.nupkg", path);
             if (File.Exists(path))
             {
                 OnLog("Downloaded successfully, extracting files", LogSeverity.DEBUG);
@@ -371,11 +303,7 @@ namespace MelonAutoUpdater.Utils
                         else
                         {
                             OnLog("Looking for corresponding net version in libraries", LogSeverity.DEBUG);
-#if NET6_0_OR_GREATER
-                            string netVer = "net6";
-#elif NET35_OR_GREATER
                             string netVer = "net35";
-#endif
                             var _netDir = Directory.GetDirectories(libDir.FullName).Where(x => GetDirName(x).ToLower().StartsWith(netVer));
                             if (_netDir.Any())
                             {
