@@ -54,9 +54,6 @@ This package exists to easily reference the plugin for developers</Description>
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
-		<PackageReference Include="Rackspace.Threading" Version="2.0.0-alpha001" />
-		<PackageReference Include="TaskParallelLibrary" Version="1.0.2856" />
-		<PackageReference Include="Net35.Http" Version="1.0.0" />
 		<PackageReference Include="ValueTupleBridge" Version="0.1.5" />
 	</ItemGroup>
 		

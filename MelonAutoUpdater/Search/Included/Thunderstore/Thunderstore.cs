@@ -4,9 +4,8 @@ using Semver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
+using System.Net;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace MelonAutoUpdater.Search.Included.Thunderstore
 {
@@ -25,15 +24,40 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
         private bool disableAPI = false;
         private long apiReset;
 
-        internal Task<MelonData> Check(string packageName, string namespaceName)
+        internal MelonData Check(string packageName, string namespaceName)
         {
-            HttpClient request = new HttpClient();
-            request.DefaultRequestHeaders.Add("User-Agent", UserAgent);
+            WebClient request = new WebClient();
+            request.Headers.Add("User-Agent", UserAgent);
             if (disableAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > apiReset) disableAPI = false;
             if (!disableAPI)
             {
-                Task<HttpResponseMessage> response = request.GetAsync($"https://thunderstore.io/api/experimental/package/{namespaceName}/{packageName}/");
-                response.Wait();
+                string response = string.Empty;
+                try
+                {
+                    response = request.DownloadString($"https://thunderstore.io/api/experimental/package/{namespaceName}/{packageName}/");
+                }
+                catch (WebException e)
+                {
+                    HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
+                    string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
+                    if (statusCode == HttpStatusCode.NotFound)
+                    {
+                        Logger.Warning("Thunderstore API could not locate the mod/plugin");
+                    }
+                    else if (statusCode == HttpStatusCode.Forbidden || statusCode == HttpStatusCode.too)))
+                    {
+                        disableAPI = true;
+                        apiReset = DateTimeOffset.Now.AddMinutes(1).ToUnixTimeSeconds();
+                    }
+                    else
+                    {
+                        Logger.Error
+                            ($"Failed to fetch package information from Thunderstore, returned {statusCode} with following message:\n{statusDescription}");
+                    }
+                    request.Dispose();
+
+                    return null;
+                }
                 if (response.Result.IsSuccessStatusCode)
                 {
                     Task<string> body = response.Result.Content.ReadAsStringAsync();
@@ -85,29 +109,8 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
                         return Empty();
                     }
                 }
-                else
-                {
-                    if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        Logger.Warning("Thunderstore API could not locate the mod/plugin");
-                    }
-                    else if (response.Result.StatusCode == System.Net.HttpStatusCode.Forbidden || (int)response.Result.StatusCode == 429)
-                    {
-                        disableAPI = true;
-                        apiReset = DateTimeOffset.Now.AddMinutes(1).ToUnixTimeSeconds();
-                    }
-                    else
-                    {
-                        Logger.Error
-                            ($"Failed to fetch package information from Thunderstore, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                    }
-                    request.Dispose();
-                    response.Dispose();
-
-                    return Empty();
-                }
             }
-            return Empty();
+            return null;
         }
 
         public override Task<MelonData> Search(string url, SemVersion currentVersion)

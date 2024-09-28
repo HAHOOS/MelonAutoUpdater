@@ -284,9 +284,8 @@ namespace MelonAutoUpdater.Utils
         /// <param name="name">Name of the NuGet package</param>
         /// <param name="version">Version of the NuGet package (Optional)</param>
         /// <param name="includePreRelease">If <see langword="true"/>, when checking for latest version it will include prerelease's</param>
-        /// <param name="silent">If <see langword="true"/>, no logs will be sent</param>
         /// <returns>A <see cref="ValueTuple"/> with values DLLFile - path of main DLL file and AllFiles - path of all downloaded files</returns>
-        public (string DLLFile, List<string> AllFiles) DownloadPackage(string name, string version = "", bool includePreRelease = false, bool silent = false)
+        public (string DLLFile, List<string> AllFiles) DownloadPackage(string name, string version = "", bool includePreRelease = false)
         {
             if (string.IsNullOrEmpty(version))
             {
@@ -304,7 +303,7 @@ namespace MelonAutoUpdater.Utils
             var tempDir = Directory.CreateDirectory(Path.Combine(Files.CachePackagesFolder, $"{name}-{version}"));
             if (tempDir.Exists && tempDir.GetFiles("*.dll").Length > 0)
             {
-                if (!silent) OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.MESSAGE);
+                OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.DEBUG);
                 var dllFile = tempDir.GetFiles("*.dll")[0].FullName;
                 List<string> allFiles = new List<string>();
                 tempDir.GetFiles().ToList().ForEach(x => allFiles.Add(x.FullName));
@@ -314,7 +313,7 @@ namespace MelonAutoUpdater.Utils
             var tempDir2 = Directory.CreateDirectory(Path.Combine(Files.Redirect_CachePackagesFolder, $"{name}-{version}"));
             if (tempDir2.Exists && tempDir2.GetFiles("*.dll").Length > 0)
             {
-                if (!silent) OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.MESSAGE);
+                OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.DEBUG);
                 var dllFile = tempDir2.GetFiles("*.dll")[0].FullName;
                 List<string> allFiles = new List<string>();
                 tempDir2.GetFiles().ToList().ForEach(x => allFiles.Add(x.FullName));
@@ -325,17 +324,17 @@ namespace MelonAutoUpdater.Utils
                 tempDir2.Delete();
             }
 
-            if (!silent) OnLog($"Downloading {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
+            OnLog($"Downloading {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.DEBUG);
 
             (string DLLFile, List<string> AllFiles) result;
             result.DLLFile = string.Empty;
             result.AllFiles = new List<string>();
             string path = Path.Combine(tempDir.FullName, $"{name}.{version}.nupkg");
-            if (!silent) OnLog("Downloading file", LogSeverity.MESSAGE);
+            OnLog("Downloading file", LogSeverity.DEBUG);
             DownloadFile($"https://api.nuget.org/v3-flatcontainer/{name.ToLower()}/{version}/{name.ToLower()}.{version}.nupkg", path);
             if (File.Exists(path))
             {
-                if (!silent) OnLog("Downloaded successfully, extracting files", LogSeverity.MESSAGE);
+                OnLog("Downloaded successfully, extracting files", LogSeverity.DEBUG);
                 FileInfo fileInfo = new FileInfo(path);
                 string zip_Path = Path.ChangeExtension(path, "zip");
                 fileInfo.MoveTo(zip_Path, true);
@@ -349,12 +348,12 @@ namespace MelonAutoUpdater.Utils
                 dirPath = unzip;
                 if (Directory.Exists(dirPath))
                 {
-                    if (!silent) OnLog("Extracted successfully", LogSeverity.MESSAGE);
+                    OnLog("Extracted successfully", LogSeverity.DEBUG);
                     var libDir = new DirectoryInfo(Path.Combine(dirPath, "lib"));
                     if (libDir.Exists)
                     {
                         List<string> dependencyFiles = new List<string>();
-                        if (!silent) OnLog("Found lib directory", LogSeverity.MESSAGE);
+                        OnLog("Found lib directory", LogSeverity.DEBUG);
                         var dllFiles = libDir.GetFiles();
                         if (dllFiles.Length > 0)
                         {
@@ -371,7 +370,7 @@ namespace MelonAutoUpdater.Utils
                         }
                         else
                         {
-                            if (!silent) OnLog("Looking for corresponding net version in libraries", LogSeverity.MESSAGE);
+                            OnLog("Looking for corresponding net version in libraries", LogSeverity.DEBUG);
 #if NET6_0_OR_GREATER
                             string netVer = "net6";
 #elif NET35_OR_GREATER
@@ -381,7 +380,7 @@ namespace MelonAutoUpdater.Utils
                             if (_netDir.Any())
                             {
                                 var netDir = new DirectoryInfo(_netDir.First());
-                                if (!silent) OnLog("Found corresponding net version in libraries", LogSeverity.MESSAGE);
+                                OnLog("Found corresponding net version in libraries", LogSeverity.DEBUG);
                                 var dllFiles2 = netDir.GetFiles();
                                 if (dllFiles2.Length > 0)
                                 {
@@ -399,19 +398,19 @@ namespace MelonAutoUpdater.Utils
                             }
                             else
                             {
-                                if (!silent) OnLog("Could not find corresponding NET version in dependency, unable to install", LogSeverity.ERROR);
+                                OnLog("Could not find corresponding NET version in dependency, unable to install", LogSeverity.ERROR);
                             }
                         }
                     }
                     else
                     {
-                        if (!silent) OnLog("Could not find 'lib' directory in downloaded NuGet package", LogSeverity.ERROR);
+                        OnLog("Could not find 'lib' directory in downloaded NuGet package", LogSeverity.DEBUG_ERROR);
                     }
                     Directory.Delete(dirPath, true);
                 }
                 else
                 {
-                    if (!silent) OnLog("Download failed", LogSeverity.ERROR);
+                    OnLog("Download failed", LogSeverity.DEBUG_ERROR);
                 }
                 File.Delete(zip_Path);
             };
@@ -442,7 +441,7 @@ namespace MelonAutoUpdater.Utils
             string dllFile = string.Empty;
             if (advancedCheck)
             {
-                var (DLLFile, AllFiles) = DownloadPackage(name, includePreRelease: includePreRelease, silent: true);
+                var (DLLFile, AllFiles) = DownloadPackage(name, includePreRelease: includePreRelease);
                 if (DLLFile != null) dllFile = DLLFile;
                 if (DLLFile != null && AllFiles != null)
                 {
@@ -600,7 +599,22 @@ namespace MelonAutoUpdater.Utils
             /// <summary>
             /// The log will be sent as a error
             /// </summary>
-            ERROR
+            ERROR,
+
+            /// <summary>
+            /// The log will be sent as a debug message, which means only when the plugin is in DEBUG mode it will be displayed
+            /// </summary>
+            DEBUG,
+
+            /// <summary>
+            /// The log will be sent as a debug warning, which means only when the plugin is in DEBUG mode it will be displayed
+            /// </summary>
+            DEBUG_WARNING,
+
+            /// <summary>
+            /// The log will be sent as a debug error, which means only when the plugin is in DEBUG mode it will be displayed
+            /// </summary>
+            DEBUG_ERROR,
         }
     }
 

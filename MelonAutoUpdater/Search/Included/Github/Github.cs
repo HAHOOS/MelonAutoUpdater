@@ -5,12 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using MelonLoader;
 using System.Drawing;
 using MelonAutoUpdater.Utils;
+using System.Net;
+using System.Collections.Specialized;
+using System.Text;
 
 namespace MelonAutoUpdater.Search.Included.Github
 {
@@ -101,19 +102,35 @@ namespace MelonAutoUpdater.Search.Included.Github
                     }
                 }
                 Logger.Msg("Requesting Device Flow");
-                HttpClient client = new HttpClient();
+                WebClient client = new WebClient();
                 string scopes = "read:user";
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-                var response = client.PostAsync($"https://github.com/login/device/code?client_id={ClientID}&scope={scopes}", null);
-                response.Wait();
-                if (response.Result.IsSuccessStatusCode)
+                client.Headers.Add("Accept", "application/json");
+                client.Headers.Add("User-Agent", UserAgent);
+
+                var _params = new NameValueCollection();
+                _params.Add("client_id", ClientID);
+                _params.Add("scope", scopes);
+
+                byte[] response = null;
+                try
                 {
-                    Task<string> body = response.Result.Content.ReadAsStringAsync();
-                    body.Wait();
-                    if (body.Result != null)
+                    response = client.UploadValues($"https://github.com/login/device/code", "POST", _params);
+                }
+                catch (WebException e)
+                {
+                    HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
+                    string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
+                    Logger.Msg("Error");
+                    Logger.Error
+                            ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
+                    client.Dispose();
+                }
+                if (response != null)
+                {
+                    string body = Encoding.UTF8.GetString(response);
+                    if (body != null)
                     {
-                        var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
+                        var data = JSON.Load(body).Make<Dictionary<string, string>>();
                         Logger.MsgPastel($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
 
 Go to {data["verification_uri"].ToString().Pastel(Color.Cyan)} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
@@ -136,21 +153,36 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                 {
                                     Logger.Msg("Aborting Device Flow request");
                                     client.Dispose();
-                                    response.Dispose();
                                     return;
                                 }
                                 else
                                 {
                                     Logger.Msg("Checking if authorized");
-                                    var res = client.PostAsync($"https://github.com/login/oauth/access_token?client_id={ClientID}&device_code={data["device_code"]}&grant_type=urn:ietf:params:oauth:grant-type:device_code", null);
-                                    res.Wait();
-                                    if (res.Result.IsSuccessStatusCode)
+
+                                    var _params2 = new NameValueCollection();
+                                    _params2.Add("client_id", ClientID);
+                                    _params2.Add("device_code", data["device_code"]);
+                                    _params2.Add("grant_type", "urn:ietf:params:oauth:grant-type:device_code");
+
+                                    byte[] res;
+                                    try
                                     {
-                                        Task<string> _body = res.Result.Content.ReadAsStringAsync();
-                                        _body.Wait();
-                                        if (_body.Result != null)
+                                        res = client.UploadValues($"https://github.com/login/oauth/access_token", "POST", _params2);
+                                    }
+                                    catch (WebException e)
+                                    {
+                                        res = null;
+                                        HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
+                                        string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
+                                        Logger.Error
+                                                   ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
+                                    }
+                                    if (res != null)
+                                    {
+                                        string _body = Encoding.UTF8.GetString(res);
+                                        if (_body != null)
                                         {
-                                            var _data = JSON.Load(_body.Result).Make<Dictionary<string, string>>();
+                                            var _data = JSON.Load(_body).Make<Dictionary<string, string>>();
                                             if (_data != null)
                                             {
                                                 if (_data.ContainsKey("error"))
@@ -173,8 +205,6 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                                     Logger.MsgPastel("Successfully retrieved access token".Pastel(Color.LawnGreen));
 
                                                     client.Dispose();
-                                                    res.Dispose();
-                                                    response.Dispose();
 
                                                     return;
                                                 }
@@ -183,11 +213,6 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                             {
                                                 Logger.Warning("Missing required data from request");
                                             }
-                                        }
-                                        else
-                                        {
-                                            Logger.Error
-                                                ($"Failed to use Device Flow using Github, returned {res.Result.StatusCode} with following message:\n{res.Result.ReasonPhrase}");
                                         }
                                     }
                                 }
@@ -205,14 +230,6 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                             }
                         }
                     }
-                }
-                else
-                {
-                    Logger.Msg("Error");
-                    Logger.Error
-                            ($"Failed to use Device Flow using Github, returned {response.Result.StatusCode} with following message:\n{response.Result.ReasonPhrase}");
-                    client.Dispose();
-                    response.Dispose();
                 }
             }
             else

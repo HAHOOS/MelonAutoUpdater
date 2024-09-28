@@ -22,32 +22,6 @@ using System.Net.Http;
 
 #endif
 
-#region Melon Attributes
-
-[assembly: MelonInfo(typeof(MelonAutoUpdater.MelonAutoUpdater), "MelonAutoUpdater", "0.3.1", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
-[assembly: MelonPriority(-100000000)]
-#pragma warning disable CS0618 // Type or member is obsolete
-// Using ConsoleColor for backwards compatibility
-[assembly: MelonColor(ConsoleColor.Green)]
-#pragma warning restore CS0618 // Type or member is obsolete
-[assembly: VerifyLoaderVersion("0.5.3", true)]
-// They are not optional, but this is to remove the warning as NuGet will install them
-[assembly: MelonOptionalDependencies("Net35.Http", "Rackspace.Threading", "System.Threading")]
-
-#endregion Melon Attributes
-
-#region Assembly Attributes
-
-[assembly: AssemblyProduct("MelonAutoUpdater")]
-[assembly: AssemblyVersion("0.3.1.0")]
-[assembly: AssemblyFileVersion("0.3.1")]
-[assembly: AssemblyTitle("MelonAutoUpdater")]
-[assembly: AssemblyCompany("HAHOOS")]
-[assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
-[assembly: AssemblyInformationalVersion("0.3.1")]
-
-#endregion Assembly Attributes
-
 namespace MelonAutoUpdater
 {
     /// <summary>
@@ -114,6 +88,15 @@ namespace MelonAutoUpdater
         /// Assembly of MelonLoader
         /// </summary>
         internal static Assembly MLAssembly;
+
+        /// <summary>
+        /// If <see langword="true"/>, debug mode is enabled
+        /// </summary>
+#if DEBUG
+        public static bool Debug { get; internal set; } = true;
+#else
+        public static bool Debug { get; internal set; } = false;
+#endif
 
         #region Melon Preferences
 
@@ -254,7 +237,14 @@ namespace MelonAutoUpdater
                 stopPlugin = true;
             }
 
-            // Dont Update argument - melonautoupdater.dontupdate
+            // Debug argument - melonautoupdater.debug
+            if (args.ContainsKey("melonautoupdater.debug"))
+            {
+                LoggerInstance.Msg("Debug argument found, turning on DEBUG mode");
+                Debug = true;
+            }
+
+            // Don't Update argument - melonautoupdater.dontupdate
 
             if (args.ContainsKey("melonautoupdater.dontupdate"))
             {
@@ -703,6 +693,18 @@ namespace MelonAutoUpdater
                 else if (args.Severity == NuGet.LogSeverity.ERROR)
                 {
                     LoggerInstance.Error(msg_nopastel);
+                }
+                else if (args.Severity == NuGet.LogSeverity.DEBUG)
+                {
+                    LoggerInstance.DebugMsgPastel(msg);
+                }
+                else if (args.Severity == NuGet.LogSeverity.DEBUG_WARNING)
+                {
+                    LoggerInstance.DebugWarning(msg);
+                }
+                else if (args.Severity == NuGet.LogSeverity.DEBUG_ERROR)
+                {
+                    LoggerInstance.DebugWarning(msg);
                 }
             };
 
