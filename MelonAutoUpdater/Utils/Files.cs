@@ -56,16 +56,6 @@ namespace MelonAutoUpdater.Utils
         public static string ExtConfigFolder { get; internal set; }
 
         /// <summary>
-        /// Path of folder containing search extensions for net 6
-        /// </summary>
-        public static string Net6ExtFolder { get; internal set; }
-
-        /// <summary>
-        /// Path of folder containing search extensions for net 3.5
-        /// </summary>
-        public static string Net35ExtFolder { get; internal set; }
-
-        /// <summary>
         /// Setup
         /// </summary>
         internal static void Setup()
@@ -97,11 +87,7 @@ namespace MelonAutoUpdater.Utils
             DirectoryInfo melonsDir = tempDir.CreateSubdirectory("Melons");
 
             DirectoryInfo backupDir = mainDir.CreateSubdirectory("Backups");
-            DirectoryInfo extensionsDir = mainDir.CreateSubdirectory("SearchExtensions");
-
-            DirectoryInfo net35ExtDir = extensionsDir.CreateSubdirectory("net35");
-            DirectoryInfo net6ExtDir = extensionsDir.CreateSubdirectory("net6");
-            DirectoryInfo extConfigDir = extensionsDir.CreateSubdirectory("Config");
+            DirectoryInfo extConfigDir = mainDir.CreateSubdirectory("ExtensionsConfig");
 
             ExtConfigFolder = extConfigDir.FullName;
 
@@ -111,9 +97,6 @@ namespace MelonAutoUpdater.Utils
             TemporaryMainFolder = tempDir.FullName;
             CachePackagesFolder = packagesDir.FullName;
             TemporaryMelonsFolder = melonsDir.FullName;
-
-            Net35ExtFolder = net35ExtDir.FullName;
-            Net6ExtFolder = net6ExtDir.FullName;
         }
 
         /// <summary>
