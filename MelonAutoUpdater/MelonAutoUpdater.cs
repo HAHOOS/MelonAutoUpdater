@@ -4,11 +4,7 @@ using System.Collections.Generic;
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using MelonLoader.ICSharpCode.SharpZipLib.Core;
-using MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using Semver;
-using System.Threading.Tasks;
 using System.Drawing;
 using MelonLoader.Preferences;
 using MelonAutoUpdater.Search;
@@ -16,7 +12,6 @@ using MelonAutoUpdater.Helper;
 using System.Reflection;
 using MelonAutoUpdater.Attributes;
 using MelonAutoUpdater.JSONObjects;
-using MelonLoader.TinyJSON;
 using MelonAutoUpdater.Utils;
 
 #if NET35_OR_GREATER
