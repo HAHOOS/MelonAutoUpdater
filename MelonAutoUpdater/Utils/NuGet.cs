@@ -162,7 +162,14 @@ namespace MelonAutoUpdater.Utils
             }
             catch (WebException ex)
             {
-                OnLog($"Failed to retrieve latest version: \n{ex}", LogSeverity.ERROR);
+                HttpStatusCode statusCode = ((HttpWebResponse)ex.Response).StatusCode;
+                string statusDescription = ((HttpWebResponse)ex.Response).StatusDescription;
+                OnLog($"Failed to retrieve latest version, NuGet returned with {statusCode} status code with reason: \n{statusDescription}", LogSeverity.ERROR);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                OnLog($"Failed to retrieve latest version, an unexpected error occured:\n{ex}", LogSeverity.ERROR);
                 return null;
             }
         }
