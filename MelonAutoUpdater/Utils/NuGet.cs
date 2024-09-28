@@ -169,7 +169,7 @@ namespace MelonAutoUpdater.Utils
             }
             catch (Exception ex)
             {
-                OnLog($"Failed to retrieve latest version, an unexpected error occured:\n{ex}", LogSeverity.ERROR);
+                OnLog($"Failed to retrieve latest version, an unexpected error occurred:\n{ex}", LogSeverity.ERROR);
                 return null;
             }
         }
