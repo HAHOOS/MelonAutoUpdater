@@ -13,15 +13,15 @@ namespace MelonAutoUpdater.JSONObjects
         /// If true, melon will be ignored in checking and updating
         /// </summary>
         [Include]
-        [DecodeAlias("disabled", "Disable", "Disabled")]
-        public bool disable { get; set; }
+        [DecodeAlias("disabled", "disable", "Disabled")]
+        public bool Disable { get; set; }
 
         /// <summary>
         /// List of file names that are allowed to be downloaded and installed through e.g. Github
         /// </summary>
         [Include]
-        [DecodeAlias("AllowedFileDownloads")]
-        public string[] allowedFileDownloads { get; set; }
+        [DecodeAlias("allowedFileDownloads")]
+        public string[] AllowedFileDownloads { get; set; }
 
         /// <summary>
         /// List of files/directories that should not be installed/copied over. Below are examples for format
@@ -31,13 +31,13 @@ namespace MelonAutoUpdater.JSONObjects
         /// <para>Directory on path: <c>Test/TestDirectory</c></para>
         /// </summary>
         [Include]
-        [DecodeAlias("DontInclude", "doNotInclude", "DoNotInclude")]
-        public string[] dontInclude { get; set; }
+        [DecodeAlias("dontInclude", "doNotInclude", "DoNotInclude")]
+        public string[] DontInclude { get; set; }
 
         /// <inheritdoc cref="JSONObjects.MelonConfig.Platform" />
         [Include]
-        [DecodeAlias("Platform", "extension", "Extension")]
-        public Platform platform { get; set; }
+        [DecodeAlias("platform", "extension", "Extension")]
+        public ConfigPlatform Platform { get; set; }
 
         /// <summary>
         /// Checks if file or directory can be included
@@ -46,7 +46,7 @@ namespace MelonAutoUpdater.JSONObjects
         /// <returns>If <see langword="true"/>, file/directory can be included</returns>
         public bool CanInclude(string path)
         {
-            foreach (string format in dontInclude)
+            foreach (string format in DontInclude)
             {
                 var file = new FileInfo(path);
                 var directory = new DirectoryInfo(path);
@@ -110,21 +110,21 @@ namespace MelonAutoUpdater.JSONObjects
         /// <summary>
         /// Config regarding allowed/disallowed platform for class <see cref="MelonConfig"/>
         /// </summary>
-        public class Platform
+        public class ConfigPlatform
         {
             /// <summary>
             /// If true, list will be treated as whitelist, otherwise list will be treated as blacklist
             /// </summary>
             [Include]
-            [DecodeAlias("Whitelist")]
-            public bool whitelist { get; set; }
+            [DecodeAlias("whitelist")]
+            public bool Whitelist { get; set; }
 
             /// <summary>
-            /// List of all platforms that are whitelisted/blacklisted, depending on the <see cref="whitelist"/> property
+            /// List of all platforms that are whitelisted/blacklisted, depending on the <see cref="Whitelist"/> property
             /// </summary>
             [Include]
-            [DecodeAlias("List", "Platforms")]
-            public string[] list { get; set; }
+            [DecodeAlias("list", "Platforms", "platforms")]
+            public string[] List { get; set; }
         }
     }
 }

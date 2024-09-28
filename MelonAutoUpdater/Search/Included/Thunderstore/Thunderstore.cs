@@ -31,15 +31,16 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
             if (disableAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > apiReset) disableAPI = false;
             if (!disableAPI)
             {
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+                // For some reason Visual Studio doesn't like me doing that
                 string response = string.Empty;
-                bool threwError = false;
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
                 try
                 {
                     response = request.DownloadString($"https://thunderstore.io/api/experimental/package/{namespaceName}/{packageName}/");
                 }
                 catch (WebException e)
                 {
-                    threwError = true;
                     HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                     string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
                     if (statusCode == HttpStatusCode.NotFound)
@@ -60,46 +61,43 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
 
                     return null;
                 }
-                if (!threwError)
+                if (!string.IsNullOrEmpty(response))
                 {
-                    if (!string.IsNullOrEmpty(response))
+                    var _data = JSON.Load(response);
+
+                    request.Dispose();
+
+                    List<FileData> files = new List<FileData>();
+
+                    FileData fileData = new FileData
                     {
-                        var _data = JSON.Load(response);
+                        FileName = packageName,
+                        URL = (string)_data["latest"]["download_url"]
+                    };
 
-                        request.Dispose();
+                    files.Add(fileData);
 
-                        List<FileData> files = new List<FileData>();
-
-                        FileData fileData = new FileData
-                        {
-                            FileName = packageName,
-                            URL = (string)_data["latest"]["download_url"]
-                        };
-
-                        files.Add(fileData);
-
-                        bool isSemVerSuccess = SemVersion.TryParse((string)_data["latest"]["version_number"], out SemVersion semver);
-                        if (!isSemVerSuccess)
-                        {
-                            Logger.Error($"Failed to parse version");
-                            return null;
-                        }
-
-                        var communityListings = _data["community_listings"] as ProxyArray;
-                        var first = communityListings.First();
-                        var community = first["community"];
-
-                        return new MelonData()
-                        {
-                            LatestVersion = semver,
-                            DownloadFiles = files,
-                            DownloadLink = new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}/")
-                        };
-                    }
-                    else
+                    bool isSemVerSuccess = SemVersion.TryParse((string)_data["latest"]["version_number"], out SemVersion semver);
+                    if (!isSemVerSuccess)
                     {
-                        Logger.Warning("Thunderstore API returned no body");
+                        Logger.Error($"Failed to parse version");
+                        return null;
                     }
+
+                    var communityListings = _data["community_listings"] as ProxyArray;
+                    var first = communityListings.First();
+                    var community = first["community"];
+
+                    return new MelonData()
+                    {
+                        LatestVersion = semver,
+                        DownloadFiles = files,
+                        DownloadLink = new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}/")
+                    };
+                }
+                else
+                {
+                    Logger.Warning("Thunderstore API returned no body");
                 }
             }
             return null;

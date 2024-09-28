@@ -126,16 +126,16 @@ namespace MelonAutoUpdater
         {
             if (melonConfig == null) return true;
             if (extension == null) throw new ArgumentNullException(nameof(extension));
-            if (melonConfig.platform != null)
+            if (melonConfig.Platform != null)
             {
-                if (melonConfig.platform.list == null) return true;
-                if (melonConfig.platform.whitelist)
+                if (melonConfig.Platform.List == null) return true;
+                if (melonConfig.Platform.Whitelist)
                 {
-                    if (melonConfig.platform.list.Where(x => x == extension.Name).Any()) return true;
+                    if (melonConfig.Platform.List.Where(x => x == extension.Name).Any()) return true;
                 }
                 else
                 {
-                    if (!melonConfig.platform.list.Where(x => x == extension.Name).Any()) return true;
+                    if (!melonConfig.Platform.List.Where(x => x == extension.Name).Any()) return true;
                 }
             }
             return false;
@@ -653,7 +653,7 @@ namespace MelonAutoUpdater
                 {
                     Logger.Msg("Found MAU config associated with Melon");
                 }
-                bool _ignore = config != null && config.disable;
+                bool _ignore = config != null && config.Disable;
                 var melonAssemblyInfo = GetMelonInfo(mainAssembly);
                 if (_ignore)
                 {
@@ -770,12 +770,12 @@ namespace MelonAutoUpdater
                                                         httpClient.Dispose();
                                                         continue;
                                                     }
-                                                    if (config != null && config.allowedFileDownloads != null && contentType != null && !string.IsNullOrEmpty(retFile.FileName))
+                                                    if (config != null && config.AllowedFileDownloads != null && contentType != null && !string.IsNullOrEmpty(retFile.FileName))
                                                     {
                                                         string _fileName = Path.GetFileName(pathToSave);
-                                                        if (!string.IsNullOrEmpty(_fileName) && config.allowedFileDownloads != null && config.allowedFileDownloads.Any())
+                                                        if (!string.IsNullOrEmpty(_fileName) && config.AllowedFileDownloads != null && config.AllowedFileDownloads.Any())
                                                         {
-                                                            if (!config.allowedFileDownloads.Contains(_fileName))
+                                                            if (!config.AllowedFileDownloads.Contains(_fileName))
                                                             {
                                                                 Logger.Msg($"{_fileName} was configured to not be downloaded & installed, aborting download");
                                                                 continue;

@@ -9,6 +9,7 @@ namespace MelonAutoUpdater.Helper
     /// <summary>
     /// Helper class for MelonLogger
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     public static class MelonLoggerHelper
     {
         internal static readonly Color DefaultTextColor = Color.LightGray;
