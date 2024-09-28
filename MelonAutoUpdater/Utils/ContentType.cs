@@ -109,7 +109,7 @@ namespace MelonAutoUpdater.Utils
             }
             catch (Exception e)
             {
-                Core.logger.Error(e);
+                MelonAutoUpdater.logger.Error(e);
                 contentType = null;
                 return false;
             }

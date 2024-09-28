@@ -29,7 +29,7 @@ namespace MelonAutoUpdater.Helper
 
         private static void Internal_MsgPastel(MelonLogger.Instance logger, Color textColor, string text)
         {
-            Version MelonLoaderVersion = Core.MLAssembly.GetName().Version;
+            Version MelonLoaderVersion = MelonAutoUpdater.MLAssembly.GetName().Version;
             if (new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build) >= new SemVersion(0, 6, 5))
             {
                 UseMLMsgPastel(logger, textColor, text);

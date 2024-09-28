@@ -141,7 +141,7 @@ namespace MelonAutoUpdater.Search
         /// Get current version of MAU
         /// </summary>
         /// <returns><see cref="SemVersion"/> of current MAU version</returns>
-        public static string GetMAUVersion() => Core.Version;
+        public static string GetMAUVersion() => MelonAutoUpdater.Version;
 
         /// <summary>
         /// Returns an empty of a task with returning type <see cref="MelonData"/>
@@ -175,25 +175,25 @@ namespace MelonAutoUpdater.Search
                     bool load = true;
                     if (objects.Find(x => x.Name == obj.Name && x.Author == obj.Author) != null)
                     {
-                        Core.logger.Warning("Found an extension with identical Names & Author to another extension, not loading");
+                        MelonAutoUpdater.logger.Warning("Found an extension with identical Names & Author to another extension, not loading");
                         load = true;
                     }
-                    var found = Core.IncludedExtEntries.Where(x => x.Key.Name == obj.Name && x.Key.Author == obj.Author);
+                    var found = MelonAutoUpdater.IncludedExtEntries.Where(x => x.Key.Name == obj.Name && x.Key.Author == obj.Author);
                     if (found.Any())
                     {
-                        if (found.First().Value != null && Core.GetEntryValue<bool>(found.First().Value))
+                        if (found.First().Value != null && MelonAutoUpdater.GetEntryValue<bool>(found.First().Value))
                         {
-                            Core.logger._MsgPastel($"Loaded Included MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(Core.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                            MelonAutoUpdater.logger._MsgPastel($"Loaded Included MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
                         }
                         else
                         {
-                            Core.logger._MsgPastel($"Included MAU Search Extension {obj.Name.Pastel(obj.NameColor)} is disabled");
+                            MelonAutoUpdater.logger._MsgPastel($"Included MAU Search Extension {obj.Name.Pastel(obj.NameColor)} is disabled");
                             load = false;
                         }
                     }
                     else
                     {
-                        Core.logger._MsgPastel($"Loaded MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(Core.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                        MelonAutoUpdater.logger._MsgPastel($"Loaded MAU Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
                     }
                     if (load)
                     {

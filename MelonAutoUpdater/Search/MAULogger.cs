@@ -16,7 +16,7 @@ namespace MelonAutoUpdater.Search
         internal static readonly Color DefaultMAUSEColor = Color.Cyan;
         internal static readonly Color DefaultTextColor = Color.LightGray;
 
-        private readonly MelonLogger.Instance logger = Core.logger;
+        private readonly MelonLogger.Instance logger = MelonAutoUpdater.logger;
 
         internal MAULogger(string Name)
         {

@@ -45,7 +45,7 @@ namespace MelonAutoUpdater.Utils
             webClient.DownloadFile(url, path);
 #elif NET6_0_OR_GREATER
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("User-Agent", Core.UserAgent);
+            httpClient.DefaultRequestHeaders.Add("User-Agent", MelonAutoUpdater.UserAgent);
             var get = httpClient.GetAsync(url);
             get.Wait();
             var response = get.Result;
@@ -179,7 +179,7 @@ namespace MelonAutoUpdater.Utils
             try
             {
                 var client = new GZIPWebClient();
-                client.Headers.Add("User-Agent", Core.UserAgent);
+                client.Headers.Add("User-Agent", MelonAutoUpdater.UserAgent);
                 client.Headers.Add("Accept", "application/json");
                 string response = client.DownloadString(apiUrl);
                 if (!string.IsNullOrEmpty(response))
@@ -205,7 +205,7 @@ namespace MelonAutoUpdater.Utils
             };
 
             var client = new HttpClient(handler);
-            client.DefaultRequestHeaders.Add("User-Agent", Core.UserAgent);
+            client.DefaultRequestHeaders.Add("User-Agent", MelonAutoUpdater.UserAgent);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
             var res = client.GetAsync(apiUrl);
             res.Wait();

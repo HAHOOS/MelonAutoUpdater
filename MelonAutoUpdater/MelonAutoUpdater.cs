@@ -25,7 +25,7 @@ using System.Net;
 
 #region Melon Attributes
 
-[assembly: MelonInfo(typeof(MelonAutoUpdater.Core), "MelonAutoUpdater", "0.3.1", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
+[assembly: MelonInfo(typeof(MelonAutoUpdater.MelonAutoUpdater), "MelonAutoUpdater", "0.3.1", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 [assembly: MelonPriority(-100000000)]
 #pragma warning disable CS0618 // Type or member is obsolete
 // Using ConsoleColor for backwards compatibility
@@ -54,7 +54,7 @@ namespace MelonAutoUpdater
     /// <summary>
     /// Class that contains most of MelonAutoUpdater's functionality
     /// </summary>
-    public class Core : MelonPlugin
+    public class MelonAutoUpdater : MelonPlugin
     {
         /// <summary>
         /// Version of MAU

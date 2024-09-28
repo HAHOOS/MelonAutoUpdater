@@ -52,23 +52,23 @@ namespace MelonAutoUpdater
 
         internal static void InternalMsg(Color txt_color, string txt)
         {
-            if (txt_color == DefaultTextColor) Core.logger.Msg(txt);
-            else Core.logger.Msg(txt.Pastel(txt_color));
+            if (txt_color == DefaultTextColor) MelonAutoUpdater.logger.Msg(txt);
+            else MelonAutoUpdater.logger.Msg(txt.Pastel(txt_color));
         }
 
         internal static void InternalMsgPastel(Color txt_color, string txt)
         {
-            Core.logger._MsgPastel(txt_color, txt);
+            MelonAutoUpdater.logger._MsgPastel(txt_color, txt);
         }
 
         internal static void InternalWarning(string txt)
         {
-            Core.logger.Warning(txt);
+            MelonAutoUpdater.logger.Warning(txt);
         }
 
         internal static void InternalError(string txt)
         {
-            Core.logger.Warning(txt);
+            MelonAutoUpdater.logger.Warning(txt);
         }
     }
 }
