@@ -41,7 +41,7 @@ namespace MelonAutoUpdater
         internal List<string> ignoreMelons;
 
         /// <summary>
-        /// If <see langword="true"/>, brute check will be enabled and usec
+        /// If <see langword="true"/>, brute check will be enabled and used
         /// </summary>
         internal bool bruteCheck = false;
 
