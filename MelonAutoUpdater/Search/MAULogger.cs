@@ -156,6 +156,251 @@ namespace MelonAutoUpdater.Search
         /// <param name="txt">The text that will be sent</param>
         public void BigError(string txt) => InternalBigError(Name, txt);
 
+        internal void Internal_DebugMsg(Color textColor, string text)
+        {
+            if (textColor == DefaultTextColor) logger.DebugMsg(text);
+            else logger.DebugMsg(text.Pastel(textColor));
+        }
+
+        internal void Internal_DebugMsgPastel(Color textColor, string text)
+        {
+            if (textColor == DefaultTextColor) logger.DebugMsgPastel(text);
+            else logger.DebugMsgPastel(text.Pastel(textColor));
+        }
+
+        internal void Internal_DebugWarning(string text)
+        {
+            logger.DebugWarning(text);
+        }
+
+        internal void Internal_DebugError(string text)
+        {
+            logger.DebugError(text);
+        }
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsg(object obj) => Internal_DebugMsg(DefaultTextColor, obj.ToString());
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsg(string txt) => Internal_DebugMsg(DefaultTextColor, txt);
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsg(string txt, params object[] args) => Internal_DebugMsg(DefaultTextColor, string.Format(txt, args));
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsg(ConsoleColor txt_color, object obj) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), obj.ToString());
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsg(ConsoleColor txt_color, string txt) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), txt);
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsg(ConsoleColor txt_color, string txt, params object[] args) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), string.Format(txt, args));
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsg(Color txt_color, object obj) => Internal_DebugMsg(txt_color, obj.ToString());
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsg(Color txt_color, string txt) => Internal_DebugMsg(txt_color, txt);
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsg(Color txt_color, string txt, params object[] args) => Internal_DebugMsg(txt_color, string.Format(txt, args));
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsgPastel(object obj) => Internal_DebugMsgPastel(DefaultTextColor, obj.ToString());
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsgPastel(string txt) => Internal_DebugMsgPastel(DefaultTextColor, txt);
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsgPastel(string txt, params object[] args) => Internal_DebugMsgPastel(DefaultTextColor, string.Format(txt, args));
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsgPastel(ConsoleColor txt_color, object obj) => Internal_DebugMsgPastel(LoggerUtils.ConsoleColorToDrawingColor(txt_color), obj.ToString());
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsgPastel(ConsoleColor txt_color, string txt) => Internal_DebugMsgPastel(LoggerUtils.ConsoleColorToDrawingColor(txt_color), txt);
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsgPastel(ConsoleColor txt_color, string txt, params object[] args) => Internal_DebugMsgPastel(LoggerUtils.ConsoleColorToDrawingColor(txt_color), string.Format(txt, args));
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsgPastel(Color txt_color, object obj) => Internal_DebugMsgPastel(txt_color, obj.ToString());
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsgPastel(Color txt_color, string txt) => Internal_DebugMsgPastel(txt_color, txt);
+
+        /// <summary>
+        /// Sends a log and removes pastel from if DEBUG mode is enabled
+        /// <para>
+        /// Note: This is only available on MelonLoader v0.6.5 or later
+        /// </para>
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsgPastel(Color txt_color, string txt, params object[] args) => Internal_DebugMsgPastel(txt_color, string.Format(txt, args));
+
+        /// <summary>
+        /// Sends a warning in logs from if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugWarning(object obj) => Internal_DebugWarning(obj.ToString());
+
+        /// <summary>
+        /// Sends a warning in logs from if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugWarning(string txt) => Internal_DebugWarning(txt);
+
+        /// <summary>
+        /// Sends a warning in logs if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugWarning(string txt, params object[] args) => Internal_DebugWarning(string.Format(txt, args));
+
+        /// <summary>
+        /// Sends an error in logs if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugError(object obj) => Internal_DebugError(obj.ToString());
+
+        /// <summary>
+        /// Sends an error in logs if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugError(string txt) => Internal_DebugError(txt);
+
+        /// <summary>
+        /// Sends an error in logs if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugError(string txt, params object[] args) => Internal_DebugError(string.Format(txt, args));
+
+        /// <summary>
+        /// Sends an error in logs if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="ex">Exception to be associated with the message</param>
+        public void DebugError(string txt, Exception ex) => Internal_DebugError($"{txt}\n{ex}");
+
         internal void InternalMsg(Color extColor, Color textColor, string ext, string text)
         {
             string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
