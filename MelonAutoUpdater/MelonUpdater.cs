@@ -15,6 +15,7 @@ using System.Reflection;
 using MelonLoader.ICSharpCode.SharpZipLib.Core;
 using MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using System.Net;
+using System.Diagnostics;
 
 namespace MelonAutoUpdater
 {
@@ -287,6 +288,11 @@ namespace MelonAutoUpdater
         /// <returns>Info about mod/plugin install (times when it succeeded, times when it failed, and if it threw an error)</returns>
         internal (int success, int failed, bool threwError) MoveAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion, MelonConfig config)
         {
+            Stopwatch sw = null;
+            if (MelonAutoUpdater.Debug)
+            {
+                sw = Stopwatch.StartNew();
+            }
             int success = 0;
             int failed = 0;
             bool threwError = false;
@@ -342,6 +348,11 @@ namespace MelonAutoUpdater
                 {
                     Logger.Error($"[{prefix}] Failed to copy folder {GetDirName(dir)}, exception thrown:{ex}");
                 }
+            }
+            if (MelonAutoUpdater.Debug)
+            {
+                sw.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"MoveFiles-{GetDirName(path)}", sw.ElapsedMilliseconds);
             }
             return (success, failed, threwError);
         }
@@ -488,6 +499,11 @@ namespace MelonAutoUpdater
         /// <returns>A <see langword="Tuple"/>, success and threwError, self explanatory</returns>
         internal (bool success, bool threwError) InstallPackage(string path, SemVersion latestVersion)
         {
+            Stopwatch sw = null;
+            if (MelonAutoUpdater.Debug)
+            {
+                sw = Stopwatch.StartNew();
+            }
             bool success = false;
             bool threwError = false;
             string fileName = Path.GetFileName(path);
@@ -609,6 +625,11 @@ namespace MelonAutoUpdater
             {
                 Logger.Msg($"Not extracting {Path.GetFileName(path)}, because it does not have the Melon Info Attribute");
             }
+            if (MelonAutoUpdater.Debug)
+            {
+                sw.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"InstallPackage-{Path.GetFileName(path)}", sw.ElapsedMilliseconds);
+            }
             return (success, threwError);
         }
 
@@ -619,6 +640,12 @@ namespace MelonAutoUpdater
         /// <param name="automatic">If <see langword="true"/>, the mods/plugins will be updated automatically, otherwise there will be only a message displayed about a new version</param>
         internal void CheckDirectory(string directory, bool automatic = true)
         {
+            Stopwatch sw = null;
+            if (MelonAutoUpdater.Debug)
+            {
+                sw = Stopwatch.StartNew();
+            }
+
             List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
 
             List<string> ignore = ignoreMelons;
@@ -643,9 +670,21 @@ namespace MelonAutoUpdater
             });
             files.RemoveAll(x => fileNameIgnore.Contains(x));
             Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
+            Stopwatch sw2 = null;
+            string previousFileName = string.Empty;
             foreach (string path in files)
             {
                 string fileName = Path.GetFileName(path);
+                if (MelonAutoUpdater.Debug)
+                {
+                    if (sw2 != null)
+                    {
+                        sw2.Stop();
+                        MelonAutoUpdater.ElapsedTime.Add($"CheckFile-{previousFileName}", sw2.ElapsedMilliseconds);
+                    }
+                    sw2 = Stopwatch.StartNew();
+                    previousFileName = fileName;
+                }
                 Logger.MsgPastel($"File: {fileName.Pastel(theme.FileNameColor)}");
                 AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
                 var config = GetMelonConfig(mainAssembly);
@@ -971,6 +1010,11 @@ namespace MelonAutoUpdater
                 Logger.MsgPastel("All melons are up to date!".Pastel(theme.UpToDateVersionColor));
             }
             Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
+            if (MelonAutoUpdater.Debug)
+            {
+                sw.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"CheckDirectory-{GetDirName(directory)}", sw.ElapsedMilliseconds);
+            }
         }
     }
 }
