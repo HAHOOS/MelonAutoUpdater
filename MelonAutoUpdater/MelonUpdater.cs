@@ -98,6 +98,11 @@ namespace MelonAutoUpdater
         /// <param name="outFolder">Path to folder which will have the content of the zip</param>
         internal static void UnzipFromStream(Stream zipStream, string outFolder)
         {
+            Stopwatch sw = null;
+            if (MelonAutoUpdater.Debug)
+            {
+                sw = Stopwatch.StartNew();
+            }
             using (var zipInputStream = new ZipInputStream(zipStream))
             {
                 while (zipInputStream.GetNextEntry() is ZipEntry zipEntry)
@@ -120,6 +125,11 @@ namespace MelonAutoUpdater
                         StreamUtils.Copy(zipInputStream, streamWriter, buffer);
                     }
                 }
+            }
+            if (MelonAutoUpdater.Debug)
+            {
+                sw.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"Unzip-{MelonUtils.RandomString(5)}", sw.ElapsedMilliseconds);
             }
         }
 
@@ -266,13 +276,11 @@ namespace MelonAutoUpdater
         /// <returns>Name of directory</returns>
         internal static string GetDirName(string path)
         {
-            if (Directory.Exists(path))
+            path.Replace(" ", "_");
+            var info = new DirectoryInfo(path);
+            if (info != null)
             {
-                var info = new DirectoryInfo(path);
-                if (info != null)
-                {
-                    return info.Name;
-                }
+                return info.Name;
             }
             return path;
         }
@@ -285,7 +293,7 @@ namespace MelonAutoUpdater
         /// <param name="mainDirectoryName">Only used in prefix, just set <see cref="string.Empty"/></param>
         /// <param name="latestVersion">The latest version of the mod the files are from</param>
         /// <param name="config">Config of the Melon</param>
-        /// <returns>Info about mod/plugin install (times when it succeeded, times when it failed, and if it threw an error)</returns>
+        /// <returns>Info about melon install (times when it succeeded, times when it failed, and if it threw an error)</returns>
         internal (int success, int failed, bool threwError) MoveAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion, MelonConfig config)
         {
             Stopwatch sw = null;
@@ -299,7 +307,7 @@ namespace MelonAutoUpdater
             string prefix = (string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{GetDirName(directory)}" : GetDirName(directory)).Pastel(Color.Cyan);
             foreach (string file in Directory.GetFiles(path))
             {
-                if (!config.CanInclude(file))
+                if (config != null && !config.CanInclude(file))
                 {
                     Logger.MsgPastel($"[{prefix}] {Path.GetFileName(file)} will not be loaded due to the Melon being configured this way");
                     continue;
@@ -672,6 +680,7 @@ namespace MelonAutoUpdater
             Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
             Stopwatch sw2 = null;
             string previousFileName = string.Empty;
+            bool _bruteCheck = false;
             foreach (string path in files)
             {
                 string fileName = Path.GetFileName(path);
@@ -680,8 +689,9 @@ namespace MelonAutoUpdater
                     if (sw2 != null)
                     {
                         sw2.Stop();
-                        MelonAutoUpdater.ElapsedTime.Add($"CheckFile-{previousFileName}", sw2.ElapsedMilliseconds);
+                        MelonAutoUpdater.ElapsedTime.Add($"CheckFile-{previousFileName}{(_bruteCheck ? " (with Brute Check)" : "")}", sw2.ElapsedMilliseconds);
                     }
+                    _bruteCheck = false;
                     sw2 = Stopwatch.StartNew();
                     previousFileName = fileName;
                 }
@@ -700,8 +710,7 @@ namespace MelonAutoUpdater
                     Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
                     continue;
                 }
-                FileType fileType = GetFileType(melonAssemblyInfo);
-                if (fileType != FileType.Other)
+                if (melonAssemblyInfo != null)
                 {
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
                     if (melonAssemblyInfo != null)
@@ -714,6 +723,7 @@ namespace MelonAutoUpdater
                             if (bruteCheck)
                             {
                                 Logger.MsgPastel("Running " + "brute check..".Pastel(Color.Red));
+                                _bruteCheck = true;
                                 data = GetModDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author, currentVersion, config);
                             }
                         }
@@ -732,9 +742,15 @@ namespace MelonAutoUpdater
                                         bool threwError = false;
                                         foreach (var retFile in data.DownloadFiles)
                                         {
+                                            string pathToSave = "";
+                                            string name = !string.IsNullOrEmpty(retFile.FileName) ? retFile.FileName : $"{melonAssemblyInfo.Name}-{MelonUtils.RandomString(7)}";
+                                            Stopwatch sw3 = null;
+                                            if (MelonAutoUpdater.Debug)
+                                            {
+                                                sw3 = Stopwatch.StartNew();
+                                            }
                                             var httpClient = new WebClient();
                                             string tempFile = $"{MelonUtils.RandomString(7)}.temp";
-                                            bool downloadFail = false;
                                             FileStream downloadedFile = null;
                                             try
                                             {
@@ -742,135 +758,136 @@ namespace MelonAutoUpdater
                                             }
                                             catch (WebException e)
                                             {
-                                                downloadFail = true;
                                                 Logger.Error($"Failed to download file through link{e}");
                                                 downloadedFile.Dispose();
                                                 downloadedFile = null;
-                                            }
-                                            string pathToSave = "";
-                                            string name = !string.IsNullOrEmpty(retFile.FileName) ? retFile.FileName : $"{melonAssemblyInfo.Name}-{MelonUtils.RandomString(7)}";
-                                            if (!downloadFail)
-                                            {
-                                                try
+                                                if (MelonAutoUpdater.Debug)
                                                 {
-                                                    string resContentType = httpClient.ResponseHeaders.Get("Content-Type");
-                                                    ContentType contentType;
-                                                    if (!string.IsNullOrEmpty(retFile.ContentType))
+                                                    sw3.Stop();
+                                                    MelonAutoUpdater.ElapsedTime.Add($"DownloadFile-Fail-{name}", sw.ElapsedMilliseconds);
+                                                }
+                                                continue;
+                                            }
+                                            try
+                                            {
+                                                string resContentType = httpClient.ResponseHeaders.Get("Content-Type");
+                                                ContentType contentType;
+                                                if (!string.IsNullOrEmpty(retFile.ContentType))
+                                                {
+                                                    bool parseSuccess = ContentType.TryParse(ParseType.MimeType, retFile.ContentType, out ContentType _contentType);
+                                                    if (parseSuccess)
                                                     {
-                                                        bool parseSuccess = ContentType.TryParse(ParseType.MimeType, retFile.ContentType, out ContentType _contentType);
-                                                        if (parseSuccess)
+                                                        contentType = _contentType;
+                                                        if (!string.IsNullOrEmpty(_contentType.Extension))
                                                         {
-                                                            contentType = _contentType;
-                                                            if (!string.IsNullOrEmpty(_contentType.Extension))
-                                                            {
-                                                                pathToSave = Path.Combine(Files.TemporaryMelonsFolder, $"{name.Replace(" ", "")}.{_contentType.Extension}");
-                                                            }
-                                                            else
-                                                            {
-                                                                Logger.Warning("Content-Type is not associated with any file type, continuing without downloading & installing file");
-                                                                httpClient.Dispose();
-                                                                continue;
-                                                            }
+                                                            pathToSave = Path.Combine(Files.TemporaryMelonsFolder, $"{name.Replace(" ", "")}.{_contentType.Extension}");
                                                         }
                                                         else
                                                         {
-                                                            Logger.Warning("Could not determine Content-Type, continuing without downloading & installing file");
-                                                            httpClient.Dispose();
-                                                            continue;
-                                                        }
-                                                    }
-                                                    else if (resContentType != null)
-                                                    {
-                                                        bool parseSuccess = ContentType.TryParse(ParseType.MimeType, resContentType, out ContentType _contentType);
-                                                        if (parseSuccess)
-                                                        {
-                                                            contentType = _contentType;
-                                                            if (!string.IsNullOrEmpty(_contentType.Extension))
-                                                            {
-                                                                pathToSave = Path.Combine(Files.TemporaryMelonsFolder, $"{name.Replace(" ", "")}.{_contentType.Extension}");
-                                                            }
-                                                            else
-                                                            {
-                                                                Logger.Warning("Content-Type is not associated with any file type, continuing without downloading file");
-                                                                httpClient.Dispose();
-                                                                continue;
-                                                            }
-                                                        }
-                                                        else
-                                                        {
-                                                            Logger.Warning("Could not determine Content-Type, continuing without downloading file");
+                                                            Logger.Warning("Content-Type is not associated with any file type, continuing without downloading & installing file");
                                                             httpClient.Dispose();
                                                             continue;
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        Logger.Warning("No Content Type was provided, continuing without downloading file");
+                                                        Logger.Warning("Could not determine Content-Type, continuing without downloading & installing file");
                                                         httpClient.Dispose();
                                                         continue;
                                                     }
-                                                    if (config != null && config.AllowedFileDownloads != null && contentType != null && !string.IsNullOrEmpty(retFile.FileName))
+                                                }
+                                                else if (resContentType != null)
+                                                {
+                                                    bool parseSuccess = ContentType.TryParse(ParseType.MimeType, resContentType, out ContentType _contentType);
+                                                    if (parseSuccess)
                                                     {
-                                                        string _fileName = Path.GetFileName(pathToSave);
-                                                        if (!string.IsNullOrEmpty(_fileName) && config.AllowedFileDownloads != null && config.AllowedFileDownloads.Any())
+                                                        contentType = _contentType;
+                                                        if (!string.IsNullOrEmpty(_contentType.Extension))
                                                         {
-                                                            if (!config.AllowedFileDownloads.Contains(_fileName))
-                                                            {
-                                                                Logger.Msg($"{_fileName} was configured to not be downloaded & installed, aborting download");
-                                                                continue;
-                                                            }
+                                                            pathToSave = Path.Combine(Files.TemporaryMelonsFolder, $"{name.Replace(" ", "")}.{_contentType.Extension}");
+                                                        }
+                                                        else
+                                                        {
+                                                            Logger.Warning("Content-Type is not associated with any file type, continuing without downloading file");
+                                                            httpClient.Dispose();
+                                                            continue;
                                                         }
                                                     }
-                                                    var f = new FileInfo(tempFile);
-                                                    if (f.Exists)
+                                                    else
                                                     {
-                                                        f.MoveTo(pathToSave);
-                                                        var f2 = new FileInfo(pathToSave);
-                                                        if (f2.Exists) downloadedFile = f2.Open(FileMode.Open, FileAccess.ReadWrite);
+                                                        Logger.Warning("Could not determine Content-Type, continuing without downloading file");
+                                                        httpClient.Dispose();
+                                                        continue;
                                                     }
-                                                    Logger.Msg($"Download successful");
                                                 }
-                                                catch (Exception ex)
+                                                else
                                                 {
-                                                    Logger.Error($"Failed to download file through link{ex}");
-                                                    downloadedFile.Dispose();
-                                                    downloadedFile = null;
+                                                    Logger.Warning("No Content Type was provided, continuing without downloading file");
+                                                    httpClient.Dispose();
+                                                    continue;
                                                 }
+                                                if (config != null && config.AllowedFileDownloads != null && contentType != null && !string.IsNullOrEmpty(retFile.FileName))
+                                                {
+                                                    string _fileName = Path.GetFileName(pathToSave);
+                                                    if (!string.IsNullOrEmpty(_fileName) && config.AllowedFileDownloads != null && config.AllowedFileDownloads.Any())
+                                                    {
+                                                        if (!config.AllowedFileDownloads.Contains(_fileName))
+                                                        {
+                                                            Logger.Msg($"{_fileName} was configured to not be downloaded & installed, aborting download");
+                                                            continue;
+                                                        }
+                                                    }
+                                                }
+                                                var f = new FileInfo(tempFile);
+                                                if (f.Exists)
+                                                {
+                                                    f.MoveTo(pathToSave);
+                                                    var f2 = new FileInfo(pathToSave);
+                                                    if (f2.Exists) downloadedFile = f2.Open(FileMode.Open, FileAccess.ReadWrite);
+                                                }
+                                                Logger.Msg($"Download successful");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Logger.Error($"Failed to download file through link{ex}");
+                                                downloadedFile.Dispose();
+                                                downloadedFile = null;
+                                            }
 
-                                                if (downloadedFile != null)
+                                            if (downloadedFile != null)
+                                            {
+                                                downloadedFile.Dispose();
+                                                if (Path.GetExtension(pathToSave) == ".zip")
                                                 {
-                                                    downloadedFile.Dispose();
-                                                    if (Path.GetExtension(pathToSave) == ".zip")
+                                                    Logger.Msg("File is a ZIP, extracting files...");
+                                                    string extractPath = Path.Combine(Files.TemporaryMelonsFolder, name.Replace(" ", "-"));
+                                                    try
                                                     {
-                                                        Logger.Msg("File is a ZIP, extracting files...");
-                                                        string extractPath = Path.Combine(Files.TemporaryMelonsFolder, name.Replace(" ", "-"));
-                                                        try
+                                                        UnzipFromStream(File.OpenRead(pathToSave), extractPath);
+                                                        Logger.Msg("Successfully extracted files! Installing content..");
+                                                        downloadedFile.Dispose();
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        threwError = true;
+                                                        Logger.Error($"An exception occurred while extracting files from a ZIP file{ex}");
+                                                        File.Delete(pathToSave);
+                                                        DirectoryInfo tempDir = new DirectoryInfo(Files.TemporaryMelonsFolder);
+                                                        foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
+                                                        foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
+                                                    }
+                                                    var allContent = new List<string>();
+                                                    var extracedDirectories = Directory.GetDirectories(extractPath).ToList();
+                                                    var extractedFiles = Directory.GetFiles(extractPath).ToList();
+                                                    extractedFiles.ForEach(x => allContent.Add(x));
+                                                    extracedDirectories.ForEach((x) => allContent.Add(x));
+                                                    Logger.Msg($"Found {extractedFiles.Count} files and {extracedDirectories.Count} directories");
+                                                    foreach (string extPath in allContent)
+                                                    {
+                                                        if (Directory.Exists(extPath))
                                                         {
-                                                            UnzipFromStream(File.OpenRead(pathToSave), extractPath);
-                                                            Logger.Msg("Successfully extracted files! Installing content..");
-                                                            downloadedFile.Dispose();
-                                                        }
-                                                        catch (Exception ex)
-                                                        {
-                                                            threwError = true;
-                                                            Logger.Error($"An exception occurred while extracting files from a ZIP file{ex}");
-                                                            File.Delete(pathToSave);
-                                                            DirectoryInfo tempDir = new DirectoryInfo(Files.TemporaryMelonsFolder);
-                                                            foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
-                                                            foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
-                                                        }
-                                                        var allContent = new List<string>();
-                                                        var extracedDirectories = Directory.GetDirectories(extractPath).ToList();
-                                                        var extractedFiles = Directory.GetFiles(extractPath).ToList();
-                                                        extractedFiles.ForEach(x => allContent.Add(x));
-                                                        extracedDirectories.ForEach((x) => allContent.Add(x));
-                                                        Logger.Msg($"Found {extractedFiles.Count} files and {extracedDirectories.Count} directories");
-                                                        foreach (string extPath in allContent)
-                                                        {
-                                                            if (Directory.Exists(extPath))
-                                                            {
-                                                                string dirName = GetDirName(extPath);
-                                                                List<string> SubDirCheck = new List<string>
+                                                            string dirName = GetDirName(extPath);
+                                                            List<string> SubDirCheck = new List<string>
                                                                 {
                                                                     "Mods",
                                                                     "Plugins",
@@ -878,63 +895,67 @@ namespace MelonAutoUpdater
                                                                     "UserData",
                                                                     "UserLibs"
                                                                 };
-                                                                int checkedDirs = 0;
-                                                                foreach (var subdir in SubDirCheck)
+                                                            int checkedDirs = 0;
+                                                            foreach (var subdir in SubDirCheck)
+                                                            {
+                                                                if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
                                                                 {
-                                                                    if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
-                                                                    {
 #pragma warning disable CS0618 // Type or member is obsolete
-                                                                        var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.LatestVersion, config);
+                                                                    var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Path.Combine(MelonUtils.BaseDirectory, subdir), string.Empty, data.LatestVersion, config);
 #pragma warning restore CS0618 // Type or member is obsolete
-                                                                        checkedDirs++;
-                                                                        success += res1.success;
-                                                                        failed += res1.failed;
-                                                                        if (res1.threwError) threwError = true;
-                                                                    }
-                                                                }
-                                                                if (checkedDirs <= Directory.GetDirectories(extPath).Length)
-                                                                {
-                                                                    Logger.Msg($"Found {dirName}, installing all content from it...");
-#pragma warning disable CS0618 // Type or member is obsolete
-                                                                    var res1 = MoveAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.LatestVersion, config);
+                                                                    checkedDirs++;
                                                                     success += res1.success;
                                                                     failed += res1.failed;
                                                                     if (res1.threwError) threwError = true;
-#pragma warning restore CS0618 // Type or member is obsolete
                                                                 }
                                                             }
-                                                            else if (Path.GetExtension(extPath) == ".dll")
+                                                            if (checkedDirs <= Directory.GetDirectories(extPath).Length)
                                                             {
-                                                                var res = InstallPackage(extPath, data.LatestVersion);
-                                                                if (res.threwError) threwError = true;
-                                                                if (res.success) success += 1;
-                                                                else failed += 1;
-                                                            }
-                                                            else
-                                                            {
-                                                                Logger.Warning($"Not moving {Path.GetFileName(extPath)}, as it seems useless, sorry in advance");
+                                                                Logger.Msg($"Found {dirName}, installing all content from it...");
+#pragma warning disable CS0618 // Type or member is obsolete
+                                                                var res1 = MoveAllFiles(extPath, Path.Combine(MelonUtils.BaseDirectory, dirName), string.Empty, data.LatestVersion, config);
+                                                                success += res1.success;
+                                                                failed += res1.failed;
+                                                                if (res1.threwError) threwError = true;
+#pragma warning restore CS0618 // Type or member is obsolete
                                                             }
                                                         }
-                                                        Directory.Delete(extractPath, true);
-                                                        File.Delete(pathToSave);
+                                                        else if (Path.GetExtension(extPath) == ".dll")
+                                                        {
+                                                            var res = InstallPackage(extPath, data.LatestVersion);
+                                                            if (res.threwError) threwError = true;
+                                                            if (res.success) success += 1;
+                                                            else failed += 1;
+                                                        }
+                                                        else
+                                                        {
+                                                            Logger.Warning($"Not moving {Path.GetFileName(extPath)}, as it seems useless, sorry in advance");
+                                                        }
                                                     }
-                                                    else if (Path.GetExtension(pathToSave) == ".dll")
-                                                    {
-                                                        Logger.Msg("Downloaded file is a DLL file, installing content...");
-                                                        var res = InstallPackage(pathToSave, data.LatestVersion);
-                                                        if (res.threwError) threwError = true;
-                                                        if (res.success) success += 1;
-                                                        else failed += 1;
-                                                    }
-                                                    else
-                                                    {
-                                                        Logger.Warning($"Not moving {Path.GetFileName(pathToSave)}, as it seems useless, sorry in advance");
-                                                    }
+                                                    Directory.Delete(extractPath, true);
+                                                    File.Delete(pathToSave);
+                                                }
+                                                else if (Path.GetExtension(pathToSave) == ".dll")
+                                                {
+                                                    Logger.Msg("Downloaded file is a DLL file, installing content...");
+                                                    var res = InstallPackage(pathToSave, data.LatestVersion);
+                                                    if (res.threwError) threwError = true;
+                                                    if (res.success) success += 1;
+                                                    else failed += 1;
                                                 }
                                                 else
                                                 {
-                                                    Logger.Error("Downloaded file is empty, unable to update melon");
+                                                    Logger.Warning($"Not moving {Path.GetFileName(pathToSave)}, as it seems useless, sorry in advance");
                                                 }
+                                            }
+                                            else
+                                            {
+                                                Logger.Error("Downloaded file is empty, unable to update melon");
+                                            }
+                                            if (MelonAutoUpdater.Debug)
+                                            {
+                                                sw3.Stop();
+                                                MelonAutoUpdater.ElapsedTime.Add($"DownloadFile-{name}", sw.ElapsedMilliseconds);
                                             }
                                         }
                                         Logger.MsgPastel(
