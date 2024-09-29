@@ -24,9 +24,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("0.3.1")]
 [assembly: AssemblyInformationalVersion("0.3.1")]
 [assembly: AssemblyProduct("MelonAutoUpdater")]
-[assembly: AssemblyTitle("MelonAutoUpdater")]
 [assembly: AssemblyCompany("HAHOOS")]
 [assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
+[assembly: AssemblyTitle("An automatic updater for all your MelonLoader mods!")]
 [assembly: AssemblyCopyright("Copyright © HAHOOS 2024")]
 [assembly: AssemblyCulture("")]
 #if DEBUG
