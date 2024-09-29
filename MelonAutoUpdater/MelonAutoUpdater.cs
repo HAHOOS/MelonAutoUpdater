@@ -346,7 +346,7 @@ namespace MelonAutoUpdater
             }
 
             logger = LoggerInstance;
-            UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
+            UserAgent = $"{this.Info.Name}/{Version} Auto-Updater for ML mods";
             MAUSearch.UserAgent = UserAgent;
 
             LoggerInstance.Msg("Setup Melon Preferences");
