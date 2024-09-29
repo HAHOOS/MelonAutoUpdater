@@ -3,7 +3,6 @@
 		<TargetFrameworks>net35</TargetFrameworks>
 		<LangVersion>7.3</LangVersion>
 		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
-		<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>MelonAutoUpdater</Title>
@@ -13,9 +12,7 @@
 This package exists to easily reference the plugin for developers</Description>
 		<PackageProjectUrl>https://github.com/HAHOOS/MelonAutoUpdater</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/HAHOOS/MelonAutoUpdater.git</RepositoryUrl>
-		<PackageTags>MelonLoader;Plugin;</PackageTags>
-		<AssemblyVersion>$(Version)</AssemblyVersion>
-		<FileVersion>$(Version)</FileVersion>
+		<PackageTags>MelonLoader;Plugin;MelonAutoUpdater;MAU;Universal;Mono;IL2cpp</PackageTags>
 		<NeutralLanguage>en-150</NeutralLanguage>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
@@ -24,6 +21,8 @@ This package exists to easily reference the plugin for developers</Description>
 		<Version>0.3.1</Version>
 	</PropertyGroup>
 
+	<!-- Embed mime-types.json into the DLL file -->
+	
 	<ItemGroup>
 	  <None Remove="Embedded\mime-types.json" />
 	</ItemGroup>
@@ -32,6 +31,8 @@ This package exists to easily reference the plugin for developers</Description>
 	  <EmbeddedResource Include="Embedded\mime-types.json" />
 	</ItemGroup>
 
+	<!-- NuGet package stuff -->
+	
 	<ItemGroup>
 	  <None Include="..\.github\Images\MAUIcon.png">
 	    <Pack>True</Pack>
@@ -47,16 +48,18 @@ This package exists to easily reference the plugin for developers</Description>
 	  </None>
 	</ItemGroup>
 
+	<!-- Packages from NuGet, all of them should be available when MelonLoader is installed -->
+	
 	<ItemGroup>
 		<PackageReference Include="Mono.Cecil" Version="0.10.4" />
 		<PackageReference Include="LavaGang.MelonLoader" Version="0.6.5" />
 		<PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
-	</ItemGroup>
-
-	<ItemGroup Condition=" '$(TargetFramework)' == 'net35' ">
 		<PackageReference Include="ValueTupleBridge" Version="0.1.5" />
 	</ItemGroup>
 		
+	
+	<!-- This is to automatically copy the plugin to games to test faster  -->
+	<!--                  You will need to edit this                       -->
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins&quot;" />
