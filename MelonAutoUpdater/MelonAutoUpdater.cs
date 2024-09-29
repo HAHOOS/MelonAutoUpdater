@@ -633,57 +633,6 @@ namespace MelonAutoUpdater
 
             Files.Clear(TempDirectory.Melons);
 
-            LoggerInstance.Msg("Loading necessary dependencies");
-            var nuget = new NuGet();
-            nuget.Log += (sender, args) =>
-            {
-                string msg = $"[" + "NuGet".Pastel(Color.Cyan) + $"] {args.Message}";
-                string msg_nopastel = $"[NuGet] {args.Message}";
-                if (args.Severity == NuGet.LogSeverity.MESSAGE)
-                {
-                    LoggerInstance._MsgPastel(msg);
-                }
-                else if (args.Severity == NuGet.LogSeverity.WARNING)
-                {
-                    LoggerInstance.Warning(msg_nopastel);
-                }
-                else if (args.Severity == NuGet.LogSeverity.ERROR)
-                {
-                    LoggerInstance.Error(msg_nopastel);
-                }
-                else if (args.Severity == NuGet.LogSeverity.DEBUG)
-                {
-                    LoggerInstance.DebugMsgPastel(msg);
-                }
-                else if (args.Severity == NuGet.LogSeverity.DEBUG_WARNING)
-                {
-                    LoggerInstance.DebugWarning(msg);
-                }
-                else if (args.Severity == NuGet.LogSeverity.DEBUG_ERROR)
-                {
-                    LoggerInstance.DebugWarning(msg);
-                }
-            };
-
-            int needDownload = NuGetPackages.Count;
-            if (NuGetPackages != null && needDownload > 0)
-            {
-                foreach (var dependency in NuGetPackages)
-                {
-                    bool isLoaded = nuget.Internal_IsLoaded(dependency.Key, true, dependency.Value, true);
-                    if (!isLoaded)
-                    {
-                        LoggerInstance._MsgPastel($"{dependency.Key.Pastel(theme.FileNameColor)} is not loaded!");
-                        // Install package
-
-                        nuget.InstallPackage(dependency.Key, dependency.Value);
-                    }
-                    else
-                    {
-                        LoggerInstance._MsgPastel($"{dependency.Key.Pastel(theme.FileNameColor)} is loaded!");
-                    }
-                }
-            }
             LoggerInstance.Msg("Checking if internet is connected");
             var internetConnected = CheckForInternetConnection();
             if (internetConnected)
