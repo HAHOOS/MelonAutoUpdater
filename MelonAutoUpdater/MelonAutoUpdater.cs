@@ -5,14 +5,13 @@ using System;
 using System.IO;
 using System.Linq;
 using Semver;
-using System.Drawing;
 using MelonLoader.Preferences;
 using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
-using MelonAutoUpdater.JSONObjects;
 using MelonAutoUpdater.Utils;
 using System.Net;
+using System.Diagnostics;
 
 namespace MelonAutoUpdater
 {
@@ -46,10 +45,6 @@ namespace MelonAutoUpdater
         /// </summary>
         internal IEnumerable<MAUSearch> extensions;
 
-        private readonly Dictionary<string, string> NuGetPackages = new Dictionary<string, string>
-        {
-        };
-
         /// <summary>
         /// If <see langword="true"/>, mods will only be checked the versions and not updated, even when available
         /// </summary>
@@ -68,6 +63,11 @@ namespace MelonAutoUpdater
 #else
         public static bool Debug { get; internal set; } = false;
 #endif
+
+        /// <summary>
+        /// Variable used to debug how long it took for certain processes to complete
+        /// </summary>
+        public static Dictionary<string, long> ElapsedTime = new Dictionary<string, long>();
 
         #region Melon Preferences
 
@@ -226,18 +226,6 @@ namespace MelonAutoUpdater
 
         #endregion Command Line Arguments
 
-        /// <summary>
-        /// Copied from MelonLoader v0.6.4 to make it work with older versions
-        /// </summary>
-        internal static bool IsCompatible(VerifyLoaderVersionAttribute attribute, SemVersion version)
-           => attribute.SemVer == null || version == null || (attribute.IsMinimum ? attribute.SemVer <= version : attribute.SemVer == version);
-
-        /// <summary>
-        /// Copied from MelonLoader v0.6.4 to make it work with older versions
-        /// </summary>
-        internal static bool IsCompatible(VerifyLoaderVersionAttribute attribute, string version)
-            => !SemVersion.TryParse(version, out SemVersion ver) || IsCompatible(attribute, ver);
-
         // If you are wondering, this is from StackOverflow, although a bit edited, I'm just a bit lazy
         /// <summary>
         /// Checks for internet connection
@@ -259,111 +247,6 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Check if an assembly is a <see cref="MelonMod"/>, a <see cref="MelonPlugin"/> or something else
-        /// </summary>
-        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
-        /// <returns>A FileType, either <see cref="MelonMod"/>, <see cref="MelonPlugin"/> or Other</returns>
-        internal static FileType GetFileType(AssemblyDefinition assembly)
-        {
-            MelonInfoAttribute infoAttribute = GetMelonInfo(assembly);
-
-            if (infoAttribute != null)
-            {
-                return infoAttribute.SystemType == typeof(MelonMod) ? FileType.MelonMod : infoAttribute.SystemType == typeof(MelonPlugin) ? FileType.MelonPlugin : FileType.Other;
-            }
-
-            return FileType.Other;
-        }
-
-        /// <summary>
-        /// Get name of a directory
-        /// </summary>
-        /// <param name="path">Path to the directory</param>
-        /// <returns>Name of directory</returns>
-        internal static string GetDirName(string path)
-        {
-            if (Directory.Exists(path))
-            {
-                var info = new DirectoryInfo(path);
-                if (info != null)
-                {
-                    return info.Name;
-                }
-            }
-            return path;
-        }
-
-        /// <summary>
-        /// Move all files from one directory to another
-        /// </summary>
-        /// <param name="path">A path to directory to copy from</param>
-        /// <param name="directory">A path to directory to copy to</param>
-        /// <param name="mainDirectoryName">Only used in prefix, just set <see cref="string.Empty"/></param>
-        /// <param name="latestVersion">The latest version of the mod the files are from</param>
-        /// <param name="config">Config of the Melon</param>
-        /// <returns>Info about mod/plugin install (times when it succeeded, times when it failed, and if it threw an error)</returns>
-        internal (int success, int failed, bool threwError) MoveAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion, MelonConfig config)
-        {
-            int success = 0;
-            int failed = 0;
-            bool threwError = false;
-            string prefix = (string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{GetDirName(directory)}" : GetDirName(directory)).Pastel(Color.Cyan);
-            foreach (string file in Directory.GetFiles(path))
-            {
-                if (!config.CanInclude(file))
-                {
-                    LoggerInstance._MsgPastel($"[{prefix}] {Path.GetFileName(file)} will not be loaded due to the Melon being configured this way");
-                    continue;
-                }
-                LoggerInstance._MsgPastel($"[{prefix}] {Path.GetFileName(file)} found, copying file to folder");
-                try
-                {
-                    string _path = Path.Combine(directory, Path.GetFileName(file));
-                    if (Path.GetExtension(file) == ".dll")
-                    {
-                        var res = InstallPackage(file, latestVersion);
-                        if (res.threwError) threwError = true;
-                        if (res.success) success++;
-                        else failed++;
-                    }
-                    else
-                    {
-                        if (!File.Exists(_path)) File.Move(file, _path);
-                        else File.Replace(file, _path, Path.Combine(Files.BackupFolder, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
-                        LoggerInstance._MsgPastel($"[{prefix}] Successfully copied {Path.GetFileName(file)}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LoggerInstance.Error($"[{prefix}] Failed to copy {Path.GetFileName(file)}, exception thrown:{ex}");
-                }
-            }
-            foreach (string dir in Directory.GetDirectories(path))
-            {
-                if (!config.CanInclude(dir))
-                {
-                    LoggerInstance._MsgPastel($"[{prefix}] {GetDirName(dir)} will not be loaded due to the Melon being configured this way");
-                    continue;
-                }
-                LoggerInstance._MsgPastel($"[{prefix}] Found folder {GetDirName(dir)}, going through files");
-                try
-                {
-                    string _path = Path.Combine(directory, GetDirName(dir));
-                    if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
-                    var res = MoveAllFiles(dir, _path, prefix, latestVersion, config);
-                    if (res.threwError) threwError = true;
-                    success += res.success;
-                    failed += res.failed;
-                }
-                catch (Exception ex)
-                {
-                    LoggerInstance.Error($"[{prefix}] Failed to copy folder {GetDirName(dir)}, exception thrown:{ex}");
-                }
-            }
-            return (success, failed, threwError);
-        }
-
-        /// <summary>
         /// Get value from a custom attribute
         /// </summary>
         /// <typeparam name="T"><see cref="Type"/> that will be returned as value</typeparam>
@@ -374,234 +257,6 @@ namespace MelonAutoUpdater
         {
             if (customAttribute.ConstructorArguments.Count <= 0) return default;
             return (T)customAttribute.ConstructorArguments[index].Value;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="MelonInfoAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MelonInfoAttribute"/></returns>
-
-        internal static MelonInfoAttribute GetMelonInfo(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-#pragma warning disable CS0618 // Type or member is obsolete
-                if (attr.AttributeType.Name == nameof(MelonInfoAttribute)
-                    || attr.AttributeType.Name == nameof(MelonModInfoAttribute)
-                    || attr.AttributeType.Name == nameof(MelonPluginInfoAttribute))
-                {
-                    var _type = Get<TypeDefinition>(attr, 0);
-                    Type type = _type.BaseType.Name == "MelonMod" ? typeof(MelonMod) : _type.BaseType.Name == "MelonPlugin" ? typeof(MelonPlugin) : null;
-                    string Name = Get<string>(attr, 1);
-                    string Version = Get<string>(attr, 2);
-                    string Author = Get<string>(attr, 3);
-                    string DownloadLink = Get<string>(attr, 4);
-
-                    assembly.Dispose();
-
-                    return new MelonInfoAttribute(type: type, name: Name, version: Version, author: Author, downloadLink: DownloadLink);
-                }
-#pragma warning restore CS0618 // Type or member is obsolete
-            }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="VerifyLoaderVersionAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
-        /// <returns>If present, returns a <see cref="VerifyLoaderVersionAttribute"/></returns>
-        internal static VerifyLoaderVersionAttribute GetLoaderVersionRequired(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-                if (attr.AttributeType.Name == nameof(VerifyLoaderVersionAttribute))
-                {
-                    try
-                    {
-                        int major = Get<int>(attr, 0);
-                        int minor = Get<int>(attr, 1);
-                        int patch = Get<int>(attr, 2);
-                        bool isMinimum = Get<bool>(attr, 3);
-                        assembly.Dispose();
-                        return new VerifyLoaderVersionAttribute(major, minor, patch, isMinimum);
-                    }
-                    catch (Exception)
-                    {
-                        string version = Get<string>(attr, 0);
-                        bool isMinimum = Get<bool>(attr, 1);
-                        assembly.Dispose();
-                        return new VerifyLoaderVersionAttribute(version, isMinimum);
-                    }
-                }
-            }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
-        /// Checks if the <see cref="Assembly"/> is compatible with the current ML Instance
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> to check</param>
-        /// <returns><see langword="true"/>, if compatible, otherwise <see langword="false"/></returns>
-        internal bool CheckCompability(AssemblyDefinition assembly)
-        {
-            var modInfo = GetMelonInfo(assembly);
-            var loaderVer = GetLoaderVersionRequired(assembly);
-            if (loaderVer != null)
-            {
-                if (!IsCompatible(loaderVer, BuildInfo.Version))
-                {
-                    string installString = loaderVer.IsMinimum ? $"{loaderVer.SemVer} or later" : $"{loaderVer.SemVer} specifically";
-                    LoggerInstance.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current version of MelonLoader ({BuildInfo.Version}), its only compatible with {installString}");
-                    LoggerInstance.Warning("Still checking for updates");
-                }
-            }
-            bool net6 = Environment.Version.Major >= 6;
-            if (!net6)
-            {
-                bool isFramework = assembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib") != null;
-                if (!isFramework)
-                {
-                    LoggerInstance.Error($"{modInfo.Name} {modInfo.Version} is not compatible with .NET Framework");
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Installs melon from path
-        /// </summary>
-        /// <param name="path">Path of melon</param>
-        /// <param name="latestVersion">Latest version of melon, used to modify <see cref="MelonInfoAttribute"/> in case the version is not correct</param>
-        /// <returns>A <see langword="Tuple"/>, success and threwError, self explanatory</returns>
-        internal (bool success, bool threwError) InstallPackage(string path, SemVersion latestVersion)
-        {
-            bool success = false;
-            bool threwError = false;
-            string fileName = Path.GetFileName(path);
-            AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(path);
-            FileType _fileType = GetFileType(_assembly);
-            if (_fileType == FileType.MelonMod)
-            {
-                try
-                {
-                    LoggerInstance._MsgPastel("Installing mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                    if (!CheckCompability(_assembly)) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
-#pragma warning disable CS0618 // Type or member is obsolete
-                    string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Mods"), Path.GetFileName(path));
-#pragma warning restore CS0618 // Type or member is obsolete
-                    if (!File.Exists(_path)) File.Move(path, _path);
-                    else File.Replace(path, _path, Path.Combine(Files.BackupFolder, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                    success = true;
-
-                    LoggerInstance.Msg("Checking if mod version is valid");
-                    var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
-                    _assembly = AssemblyDefinition.ReadAssembly(fileStream);
-                    var melonInfo = GetMelonInfo(_assembly);
-                    if (melonInfo.Version < latestVersion)
-                    {
-                        LoggerInstance.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
-                        var module = _assembly.MainModule;
-#pragma warning disable CS0618 // Type or member is obsolete
-                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonModInfoAttribute));
-#pragma warning restore CS0618 // Type or member is obsolete
-                        if (attr.Any())
-                        {
-                            LoggerInstance.Msg("Found attribute");
-                            var a = attr.First();
-                            var versionType = module.ImportReference(typeof(string));
-                            a.ConstructorArguments[2] = new CustomAttributeArgument(versionType, latestVersion.ToString());
-                            _assembly.Write();
-                            LoggerInstance.Msg("Fixed incorrect version of mod");
-                        }
-                        else
-                        {
-                            LoggerInstance.Error("Could not find attribute, cannot fix incorrect version");
-                        }
-                    }
-                    else
-                    {
-                        LoggerInstance.Msg("Correct mod version, not changing anything");
-                    }
-                    fileStream.Flush();
-                    fileStream.Dispose();
-                    _assembly.Dispose();
-                    LoggerInstance._MsgPastel("Successfully installed mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                }
-                catch (Exception ex)
-                {
-                    LoggerInstance.Error($"An unexpected error occurred while installing content{ex}");
-                    threwError = true;
-                    success = false;
-                }
-            }
-            else if (_fileType == FileType.MelonPlugin)
-            {
-                try
-                {
-                    LoggerInstance._MsgPastel("Installing plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                    if (!CheckCompability(_assembly)) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
-#pragma warning disable CS0618 // Type or member is obsolete
-                    string pluginPath = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), fileName);
-                    string _path = Path.Combine(Path.Combine(MelonUtils.BaseDirectory, "Plugins"), Path.GetFileName(path));
-#pragma warning restore CS0618 // Type or member is obsolete
-                    if (!File.Exists(_path)) File.Move(path, _path);
-                    else File.Replace(path, _path, Path.Combine(Files.BackupFolder, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-
-                    LoggerInstance.Msg("Checking if plugin version is valid");
-                    var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
-                    _assembly = AssemblyDefinition.ReadAssembly(fileStream);
-                    var melonInfo = GetMelonInfo(_assembly);
-                    if (melonInfo.Version < latestVersion)
-                    {
-                        LoggerInstance.Warning("Plugin has incorrect version which can lead to repeated unnecessary updates, fixing");
-                        var module = _assembly.MainModule;
-#pragma warning disable CS0618 // Type or member is obsolete
-                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonPluginInfoAttribute));
-#pragma warning restore CS0618 // Type or member is obsolete
-                        if (attr.Any())
-                        {
-                            LoggerInstance.Msg("Found attribute");
-                            var a = attr.First();
-                            var semVersionType = module.ImportReference(typeof(SemVersion));
-                            a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion);
-                            _assembly.Write();
-                            LoggerInstance.Msg("Fixed incorrect version of plugin");
-                        }
-                        else
-                        {
-                            LoggerInstance.Error("Could not find attribute, cannot fix incorrect version");
-                        }
-                    }
-                    else
-                    {
-                        LoggerInstance.Msg("Correct plugin version, not changing anything");
-                    }
-                    _assembly.Dispose();
-                    fileStream.Flush();
-                    fileStream.Dispose();
-
-                    //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
-                    LoggerInstance.Warning("WARNING: The plugin will only work after game restart");
-                    LoggerInstance._MsgPastel("Successfully installed plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                    success = true;
-                }
-                catch (Exception ex)
-                {
-                    LoggerInstance.Error($"An unexpected error occurred while installing content{ex}");
-                    threwError = true;
-                    success = false;
-                }
-            }
-            else
-            {
-                LoggerInstance.Msg($"Not extracting {Path.GetFileName(path)}, because it does not have the Melon Info Attribute");
-            }
-            return (success, threwError);
         }
 
         // Note to self: Don't use async
@@ -625,6 +280,13 @@ namespace MelonAutoUpdater
 
             if (stopPlugin) return;
 
+            Stopwatch sw = null;
+
+            if (Debug)
+            {
+                sw = Stopwatch.StartNew();
+            }
+
             LoggerInstance.Msg("Creating folders in UserData");
 
             Files.Setup();
@@ -646,7 +308,7 @@ namespace MelonAutoUpdater
             }
 
             logger = LoggerInstance;
-            UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods and plugins";
+            UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
             Version = this.Info.Version;
             MAUSearch.UserAgent = UserAgent;
 
@@ -683,6 +345,18 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg("Checking mods...");
             updater.CheckDirectory(modsDir);
             LoggerInstance.Msg("Done checking mods");
+
+            if (Debug)
+            {
+                sw.Stop();
+                LoggerInstance.DebugMsg($"The plugin took {sw.ElapsedMilliseconds} ms to complete");
+                LoggerInstance.DebugWarning("Please note that processes such as command line arguments are not taken into consideration, due to the required Debug mode enabled");
+                LoggerInstance.DebugMsg($"List of all processes and how long it took for them to complete:");
+                foreach (var diagnostics in ElapsedTime)
+                {
+                    LoggerInstance.DebugMsg($"{diagnostics.Key}: {diagnostics.Value} ms");
+                }
+            }
         }
     }
 }
