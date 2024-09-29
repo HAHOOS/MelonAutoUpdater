@@ -94,6 +94,12 @@ namespace MelonAutoUpdater.Search.Included.Github
                             client2.Dispose();
                         }
                     }
+                    catch (Exception e)
+                    {
+                        threwError2 = true;
+                        Logger.Error
+                            ($"Failed to validate access token, unexpected error occured:\n{e}");
+                    }
                     if (!threwError2)
                     {
                         if (!string.IsNullOrEmpty(response2))
@@ -120,7 +126,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                 bool threwError = false;
                 try
                 {
-                    response = client.UploadValues($"https://github.com/login/device/code", "POST", _params);
+                    response = client.UploadValues("https://github.com/login/device/code", "POST", _params);
                 }
                 catch (WebException e)
                 {
@@ -131,6 +137,12 @@ namespace MelonAutoUpdater.Search.Included.Github
                     Logger.Error
                             ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
                     client.Dispose();
+                }
+                catch (Exception e)
+                {
+                    threwError = true;
+                    Logger.Error
+                        ($"Failed to use Device Flow using Github, unexpected error occured:\n{e}");
                 }
                 if (!threwError)
                 {
@@ -144,7 +156,7 @@ Go to {data["verification_uri"].ToString().Pastel(Color.Cyan)} and enter {data["
 You have {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes to enter the code before it expires!
 Press any key to continue, press N to continue without using authenticated requests (You will be limited to 60 requests, instead of 1000)
 
-If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/Config and open Github.json, in there set 'UseDeviceFlow' to false");
+If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig and open Github.json, in there set 'UseDeviceFlow' to false");
                         bool canUse = true;
                         while (true)
                         {
@@ -175,9 +187,12 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
 
                                     byte[] res = null;
                                     bool threwError2 = false;
+                                    WebClient client2 = new WebClient();
+                                    client2.Headers.Add("Accept", "application/json");
+                                    client2.Headers.Add("User-Agent", UserAgent);
                                     try
                                     {
-                                        res = client.UploadValues($"https://github.com/login/oauth/access_token", "POST", _params2);
+                                        res = client2.UploadValues($"https://github.com/login/oauth/access_token", "POST", _params2);
                                     }
                                     catch (WebException e)
                                     {
@@ -185,7 +200,13 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                         HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                                         string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
                                         Logger.Error
-                                                   ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
+                                                   ($"Failed to validate if authorized using Github, returned {statusCode} with following message:\n{statusDescription}");
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        threwError2 = true;
+                                        Logger.Error
+                                            ($"Failed to validate if authorized using Github, unexpected error occured:\n{e}");
                                     }
                                     if (!threwError2)
                                     {
@@ -215,6 +236,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                                     Logger.MsgPastel("Successfully retrieved access token".Pastel(Color.LawnGreen));
 
                                                     client.Dispose();
+                                                    client2.Dispose();
 
                                                     return;
                                                 }
@@ -225,6 +247,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/SearchExtensions/
                                             }
                                         }
                                     }
+                                    client2.Dispose();
                                 }
                                 canUse = false;
                                 System.Timers.Timer timer = new System.Timers.Timer
