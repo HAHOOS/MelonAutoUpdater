@@ -114,34 +114,61 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Setup Preferences
         /// </summary>
-        private bool SetupPreferences()
+        private void SetupPreferences()
         {
+            Stopwatch sw = null;
+            if (MelonAutoUpdater.Debug)
+            {
+                sw = Stopwatch.StartNew();
+            }
             // Main Category
+
+            LoggerInstance.DebugMsg("Setting up config.cfg");
+
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             MainCategory.SetFilePath(Path.Combine(Files.MainFolder, "config.cfg"));
 
             Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
                 description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
 
+            LoggerInstance.DebugMsg($"Added IgnoreList to config.cfg");
+
             Entry_enabled = MainCategory.CreateEntry<bool>("Enabled", true, "Enabled",
                 description: "If true, Mods & Plugins will update on every start");
 
+            LoggerInstance.DebugMsg($"Added Enabled to config.cfg");
+
             Entry_dontUpdate = MainCategory.CreateEntry<bool>("DontUpdate", false, "Dont Update",
                 description: "If true, Melons will only be checked if they are outdated or not, they will not be updated automatically");
-            if (dontUpdate == false) dontUpdate = (bool)Entry_dontUpdate.BoxedValue;
+
+            LoggerInstance.DebugMsg($"Added DontUpdate to config.cfg");
+
+            if (dontUpdate == false)
+            {
+                LoggerInstance.DebugMsg($"DontUpdate mode enabled via Preferences");
+                dontUpdate = (bool)Entry_dontUpdate.BoxedValue;
+            }
 
             Entry_bruteCheck = MainCategory.CreateEntry<bool>("BruteCheck", false, "Brute Check",
                 description: "If true, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author\nWARNING: You may get rate-limited with large amounts of mods/plugins, use with caution");
+            LoggerInstance.DebugMsg($"Added BruteCheck to config.cfg");
 
             MainCategory.SaveToFile(false);
+            LoggerInstance.DebugMsg("Set up config.cfg");
 
             // Themes Category
+
+            LoggerInstance.DebugMsg("Setting up theme.cfg");
 
             ThemesCategory = MelonPreferences.CreateCategory<Theme>("Theme", "Theme");
             ThemesCategory.SetFilePath(Path.Combine(Files.MainFolder, "theme.cfg"));
             ThemesCategory.SaveToFile(false);
 
+            LoggerInstance.DebugMsg("Set up theme.cfg");
+
             // Extensions Category
+
+            LoggerInstance.DebugMsg("Setting up extensions.cfg");
 
             ExtensionsCategory = MelonPreferences.CreateCategory("Extensions", "Extensions");
             ExtensionsCategory.SetFilePath(Path.Combine(Files.MainFolder, "extensions.cfg"));
@@ -154,12 +181,20 @@ namespace MelonAutoUpdater
                 MelonPreferences_Entry entry = ExtensionsCategory.CreateEntry<bool>($"{obj.Name}_Enabled", true, $"{obj.Name} Enabled",
                     description: $"If true, {obj.Name} will be used in searches");
                 IncludedExtEntries.Add(obj, entry);
+                LoggerInstance.DebugMsg($"Added {obj.Name}_Enabled to extensions.cfg");
             }
 
             ExtensionsCategory.SaveToFile(false);
 
+            LoggerInstance.DebugMsg("Set up extensions.cfg");
+
+            if (MelonAutoUpdater.Debug)
+            {
+                sw.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"SetupPreferences", sw.ElapsedMilliseconds);
+            }
+
             LoggerInstance.Msg("Successfully set up Melon Preferences!");
-            return true;
         }
 
         /// <summary>
@@ -351,6 +386,7 @@ namespace MelonAutoUpdater
                 sw.Stop();
                 LoggerInstance.DebugMsg($"The plugin took {sw.ElapsedMilliseconds} ms to complete");
                 LoggerInstance.DebugWarning("Please note that processes such as command line arguments are not taken into consideration, due to the required Debug mode enabled");
+                LoggerInstance.DebugWarning("Pausing the console (selecting text on the console) will affect the time and will not be accurate to how it would actually perform");
                 LoggerInstance.DebugMsg($"List of all processes and how long it took for them to complete:");
                 foreach (var diagnostics in ElapsedTime)
                 {
