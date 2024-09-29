@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 #region Melon Attributes
 
-[assembly: MelonInfo(typeof(MelonAutoUpdater.MelonAutoUpdater), "MelonAutoUpdater", "0.3.1", "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
+[assembly: MelonInfo(typeof(MelonAutoUpdater.MelonAutoUpdater), "MelonAutoUpdater", MelonAutoUpdater.MelonAutoUpdater.Version, "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 #pragma warning disable CS0618 // Type or member is obsolete
 // Using ConsoleColor for backwards compatibility
 [assembly: MelonColor(ConsoleColor.Green)]
@@ -20,9 +20,9 @@ using System.Runtime.InteropServices;
 #region Assembly Attributes
 
 // Version
-[assembly: AssemblyVersion("0.3.1.0")]
-[assembly: AssemblyFileVersion("0.3.1")]
-[assembly: AssemblyInformationalVersion("0.3.1")]
+[assembly: AssemblyVersion(MelonAutoUpdater.MelonAutoUpdater.Version)]
+[assembly: AssemblyFileVersion(MelonAutoUpdater.MelonAutoUpdater.Version)]
+[assembly: AssemblyInformationalVersion(MelonAutoUpdater.MelonAutoUpdater.Version)]
 [assembly: AssemblyProduct("MelonAutoUpdater")]
 [assembly: AssemblyCompany("HAHOOS")]
 [assembly: AssemblyDescription("An automatic updater for all your MelonLoader mods!")]
