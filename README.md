@@ -26,14 +26,7 @@ Tested Games & Versions:
 To install the plugin, you obviously need to have MelonLoader installed in your game.<br/>
 <br/>
 
-You can use the **MAUHelper Plugin** to determine if u need to install `MelonAutoUpdater-net6.dll` or `MelonAutoUpdater-net35.dll`, it is also capable of checking if the MelonAutoUpdater is of correct version or not<br/>
-
-If you do not want to use MAUHelper:
-  - For MelonLoader v0.6.0 and later, download `MelonAutoUpdater-net6.dll` (if there are errors, it is possible that you might need to download `MelonAutoUpdater-net35.dll` instead)<br/>
-  - For MelonLoader v0.5.7 and earlier, download `MelonAutoUpdater-net35.dll`
-<br/>
-
-When downloaded, put the DLL file into the `Mods` folder<br/>
+When you've done that, simply put `MelonAutoUpdater.dll` to the `Plugins` folder
 
 And now, you're done! Enjoy your mods being automatically updated! 🎉
 
@@ -44,19 +37,19 @@ And now, you're done! Enjoy your mods being automatically updated! 🎉
 | Enabled | If true, the plugin will update the mods |
 | Ignore List | List of mods (file names without extension example ".dll") that will not be updated |
 | Brute Check | If enabled, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author. **WARNING: You may get rate-limited with large amounts of mods/plugins, use with caution** |
+| Dont Update | This will cause the plugin to only check for the latest version and notify you if there is a newer version you can install
 
-<h2 align="center">Themes</h2>
+<h2 align="center">Command Line Arguments</h2>
 
-Themes are located in UserData/MelonAutoUpdater/themes.cfg, its just a few options that let you customize the color of things such as file names, versions etc. using HEX<br/>
-List of all customizable color strings:<br/>
-- Lines
-- File Names
-- Old Version & New Version
-- Up-to-date version Text
-- Download Count
-- Extension Name
-<br/>
-You may ask, why does this option exist, and the answer is.. I'm not sure why I did this, but hey, if u dont like the colors I put in, u can change them!
+With MelonLoader v0.6.5, now mods & plugins can have their own command line arguments.
+
+Below is a list of all available command line arguments for MelonAutoUpdater:
+
+| Argument | Description |
+| --- | --- |
+| `--melonautoupdater.disabled` | Disables the plugin from executing |
+| `--melonautoupdater.debug` | Turns on DEBUG mode |
+| `--melonautoupdater.dontupdate` | Disallows the plugin from updating when there's a newer version of a mod available, instead it will just tell you in the console |
 
 <h2 align="center">For Developers</h2>
 
@@ -67,11 +60,9 @@ To implement auto-updating into your code mod, simply set a correct **download l
 
 MelonAutoUpdater (MAU) is licensed under the MIT License. See [LICENSE](https://github.com/HAHOOS/MelonAutoUpdater/blob/master/LICENSE.txt) for the full License.
 
-Third-party Libraries bundled in Binary Form:
+Third-party Libraries used as Source Code and/or bundled in Binary Form:
 - [MelonLoader](https://github.com/LavaGang/MelonLoader) is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/LavaGang/MelonLoader/blob/master/LICENSE.md) for the full License.
 - [Mono.Cecil](https://github.com/jbevain/cecil) is licensed under the MIT License. See [LICENSE](https://github.com/jbevain/cecil/blob/master/LICENSE.txt) for the full License.
-- [Rackspace.Threading](https://github.com/tunnelvisionlabs/dotnet-threading) is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/tunnelvisionlabs/dotnet-threading/blob/master/LICENSE) for the full License.
-- [Rackspace.HttpClient35](https://github.com/tunnelvisionlabs/dotnet-httpclient35) is licensed under the MIT License. See [LICENSE](https://github.com/tunnelvisionlabs/dotnet-httpclient35/blob/master/LICENSE) for the full License.
 - [TinyJSON](https://github.com/pbhogan/TinyJSON) is licensed under the MIT License. See [LICENSE](https://github.com/LavaGang/MelonLoader/blob/master/MelonLoader/TinyJSON/LICENSE.md) for the full License.
 - [Tomlet](https://github.com/SamboyCoding/Tomlet) is licensed under the MIT License. See [LICENSE](https://github.com/SamboyCoding/Tomlet/blob/master/LICENSE) for the full License.
 - [SharpZipLib](https://github.com/icsharpcode/SharpZipLib) is licensed under the MIT License. See [LICENSE](https://github.com/LavaGang/MelonLoader/blob/master/MelonLoader/SharpZipLib/LICENSE.txt) for the full License.
