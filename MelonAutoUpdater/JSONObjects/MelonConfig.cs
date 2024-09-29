@@ -44,6 +44,7 @@ namespace MelonAutoUpdater.JSONObjects
         /// </summary>
         /// <param name="path">Path to the file directory</param>
         /// <returns>If <see langword="true"/>, file/directory can be included</returns>
+        // REVIEW: Actually check if this works
         public bool CanInclude(string path)
         {
             foreach (string format in DontInclude)
