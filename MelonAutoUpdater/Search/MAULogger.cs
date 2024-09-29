@@ -158,26 +158,26 @@ namespace MelonAutoUpdater.Search
 
         internal void InternalMsg(Color extColor, Color textColor, string ext, string text)
         {
-            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}]";
-            logger.Msg($"{extString} {text.Pastel(textColor)}");
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
+            logger.Msg($"{extString}{text.Pastel(textColor)}");
         }
 
         internal void InternalMsgPastel(Color extColor, Color textColor, string ext, string text)
         {
-            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}]";
-            logger._MsgPastel($"{extString} {text.Pastel(textColor)}");
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
+            logger._MsgPastel($"{extString}{text.Pastel(textColor)}");
         }
 
         internal void InternalWarning(string ext, string text)
         {
-            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext}]";
-            logger.Warning($"{extString} {text}");
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext}] ";
+            logger.Warning($"{extString}{text}");
         }
 
         internal void InternalError(string ext, string text)
         {
-            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext}]";
-            logger.Error($"{extString} {text}");
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext}] ";
+            logger.Error($"{extString}{text}");
         }
 
         internal void InternalBigError(string ext, string txt)
