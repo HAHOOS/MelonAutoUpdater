@@ -128,15 +128,20 @@ namespace MelonAutoUpdater
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
             MainCategory.SetFilePath(Path.Combine(Files.MainFolder, "config.cfg"));
 
+            Entry_enabled = MainCategory.CreateEntry<bool>("Enabled", true, "Enabled",
+                description: "If true, Mods & Plugins will update on every start");
+
+            LoggerInstance.DebugMsg($"Added Enabled to config.cfg");
+
             Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
                 description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
 
             LoggerInstance.DebugMsg($"Added IgnoreList to config.cfg");
 
-            Entry_enabled = MainCategory.CreateEntry<bool>("Enabled", true, "Enabled",
-                description: "If true, Mods & Plugins will update on every start");
+            Entry_bruteCheck = MainCategory.CreateEntry<bool>("BruteCheck", false, "Brute Check",
+                description: "If true, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author\nWARNING: You may get rate-limited with large amounts of mods/plugins, use with caution");
 
-            LoggerInstance.DebugMsg($"Added Enabled to config.cfg");
+            LoggerInstance.DebugMsg($"Added BruteCheck to config.cfg");
 
             Entry_dontUpdate = MainCategory.CreateEntry<bool>("DontUpdate", false, "Dont Update",
                 description: "If true, Melons will only be checked if they are outdated or not, they will not be updated automatically");
@@ -148,10 +153,6 @@ namespace MelonAutoUpdater
                 LoggerInstance.DebugMsg($"DontUpdate mode enabled via Preferences");
                 dontUpdate = (bool)Entry_dontUpdate.BoxedValue;
             }
-
-            Entry_bruteCheck = MainCategory.CreateEntry<bool>("BruteCheck", false, "Brute Check",
-                description: "If true, when there's no download link provided with mod/plugin, it will check every supported platform providing the Name & Author\nWARNING: You may get rate-limited with large amounts of mods/plugins, use with caution");
-            LoggerInstance.DebugMsg($"Added BruteCheck to config.cfg");
 
             MainCategory.SaveToFile(false);
             LoggerInstance.DebugMsg("Set up config.cfg");
