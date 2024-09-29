@@ -718,7 +718,7 @@ namespace MelonAutoUpdater
                                                     ContentType contentType;
                                                     if (!string.IsNullOrEmpty(retFile.ContentType))
                                                     {
-                                                        bool parseSuccess = ContentType.TryParse(ContentType_Parse.MimeType, retFile.ContentType, out ContentType _contentType);
+                                                        bool parseSuccess = ContentType.TryParse(ParseType.MimeType, retFile.ContentType, out ContentType _contentType);
                                                         if (parseSuccess)
                                                         {
                                                             contentType = _contentType;
@@ -742,7 +742,7 @@ namespace MelonAutoUpdater
                                                     }
                                                     else if (resContentType != null)
                                                     {
-                                                        bool parseSuccess = ContentType.TryParse(ContentType_Parse.MimeType, resContentType, out ContentType _contentType);
+                                                        bool parseSuccess = ContentType.TryParse(ParseType.MimeType, resContentType, out ContentType _contentType);
                                                         if (parseSuccess)
                                                         {
                                                             contentType = _contentType;

@@ -52,10 +52,10 @@ namespace MelonAutoUpdater.Utils
         /// <param name="value">The value to parse</param>
         /// <returns><see cref="ContentType"/> of provided mime-type/file extension</returns>
         /// <exception cref="KeyNotFoundException">Mime Type was not found</exception>
-        /// <exception cref="InvalidOperationException">An unknown <see cref="ContentType_Parse"/> enum was found</exception>
-        public static ContentType Parse(ContentType_Parse type, string value)
+        /// <exception cref="InvalidOperationException">An unknown <see cref="ParseType"/> enum was found</exception>
+        public static ContentType Parse(ParseType type, string value)
         {
-            if (type == ContentType_Parse.MimeType)
+            if (type == ParseType.MimeType)
             {
                 if (_db.mimeTypes.ContainsKey(value))
                 {
@@ -74,7 +74,7 @@ namespace MelonAutoUpdater.Utils
                     throw new KeyNotFoundException("There is no mime type found using provided information");
                 }
             }
-            else if (type == ContentType_Parse.Extension)
+            else if (type == ParseType.Extension)
             {
                 var mimes = _db.mimeTypes.Where(x => x.Value.extensions != null && x.Value.extensions.Contains(value));
                 if (mimes.Any())
@@ -87,7 +87,7 @@ namespace MelonAutoUpdater.Utils
                     throw new KeyNotFoundException("There is no mime type found using provided information");
                 }
             }
-            throw new InvalidOperationException("Provided unrecognized ContentType_Parse Type");
+            throw new InvalidOperationException("Provided unrecognized Parse Type");
         }
 
         /// <summary>
@@ -98,8 +98,8 @@ namespace MelonAutoUpdater.Utils
         /// <param name="contentType">The parsed <see cref="ContentType"/>, if not found, returns <see langword="null"/></param>
         /// <returns><see langword="true"/>, if found, otherwise <see langword="false"/></returns>
         /// <exception cref="KeyNotFoundException">Mime Type was not found</exception>
-        /// <exception cref="InvalidOperationException">An unknown <see cref="ContentType_Parse"/> enum was found</exception>
-        public static bool TryParse(ContentType_Parse type, string value, out ContentType contentType)
+        /// <exception cref="InvalidOperationException">An unknown <see cref="ParseType"/> enum was found</exception>
+        public static bool TryParse(ParseType type, string value, out ContentType contentType)
         {
             try
             {
@@ -119,7 +119,7 @@ namespace MelonAutoUpdater.Utils
     /// <summary>
     /// Type of value that should be parsed
     /// </summary>
-    public enum ContentType_Parse
+    public enum ParseType
     {
         /// <summary>
         /// <see cref="ContentType"/> will be found from provided Mime Type
