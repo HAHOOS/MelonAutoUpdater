@@ -107,11 +107,11 @@ namespace MelonAutoUpdater.Helper
             {
                 if (textColor == DefaultTextColor)
                 {
-                    logger.Msg("[" + "DEBUG".Pastel(Color.AliceBlue) + $"] {text}");
+                    logger.Msg("[" + "DEBUG".Pastel(Color.Aquamarine) + $"] {text}");
                 }
                 else
                 {
-                    logger.Msg("[" + "DEBUG".Pastel(Color.AliceBlue) + $"] {text.Pastel(textColor)}");
+                    logger.Msg("[" + "DEBUG".Pastel(Color.Aquamarine) + $"] {text.Pastel(textColor)}");
                 }
             }
         }
@@ -122,11 +122,11 @@ namespace MelonAutoUpdater.Helper
             {
                 if (textColor == DefaultTextColor)
                 {
-                    logger._MsgPastel("[" + "DEBUG".Pastel(Color.AliceBlue) + $"] {text}");
+                    logger._MsgPastel("[" + "DEBUG".Pastel(Color.Aquamarine) + $"] {text}");
                 }
                 else
                 {
-                    logger._MsgPastel("[" + "DEBUG".Pastel(Color.AliceBlue) + $"] {text.Pastel(textColor)}");
+                    logger._MsgPastel("[" + "DEBUG".Pastel(Color.Aquamarine) + $"] {text.Pastel(textColor)}");
                 }
             }
         }
