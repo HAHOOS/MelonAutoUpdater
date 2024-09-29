@@ -316,6 +316,8 @@ namespace MelonAutoUpdater
 
             if (stopPlugin) return;
 
+            if (MelonLaunchOptions.Core.IsDebug) Debug = true;
+
             Stopwatch sw = null;
 
             if (Debug)
