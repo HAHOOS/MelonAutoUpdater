@@ -23,7 +23,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Version of MAU
         /// </summary>
-        public static string Version { get; private set; }
+        public const string Version = "0.3.1";
 
         /// <summary>
         /// User Agent Header for all HTTP requests
@@ -345,7 +345,6 @@ namespace MelonAutoUpdater
 
             logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{this.Info.Version} Auto-Updater for ML mods";
-            Version = this.Info.Version;
             MAUSearch.UserAgent = UserAgent;
 
             LoggerInstance.Msg("Setup Melon Preferences");
