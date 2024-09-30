@@ -47,7 +47,7 @@ Below is a list of all available command line arguments for MelonAutoUpdater:
 
 | Argument | Description |
 | --- | --- |
-| `--melonautoupdater.disabled` | Disables the plugin from executing |
+| `--melonautoupdater.disable` | Disables the plugin from executing |
 | `--melonautoupdater.debug` | Turns on DEBUG mode |
 | `--melonautoupdater.dontupdate` | Disallows the plugin from updating when there's a newer version of a mod available, instead it will just tell you in the console |
 
