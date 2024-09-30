@@ -150,7 +150,7 @@ namespace MelonAutoUpdater
 
             if (dontUpdate == false)
             {
-                LoggerInstance.DebugMsg($"DontUpdate mode enabled via Preferences");
+                LoggerInstance.DebugMsg($"Don't Update mode enabled via Preferences");
                 dontUpdate = (bool)Entry_dontUpdate.BoxedValue;
             }
 
