@@ -162,7 +162,7 @@ namespace MelonAutoUpdater
         /// <returns>If found, returns a <see cref="MelonData"/> object which includes the latest version of the mod online and the download link(s)</returns>
         internal MelonData GetModData(string downloadLink, SemVersion currentVersion, MelonConfig melonConfig)
         {
-            if (string.IsNullOrEmpty(downloadLink))
+            if (string.IsNullOrEmpty(downloadLink) || downloadLink == "UNKNOWN")
             {
                 Logger.Msg("No download link was provided with the mod");
                 return null;
@@ -200,7 +200,7 @@ namespace MelonAutoUpdater
         /// <returns>If found, returns a <see cref="MelonData"/> object which includes the latest version of the mod online and the download link(s)</returns>
         internal MelonData GetModDataFromInfo(string name, string author, SemVersion currentVersion, MelonConfig melonConfig)
         {
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author))
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author) || author == "UNKNOWN")
             {
                 Logger.Msg("Name/Author was not provided with the mod");
                 return null;
@@ -475,6 +475,11 @@ namespace MelonAutoUpdater
         /// <returns><see langword="true"/>, if compatible, otherwise <see langword="false"/></returns>
         internal bool CheckCompability(AssemblyDefinition assembly)
         {
+            Stopwatch sw = null;
+            if (MelonAutoUpdater.Debug)
+            {
+                sw = Stopwatch.StartNew();
+            }
             var modInfo = GetMelonInfo(assembly);
             var loaderVer = GetLoaderVersionRequired(assembly);
             if (loaderVer != null)
@@ -492,9 +497,21 @@ namespace MelonAutoUpdater
                 bool isFramework = assembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib") != null;
                 if (!isFramework)
                 {
+                    if (MelonAutoUpdater.Debug)
+                    {
+                        sw.Stop();
+                        var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
+                        MelonAutoUpdater.ElapsedTime.Add($"CheckCompatibility-{assemblyName}", sw.ElapsedMilliseconds);
+                    }
                     Logger.Error($"{modInfo.Name} {modInfo.Version} is not compatible with .NET Framework");
                     return false;
                 }
+            }
+            if (MelonAutoUpdater.Debug)
+            {
+                sw.Stop();
+                var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
+                MelonAutoUpdater.ElapsedTime.Add($"CheckCompatibility-{assemblyName}", sw.ElapsedMilliseconds);
             }
             return true;
         }
