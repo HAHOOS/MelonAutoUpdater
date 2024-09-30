@@ -12,6 +12,7 @@ using MelonAutoUpdater.Utils;
 using System.Net;
 using System.Collections.Specialized;
 using System.Text;
+using System.Diagnostics;
 
 namespace MelonAutoUpdater.Search.Included.Github
 {
@@ -74,12 +75,27 @@ namespace MelonAutoUpdater.Search.Included.Github
                     client2.Headers.Add("Authorization", "Bearer " + accessToken);
                     string response2 = null;
                     bool threwError2 = false;
+                    Stopwatch sw = null;
                     try
                     {
+                        if (MelonAutoUpdater.Debug)
+                        {
+                            sw = Stopwatch.StartNew();
+                        }
                         response2 = client2.DownloadString("https://api.github.com/user");
+                        if (MelonAutoUpdater.Debug)
+                        {
+                            sw.Stop();
+                            MelonAutoUpdater.ElapsedTime.Add($"GithubValidateToken", sw.ElapsedMilliseconds);
+                        }
                     }
                     catch (WebException e)
                     {
+                        if (MelonAutoUpdater.Debug)
+                        {
+                            sw.Stop();
+                            MelonAutoUpdater.ElapsedTime.Add($"GithubValidateToken", sw.ElapsedMilliseconds);
+                        }
                         threwError2 = true;
                         HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                         string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
@@ -96,6 +112,11 @@ namespace MelonAutoUpdater.Search.Included.Github
                     }
                     catch (Exception e)
                     {
+                        if (MelonAutoUpdater.Debug)
+                        {
+                            sw.Stop();
+                            MelonAutoUpdater.ElapsedTime.Add($"GithubValidateToken", sw.ElapsedMilliseconds);
+                        }
                         threwError2 = true;
                         Logger.Error
                             ($"Failed to validate access token, unexpected error occured:\n{e}");
@@ -284,12 +305,27 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                 // For some reason Visual Studio doesn't like me doing that
                 string response = null;
 #pragma warning restore IDE0059 // Unnecessary assignment of a value
+                Stopwatch sw = null;
                 try
                 {
+                    if (MelonAutoUpdater.Debug)
+                    {
+                        sw = Stopwatch.StartNew();
+                    }
                     response = client.DownloadString($"https://api.github.com/repos/{author}/{repo}/releases/latest");
+                    if (MelonAutoUpdater.Debug)
+                    {
+                        sw.Stop();
+                        MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{repo}-{MelonUtils.RandomString(5)}", sw.ElapsedMilliseconds);
+                    }
                 }
                 catch (WebException e)
                 {
+                    if (MelonAutoUpdater.Debug)
+                    {
+                        sw.Stop();
+                        MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{repo}-{MelonUtils.RandomString(5)}", sw.ElapsedMilliseconds);
+                    }
                     HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                     string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
                     if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
@@ -393,12 +429,12 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
         {
             Regex regex = new Regex(@"(?<=(?<=http:\/\/|https:\/\/)github.com\/)(.*?)(?>\/)(.*?)(?=\/|$)");
             var match = regex.Match(url);
-            if (match.Success)
+            if (match.Success && match.Length >= 1)
             {
                 string[] split = match.Value.Split('/');
                 string packageName = split[1];
                 string namespaceName = split[0];
-                Check(namespaceName, packageName);
+                return Check(namespaceName, packageName);
             }
             return null;
         }

@@ -1,8 +1,11 @@
 ﻿using MelonAutoUpdater.Helper;
+using MelonLoader;
 using MelonLoader.TinyJSON;
 using Semver;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -35,12 +38,27 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
                 // For some reason Visual Studio doesn't like me doing that
                 string response = string.Empty;
 #pragma warning restore IDE0059 // Unnecessary assignment of a value
+                Stopwatch sw = null;
                 try
                 {
+                    if (MelonAutoUpdater.Debug)
+                    {
+                        sw = Stopwatch.StartNew();
+                    }
                     response = request.DownloadString($"https://thunderstore.io/api/experimental/package/{namespaceName}/{packageName}/");
+                    if (MelonAutoUpdater.Debug)
+                    {
+                        sw.Stop();
+                        MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{namespaceName}/{packageName}-{MelonUtils.RandomString(5)}", sw.ElapsedMilliseconds);
+                    }
                 }
                 catch (WebException e)
                 {
+                    if (MelonAutoUpdater.Debug)
+                    {
+                        sw.Stop();
+                        MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{namespaceName}/{packageName}-{MelonUtils.RandomString(5)}", sw.ElapsedMilliseconds);
+                    }
                     HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                     string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
                     if (statusCode == HttpStatusCode.NotFound)
