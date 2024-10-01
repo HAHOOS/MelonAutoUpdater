@@ -27,6 +27,9 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
         private bool disableAPI = false;
         private long apiReset;
 
+        private readonly char[] disallowedChars =
+            { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '=', '[', '{', '}', ']', ':', ';', '\'', '\"', '|', '\\', '<', ',', '>', '.', '/', '?', '~', '`', ' ' };
+
         internal MelonData Check(string packageName, string namespaceName)
         {
             WebClient request = new WebClient();
@@ -123,29 +126,34 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
 
         public override MelonData Search(string url, SemVersion currentVersion)
         {
-            Regex regex = new Regex(@"(https:\/\/|http:\/\/)(?:.+\.)?thunderstore\.io");
-            if (regex.IsMatch(url))
+            Regex regex = new Regex(@"thunderstore.io(?:/c/[\w]+/p/|/package/)(?!_)([\w]+)(?!_)/(?!_)([\w]+)(?!_)");
+            var match = regex.Match(url);
+            if (match.Success && match.Length >= 1 && match.Groups.Count == 3)
             {
-                string[] split = url.Split('/');
-                string packageName;
-                string namespaceName;
-                if (url.EndsWith("/"))
-                {
-                    packageName = split[split.Length - 2];
-                    namespaceName = split[split.Length - 3];
-                }
-                else
-                {
-                    packageName = split[split.Length - 1];
-                    namespaceName = split[split.Length - 2];
-                }
+                string namespaceName = match.Groups[1].Value;
+                string packageName = match.Groups[2].Value;
+                Logger.Msg($"{namespaceName}/{packageName}");
                 return Check(packageName, namespaceName);
             }
             return null;
         }
 
+        private bool IsValid(string nameOrAuthor)
+        {
+            if (nameOrAuthor.StartsWith("_")) return false;
+            else if (nameOrAuthor.EndsWith("_")) return false;
+            else if (nameOrAuthor.ToCharArray().Where(x => disallowedChars.Contains(x)).Any()) return false;
+            else return true;
+        }
+
         public override MelonData BruteCheck(string name, string author, SemVersion currentVersion)
         {
+            if (!IsValid(name) || !IsValid(author))
+            {
+                Logger.Warning("Disallowed characters found in Name or Author, cannot brute check");
+                return null;
+            }
+
             return Check(name.Replace(" ", ""), author.Replace(" ", ""));
         }
     }
