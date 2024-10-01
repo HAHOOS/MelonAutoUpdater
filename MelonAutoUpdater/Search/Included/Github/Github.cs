@@ -36,11 +36,18 @@ namespace MelonAutoUpdater.Search.Included.Github
         /// <summary>
         /// The time (in Unix time seconds) when the rate limit will disappear
         /// </summary>
-        private long githubResetDate;
+        private long githubResetDate
+        {
+            get => (long)entry_resetAt.BoxedValue;
+            set => entry_resetAt.BoxedValue = value;
+        }
 
         private readonly string ClientID = "Iv23lii0ysyknh3Vf51t";
 
         internal string AccessToken;
+
+        private readonly char[] disallowedChars =
+            { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '+', '=', '[', '{', '}', ']', ':', ';', '\'', '\"', '|', '\\', '<', ',', '>', '/', '?', '~', '`', ' ' };
 
         // Melon Preferences
 
@@ -48,14 +55,17 @@ namespace MelonAutoUpdater.Search.Included.Github
 
         private MelonPreferences_Entry entry_useDeviceFlow;
         private MelonPreferences_Entry entry_accessToken;
+        private MelonPreferences_Entry entry_resetAt;
 
         public override void OnInitialization()
         {
             category = CreateCategory();
-            entry_useDeviceFlow = category.CreateEntry("UseDeviceFlow", true, "Use Device Flow",
+            entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
                 description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 1000)");
-            entry_accessToken = category.CreateEntry("AccessToken", string.Empty, "Access Token",
+            entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
                 description: "Access Token used to make authenticated requests (Do not edit if you do not know what you're doing)");
+            entry_resetAt = category.CreateEntry<long>("ResetAt", 0, "Reset At",
+                description: "Unix timestamp of when the ratelimit resets | Do not change this");
 
             category.SaveToFile();
 
@@ -119,7 +129,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                         }
                         threwError2 = true;
                         Logger.Error
-                            ($"Failed to validate access token, unexpected error occured:\n{e}");
+                            ($"Failed to validate access token, unexpected error occurred:\n{e}");
                     }
                     if (!threwError2)
                     {
@@ -163,7 +173,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                 {
                     threwError = true;
                     Logger.Error
-                        ($"Failed to use Device Flow using Github, unexpected error occured:\n{e}");
+                        ($"Failed to use Device Flow using Github, unexpected error occurred:\n{e}");
                 }
                 if (!threwError)
                 {
@@ -227,7 +237,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                     {
                                         threwError2 = true;
                                         Logger.Error
-                                            ($"Failed to validate if authorized using Github, unexpected error occured:\n{e}");
+                                            ($"Failed to validate if authorized using Github, unexpected error occurred:\n{e}");
                                     }
                                     if (!threwError2)
                                     {
@@ -372,16 +382,19 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                 }
 
                 if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
-                    && client.ResponseHeaders.Contains("x-ratelimit-reset"))
+                    && client.ResponseHeaders.Contains("x-ratelimit-reset")
+                    && client.ResponseHeaders.Contains("x-ratelimit-limit"))
                 {
                     int remaining = int.Parse(client.ResponseHeaders.Get("x-ratelimit-remaining"));
                     long reset = long.Parse(client.ResponseHeaders.Get("x-ratelimit-reset"));
+                    int limit = int.Parse(client.ResponseHeaders.Get("x-ratelimit-limit"));
                     if (remaining <= 10)
                     {
                         Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
                         githubResetDate = reset;
                         disableGithubAPI = true;
                     }
+                    Logger.DebugMsg($"Remaining requests until rate-limit: {remaining}/{limit}");
                 }
                 if (!string.IsNullOrEmpty(response))
                 {
@@ -427,20 +440,24 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
 
         public override MelonData Search(string url, SemVersion currentVersion)
         {
-            Regex regex = new Regex(@"(?<=(?<=http:\/\/|https:\/\/)github.com\/)(.*?)(?>\/)(.*?)(?=\/|$)");
+            Regex regex = new Regex(@"github\.com\/([\w.-]+)\/([\w.-]+)");
             var match = regex.Match(url);
-            if (match.Success && match.Length >= 1)
+            if (match.Success && match.Length >= 1 && match.Groups.Count == 3)
             {
-                string[] split = match.Value.Split('/');
-                string packageName = split[1];
-                string namespaceName = split[0];
-                return Check(namespaceName, packageName);
+                string authorName = match.Groups[1].Value;
+                string repoName = match.Groups[2].Value;
+                return Check(authorName, repoName);
             }
             return null;
         }
 
         public override MelonData BruteCheck(string name, string author, SemVersion currentVersion)
         {
+            if (name.ToCharArray().Where(x => disallowedChars.Contains(x)).Any() || author.ToCharArray().Where(x => disallowedChars.Contains(x)).Any())
+            {
+                Logger.Warning("Disallowed characters found in Name or Author, cannot brute check");
+                return null;
+            }
             return Check(author, name);
         }
     }
