@@ -55,13 +55,16 @@ namespace MelonAutoUpdater.Search.Included.Github
 
         private MelonPreferences_Entry entry_useDeviceFlow;
         private MelonPreferences_Entry entry_accessToken;
+        private MelonPreferences_Entry entry_validateToken;
         private MelonPreferences_Entry entry_resetAt;
 
         public override void OnInitialization()
         {
             category = CreateCategory();
             entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
-                description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 1000)");
+                description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 1000)\nDefault: true");
+            entry_validateToken = category.CreateEntry<bool>("ValidateToken", true, "Validate Token",
+                description: "If enabled, the access token will be validated, disabling this can result for the plugin to be ~400 ms faster, but can result in errors");
             entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
                 description: "Access Token used to make authenticated requests (Do not edit if you do not know what you're doing)");
             entry_resetAt = category.CreateEntry<long>("ResetAt", 0, "Reset At",
@@ -72,7 +75,8 @@ namespace MelonAutoUpdater.Search.Included.Github
             Logger.Msg("Checking if Access Token exists");
 
             var use = GetEntryValue<bool>(entry_useDeviceFlow);
-            if (use)
+            var validate = GetEntryValue<bool>(entry_validateToken);
+            if (use && validate)
             {
                 var accessToken = GetEntryValue<string>(entry_accessToken);
                 if (!string.IsNullOrEmpty(accessToken))
@@ -298,7 +302,8 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             }
             else
             {
-                Logger.Msg("Device Flow is disabled, using unauthenticated requests");
+                if (!use) Logger.Msg("Device Flow is disabled, using unauthenticated requests");
+                else if (!validate) Logger.Msg("Not validating, as set to not in the config");
             }
         }
 
@@ -338,9 +343,9 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     }
                     HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                     string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
-                    if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
-                        && client.ResponseHeaders.Contains("x-ratelimit-reset")
-                        && client.ResponseHeaders.Contains("x-ratelimit-limit"))
+                    if (client.ResponseHeaders.Contains("x-ratelimit-remaining", false)
+                        && client.ResponseHeaders.Contains("x-ratelimit-reset", false)
+                        && client.ResponseHeaders.Contains("x-ratelimit-limit", false))
                     {
                         int remaining = int.Parse(client.ResponseHeaders.Get("x-ratelimit-remaining"));
                         int limit = int.Parse(client.ResponseHeaders.Get("x-ratelimit-limit"));
@@ -363,6 +368,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                     ($"Failed to fetch package information from Github, returned {statusCode} with following message:\n{statusDescription}");
                             }
                         }
+                        Logger.DebugMsg($"Remaining requests until rate-limit: {remaining}/{limit}");
                     }
                     else
                     {
@@ -381,9 +387,9 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     return null;
                 }
 
-                if (client.ResponseHeaders.Contains("x-ratelimit-remaining")
-                    && client.ResponseHeaders.Contains("x-ratelimit-reset")
-                    && client.ResponseHeaders.Contains("x-ratelimit-limit"))
+                if (client.ResponseHeaders.Contains("x-ratelimit-remaining", false)
+                    && client.ResponseHeaders.Contains("x-ratelimit-reset", false)
+                    && client.ResponseHeaders.Contains("x-ratelimit-limit", false))
                 {
                     int remaining = int.Parse(client.ResponseHeaders.Get("x-ratelimit-remaining"));
                     long reset = long.Parse(client.ResponseHeaders.Get("x-ratelimit-reset"));
