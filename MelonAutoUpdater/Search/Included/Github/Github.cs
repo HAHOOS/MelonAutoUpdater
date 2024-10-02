@@ -31,12 +31,12 @@ namespace MelonAutoUpdater.Search.Included.Github
         /// <summary>
         /// This is used to prevent from rate-limiting the API
         /// </summary>
-        private bool disableGithubAPI = false;
+        private bool DisableGithubAPI = false;
 
         /// <summary>
         /// The time (in Unix time seconds) when the rate limit will disappear
         /// </summary>
-        private long githubResetDate
+        private long GithubResetDate
         {
             get => (long)entry_resetAt.BoxedValue;
             set => entry_resetAt.BoxedValue = value;
@@ -313,8 +313,8 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             client.Headers.Add("Accept", "application/vnd.github+json");
             client.Headers.Add("User-Agent", UserAgent);
             if (!string.IsNullOrEmpty(AccessToken)) client.Headers.Add("Authorization", "Bearer " + AccessToken);
-            if (disableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > githubResetDate) disableGithubAPI = false;
-            if (!disableGithubAPI)
+            if (DisableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > GithubResetDate) DisableGithubAPI = false;
+            if (!DisableGithubAPI)
             {
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
                 // For some reason Visual Studio doesn't like me doing that
@@ -353,8 +353,8 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                         if (remaining <= 0)
                         {
                             Logger.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
-                            githubResetDate = reset;
-                            disableGithubAPI = true;
+                            GithubResetDate = reset;
+                            DisableGithubAPI = true;
                         }
                         else
                         {
@@ -397,8 +397,8 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     if (remaining <= 10)
                     {
                         Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
-                        githubResetDate = reset;
-                        disableGithubAPI = true;
+                        GithubResetDate = reset;
+                        DisableGithubAPI = true;
                     }
                     Logger.DebugMsg($"Remaining requests until rate-limit: {remaining}/{limit}");
                 }
@@ -438,7 +438,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             else
             {
                 Logger.Warning(
-                     "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(githubResetDate).ToLocalTime().ToString("t"));
+                     "Github API access is currently disabled and this check will be aborted, you should be good to use the API at " + DateTimeOffsetHelper.FromUnixTimeSeconds(GithubResetDate).ToLocalTime().ToString("t"));
             }
 
             return null;
