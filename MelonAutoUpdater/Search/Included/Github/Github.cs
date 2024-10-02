@@ -64,7 +64,7 @@ namespace MelonAutoUpdater.Search.Included.Github
             entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
                 description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 1000)\nDefault: true");
             entry_validateToken = category.CreateEntry<bool>("ValidateToken", true, "Validate Token",
-                description: "If enabled, the access token will be validated, disabling this can result for the plugin to be ~400 ms faster, but can result in errors");
+                description: "If enabled, the access token will be validated, disabling this can result for the plugin to be ~400 ms faster");
             entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
                 description: "Access Token used to make authenticated requests (Do not edit if you do not know what you're doing)");
             entry_resetAt = category.CreateEntry<long>("ResetAt", 0, "Reset At",
