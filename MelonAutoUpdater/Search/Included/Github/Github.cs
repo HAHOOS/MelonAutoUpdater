@@ -16,7 +16,7 @@ using System.Diagnostics;
 
 namespace MelonAutoUpdater.Search.Included.Github
 {
-    internal class Github : MAUSearch
+    internal class Github : MAUExtension
     {
         public override string Name => "Github";
 
@@ -62,7 +62,7 @@ namespace MelonAutoUpdater.Search.Included.Github
         {
             category = CreateCategory();
             entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
-                description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 1000)\nDefault: true");
+                description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 5000)\nDefault: true");
             entry_validateToken = category.CreateEntry<bool>("ValidateToken", true, "Validate Token",
                 description: "If enabled, the access token will be validated, disabling this can result for the plugin to be ~400 ms faster");
             entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
@@ -70,7 +70,7 @@ namespace MelonAutoUpdater.Search.Included.Github
             entry_resetAt = category.CreateEntry<long>("ResetAt", 0, "Reset At",
                 description: "Unix timestamp of when the ratelimit resets | Do not change this");
 
-            category.SaveToFile();
+            category.SaveToFile(false);
 
             Logger.Msg("Checking if Access Token exists");
 
@@ -189,7 +189,7 @@ namespace MelonAutoUpdater.Search.Included.Github
 
 Go to {data["verification_uri"].ToString().Pastel(Color.Cyan)} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
 You have {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes to enter the code before it expires!
-Press any key to continue, press N to continue without using authenticated requests (You will be limited to 60 requests, instead of 1000)
+Press any key to continue, press N to continue without using authenticated requests (You will be limited to 60 requests / hour, instead of 5000 requests / hour)
 
 If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig and open Github.json, in there set 'UseDeviceFlow' to false");
                         bool canUse = true;
