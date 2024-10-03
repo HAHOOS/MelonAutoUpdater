@@ -22,11 +22,6 @@ namespace MelonAutoUpdater
     internal class MelonUpdater
     {
         /// <summary>
-        /// List of MAU Search Extensions
-        /// </summary>
-        internal IEnumerable<MAUSearch> extensions;
-
-        /// <summary>
         /// User Agent Header for all HTTP requests
         /// </summary>
         public static string UserAgent { get; private set; }
@@ -46,9 +41,8 @@ namespace MelonAutoUpdater
         /// </summary>
         internal bool bruteCheck = false;
 
-        internal MelonUpdater(IEnumerable<MAUSearch> extensions, string userAgent, Theme _theme, List<string> ignoreMelons, bool bruteCheck = false)
+        internal MelonUpdater(string userAgent, Theme _theme, List<string> ignoreMelons, bool bruteCheck = false)
         {
-            this.extensions = extensions;
             UserAgent = userAgent;
             theme = _theme;
             this.ignoreMelons = ignoreMelons;
@@ -133,7 +127,7 @@ namespace MelonAutoUpdater
             }
         }
 
-        internal static bool CanSearch(MAUSearch extension, MelonConfig melonConfig)
+        internal static bool CanSearch(MAUExtension extension, MelonConfig melonConfig)
         {
             if (melonConfig == null) return true;
             if (extension == null) throw new ArgumentNullException(nameof(extension));
@@ -167,13 +161,13 @@ namespace MelonAutoUpdater
                 Logger.Msg("No download link was provided with the mod");
                 return null;
             }
-            foreach (var ext in extensions)
+            foreach (var ext in MAUExtension.LoadedExtensions)
             {
                 if (CanSearch(ext, melonConfig))
                 {
                     Logger.MsgPastel($"Checking {ext.Name.Pastel(ext.NameColor)}");
-                    ext.Setup();
-                    var result = ext.Search(downloadLink, currentVersion);
+                    MelonData func() => ext.Search(downloadLink, currentVersion);
+                    var result = Safe.SafeFunction<MelonData>(func);
                     if (result == null)
                     {
                         Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
@@ -186,7 +180,7 @@ namespace MelonAutoUpdater
                 }
                 else
                 {
-                    Logger.MsgPastel($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured in the Melon to not be used");
+                    Logger.MsgPastel($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                 }
             }
             return null;
@@ -205,14 +199,15 @@ namespace MelonAutoUpdater
                 Logger.Msg("Name/Author was not provided with the mod");
                 return null;
             }
-            foreach (var ext in extensions)
+            foreach (var ext in MAUExtension.LoadedExtensions)
             {
-                if (ext.BruteCheckEnabled)
+                if (ext.BruteCheckEnabled && (bool)ext.Entry_BruteCheckEnabled.BoxedValue)
                 {
                     if (CanSearch(ext, melonConfig))
                     {
                         Logger.MsgPastel($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
-                        var result = ext.BruteCheck(name, author, currentVersion);
+                        MelonData func() => ext.BruteCheck(name, author, currentVersion);
+                        var result = Safe.SafeFunction<MelonData>(func);
                         if (result == null)
                         {
                             Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
@@ -225,7 +220,7 @@ namespace MelonAutoUpdater
                     }
                     else
                     {
-                        Logger.MsgPastel($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured in the Melon to not be used");
+                        Logger.MsgPastel($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                     }
                 }
                 else
