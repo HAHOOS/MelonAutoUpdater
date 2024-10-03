@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 
 namespace MelonAutoUpdater.Search.Included.Thunderstore
 {
-    internal class Thunderstore : MAUSearch
+    internal class Thunderstore : MAUExtension
     {
         public override string Name => "Thunderstore";
 
@@ -132,7 +132,6 @@ namespace MelonAutoUpdater.Search.Included.Thunderstore
             {
                 string namespaceName = match.Groups[1].Value;
                 string packageName = match.Groups[2].Value;
-                Logger.Msg($"{namespaceName}/{packageName}");
                 return Check(packageName, namespaceName);
             }
             return null;
