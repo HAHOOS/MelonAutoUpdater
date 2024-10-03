@@ -41,11 +41,6 @@ namespace MelonAutoUpdater
         internal static MelonLogger.Instance logger;
 
         /// <summary>
-        /// List of MAU Search Extensions
-        /// </summary>
-        internal IEnumerable<MAUSearch> extensions;
-
-        /// <summary>
         /// If <see langword="true"/>, mods will only be checked the versions and not updated, even when available
         /// </summary>
         private bool dontUpdate = false;
@@ -107,11 +102,6 @@ namespace MelonAutoUpdater
         internal static MelonPreferences_Category ExtensionsCategory { get; private set; }
 
         /// <summary>
-        /// Dictionary of included extensions and their Enable entry
-        /// </summary>
-        internal static Dictionary<MAUSearch, MelonPreferences_Entry> IncludedExtEntries { get; private set; } = new Dictionary<MAUSearch, MelonPreferences_Entry>();
-
-        /// <summary>
         /// Setup Preferences
         /// </summary>
         private void SetupPreferences()
@@ -167,32 +157,10 @@ namespace MelonAutoUpdater
 
             LoggerInstance.DebugMsg("Set up theme.cfg");
 
-            // Extensions Category
-
-            LoggerInstance.DebugMsg("Setting up extensions.cfg");
-
-            ExtensionsCategory = MelonPreferences.CreateCategory("Extensions", "Extensions");
-            ExtensionsCategory.SetFilePath(Path.Combine(Files.MainFolder, "extensions.cfg"));
-
-            foreach (Type type in
-                    Assembly.GetExecutingAssembly().GetTypes()
-                    .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(MAUSearch))))
-            {
-                var obj = (MAUSearch)Activator.CreateInstance(type);
-                MelonPreferences_Entry entry = ExtensionsCategory.CreateEntry<bool>($"{obj.Name}_Enabled", true, $"{obj.Name} Enabled",
-                    description: $"If true, {obj.Name} will be used in searches");
-                IncludedExtEntries.Add(obj, entry);
-                LoggerInstance.DebugMsg($"Added {obj.Name}_Enabled to extensions.cfg");
-            }
-
-            ExtensionsCategory.SaveToFile(false);
-
-            LoggerInstance.DebugMsg("Set up extensions.cfg");
-
-            if (MelonAutoUpdater.Debug)
+            if (Debug)
             {
                 sw.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"SetupPreferences", sw.ElapsedMilliseconds);
+                ElapsedTime.Add($"SetupPreferences", sw.ElapsedMilliseconds);
             }
 
             LoggerInstance.Msg("Successfully set up Melon Preferences!");
@@ -347,7 +315,7 @@ namespace MelonAutoUpdater
 
             logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{Version} Auto-Updater for ML mods";
-            MAUSearch.UserAgent = UserAgent;
+            MAUExtension.UserAgent = UserAgent;
 
             LoggerInstance.Msg("Setup Melon Preferences");
 
@@ -366,14 +334,14 @@ namespace MelonAutoUpdater
             ContentType.Load();
 
             LoggerInstance.Msg("Setting up search extensions");
-            extensions = MAUSearch.GetExtensions(AppDomain.CurrentDomain.GetAssemblies());
+            MAUExtension.LoadExtensions(AppDomain.CurrentDomain.GetAssemblies());
 
 #pragma warning disable CS0618 // Type or member is obsolete
             string pluginsDir = Path.Combine(MelonUtils.BaseDirectory, "Plugins");
             string modsDir = Path.Combine(MelonUtils.BaseDirectory, "Mods");
 #pragma warning restore CS0618 // Type or member is obsolete
 
-            var updater = new MelonUpdater(extensions, UserAgent, theme, GetEntryValue<List<string>>(Entry_ignore), GetEntryValue<bool>(Entry_bruteCheck));
+            var updater = new MelonUpdater(UserAgent, theme, GetEntryValue<List<string>>(Entry_ignore), GetEntryValue<bool>(Entry_bruteCheck));
 
             LoggerInstance.Msg("Checking plugins...");
             updater.CheckDirectory(pluginsDir, false);
