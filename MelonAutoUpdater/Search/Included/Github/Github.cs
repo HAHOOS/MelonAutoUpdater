@@ -29,17 +29,12 @@ namespace MelonAutoUpdater.Search.Included.Github
         public override bool BruteCheckEnabled => true;
 
         /// <summary>
-        /// This is used to prevent from rate-limiting the API
-        /// </summary>
-        private bool DisableGithubAPI = false;
-
-        /// <summary>
         /// The time (in Unix time seconds) when the rate limit will disappear
         /// </summary>
         private long GithubResetDate
         {
             get => (long)entry_resetAt.BoxedValue;
-            set => entry_resetAt.BoxedValue = value;
+            set { entry_resetAt.BoxedValue = value; category.SaveToFile(false); }
         }
 
         private readonly string ClientID = "Iv23lii0ysyknh3Vf51t";
@@ -313,8 +308,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             client.Headers.Add("Accept", "application/vnd.github+json");
             client.Headers.Add("User-Agent", UserAgent);
             if (!string.IsNullOrEmpty(AccessToken)) client.Headers.Add("Authorization", "Bearer " + AccessToken);
-            if (DisableGithubAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > GithubResetDate) DisableGithubAPI = false;
-            if (!DisableGithubAPI)
+            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > GithubResetDate)
             {
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
                 // For some reason Visual Studio doesn't like me doing that
@@ -354,7 +348,6 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                         {
                             Logger.Error($"You've reached the rate limit of Github API ({limit}) and you will be able to use the Github API again at {DateTimeOffsetHelper.FromUnixTimeSeconds(reset).ToLocalTime():t}");
                             GithubResetDate = reset;
-                            DisableGithubAPI = true;
                         }
                         else
                         {
@@ -398,7 +391,6 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     {
                         Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
                         GithubResetDate = reset;
-                        DisableGithubAPI = true;
                     }
                     Logger.DebugMsg($"Remaining requests until rate-limit: {remaining}/{limit}");
                 }
