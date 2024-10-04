@@ -20,7 +20,7 @@ namespace MelonAutoUpdater.Search.Included.Github
     {
         public override string Name => "Github";
 
-        public override SemVersion Version => new SemVersion(1, 0, 1);
+        public override SemVersion Version => new SemVersion(1, 1, 0);
 
         public override string Author => "HAHOOS";
 
@@ -31,11 +31,7 @@ namespace MelonAutoUpdater.Search.Included.Github
         /// <summary>
         /// The time (in Unix time seconds) when the rate limit will disappear
         /// </summary>
-        private long GithubResetDate
-        {
-            get => (long)entry_resetAt.BoxedValue;
-            set { entry_resetAt.BoxedValue = value; category.SaveToFile(false); }
-        }
+        private long GithubResetDate;
 
         private readonly string ClientID = "Iv23lii0ysyknh3Vf51t";
 
@@ -51,24 +47,71 @@ namespace MelonAutoUpdater.Search.Included.Github
         private MelonPreferences_Entry entry_useDeviceFlow;
         private MelonPreferences_Entry entry_accessToken;
         private MelonPreferences_Entry entry_validateToken;
-        private MelonPreferences_Entry entry_resetAt;
 
-        public override void OnInitialization()
+        internal void CheckRateLimit()
         {
-            category = CreateCategory();
-            entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
-                description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 5000)\nDefault: true");
-            entry_validateToken = category.CreateEntry<bool>("ValidateToken", true, "Validate Token",
-                description: "If enabled, the access token will be validated, disabling this can result for the plugin to be ~400 ms faster");
-            entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
-                description: "Access Token used to make authenticated requests (Do not edit if you do not know what you're doing)");
-            entry_resetAt = category.CreateEntry<long>("ResetAt", 0, "Reset At",
-                description: "Unix timestamp of when the ratelimit resets | Do not change this");
+            Logger.Msg("Checking rate limit");
+            var webClient = new WebClient();
+            webClient.Headers.Add("User-Agent", UserAgent);
+            webClient.Headers.Add("Authorization", "Bearer " + GetEntryValue<string>(entry_accessToken));
+            webClient.Headers.Add("Accept", "application/vnd.github+json");
+            string data = string.Empty;
+            try
+            {
+                data = webClient.DownloadString("https://api.github.com/rate_limit");
+            }
+            catch (WebException ex)
+            {
+                HttpStatusCode statusCode = ((HttpWebResponse)ex.Response).StatusCode;
+                string statusDescription = ((HttpWebResponse)ex.Response).StatusDescription;
+                if (statusCode != HttpStatusCode.Unauthorized) Logger.Error($"Unable to check current rate limit, Github API returned {statusCode} status code with following message:\n{statusDescription}");
+                else
+                {
+                    var webClient2 = new WebClient();
+                    webClient2.Headers.Add("User-Agent", UserAgent);
+                    webClient2.Headers.Add("Accept", "application/vnd.github+json");
+                    try
+                    {
+                        data = webClient2.DownloadString("https://api.github.com/rate_limit");
+                    }
+                    catch (WebException ex2)
+                    {
+                        HttpStatusCode statusCode2 = ((HttpWebResponse)ex2.Response).StatusCode;
+                        string statusDescription2 = ((HttpWebResponse)ex2.Response).StatusDescription;
+                        Logger.Error($"Unable to check current rate limit, Github API returned {statusCode2} status code with following message:\n{statusDescription2}");
+                        return;
+                    }
+                }
+            }
 
-            category.SaveToFile(false);
+            if (!string.IsNullOrEmpty(data))
+            {
+                var json = JSON.Load(data);
+                try
+                {
+                    var core = json["resources"]["core"];
+                    var remaining = (int)core["remaining"];
+                    var reset = (long)core["reset"];
+                    if (remaining <= 1)
+                    {
+                        GithubResetDate = reset;
+                        Logger.Warning($"Disabled the use of the API till {DateTimeOffsetHelper.FromUnixTimeSeconds(reset):t}");
+                    }
+                    else
+                    {
+                        Logger.Msg($"Remaining requests: {remaining}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to parse JSON from response when checking rate limit, exception:\n" + ex);
+                    return;
+                }
+            }
+        }
 
-            Logger.Msg("Checking if Access Token exists");
-
+        internal void CheckAccessToken()
+        {
             var use = GetEntryValue<bool>(entry_useDeviceFlow);
             var validate = GetEntryValue<bool>(entry_validateToken);
             if (use && validate)
@@ -302,6 +345,24 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             }
         }
 
+        public override void OnInitialization()
+        {
+            category = CreateCategory();
+            entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
+                description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 5000)\nDefault: true");
+            entry_validateToken = category.CreateEntry<bool>("ValidateToken", true, "Validate Token",
+                description: "If enabled, the access token will be validated, disabling this can result for the plugin to be ~400 ms faster");
+            entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
+                description: "Access Token used to make authenticated requests (Do not edit if you do not know what you're doing)");
+
+            category.SaveToFile(false);
+
+            Logger.Msg("Checking if Access Token exists");
+
+            CheckAccessToken();
+            CheckRateLimit();
+        }
+
         internal MelonData Check(string author, string repo)
         {
             WebClient client = new WebClient();
@@ -387,7 +448,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     int remaining = int.Parse(client.ResponseHeaders.Get("x-ratelimit-remaining"));
                     long reset = long.Parse(client.ResponseHeaders.Get("x-ratelimit-reset"));
                     int limit = int.Parse(client.ResponseHeaders.Get("x-ratelimit-limit"));
-                    if (remaining <= 10)
+                    if (remaining <= 0)
                     {
                         Logger.Warning("Due to rate limits nearly reached, any attempt to send an API call to Github during this session will be aborted");
                         GithubResetDate = reset;
