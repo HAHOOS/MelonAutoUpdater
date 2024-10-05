@@ -986,7 +986,7 @@ namespace MelonAutoUpdater
                                     }
                                     else
                                     {
-                                        Logger.MsgPastel($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ". We recommend that you update, go to this site to download: " + data.DownloadLink);
+                                        Logger.MsgPastel($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ". We recommend that you update, go to this site to download: " + data.DownloadLink.ToString().Pastel(theme.LinkColor).Underline());
                                         manualUpdate.Add((assemblyName, currentVersion, data.LatestVersion, data.DownloadLink));
                                     }
                                 }
@@ -1013,7 +1013,7 @@ namespace MelonAutoUpdater
                 Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
             }
             Logger.Msg($"Results " + (automatic ? $"({result.updates.Count} updates)" : $"({manualUpdate.Count} need to be updated)") + ":");
-            if (result.updates.Count > 0)
+            if (result.updates.Count > 0 || manualUpdate.Count > 0)
             {
                 foreach (var (name, oldVersion, newVersion, threwError, success, failed) in result.updates)
                 {
@@ -1021,21 +1021,21 @@ namespace MelonAutoUpdater
                     {
                         if (success + failed > 0)
                         {
-                            Logger.MsgPastel($"[V] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.LawnGreen));
+                            Logger.MsgPastel($"{"[V]".Pastel(Color.LawnGreen)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
                         }
                         else
                         {
-                            Logger.MsgPastel($"[?] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Yellow));
+                            Logger.MsgPastel($"{"[?]".Pastel(Color.Yellow)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
                         }
                     }
                     else
                     {
-                        Logger.MsgPastel($"[X] {name} v{oldVersion} ---> v{newVersion} ({success}/{success + failed} melons installed successfully)".Pastel(Color.Red));
+                        Logger.MsgPastel($"{"[X]".Pastel(Color.Red)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
                     }
                 }
                 foreach (var (name, oldVer, newVer, downloadLink) in manualUpdate)
                 {
-                    Logger.MsgPastel($"[!] New version available for {name}: v{oldVer} ---> v{newVer}. Go to {downloadLink.ToString().Pastel(Color.Aqua)} to download the new version");
+                    Logger.MsgPastel($"{"[!]".Pastel(Color.Red)} New version available for {name.Pastel(theme.FileNameColor)} {$"v{oldVer}".Pastel(theme.OldVersionColor)} ---> {$"v{newVer}".Pastel(theme.NewVersionColor)}. Go to {downloadLink.ToString().Pastel(Color.Aqua).Underline()} to download the new version");
                 }
             }
             else
