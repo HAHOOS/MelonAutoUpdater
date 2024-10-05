@@ -64,5 +64,6 @@ This package exists to easily reference the plugin for developers</Description>
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins&quot;" />
 		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\V1\Plugins&quot;" />
+		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\Default\Plugins&quot;" />
 	</Target>
 </Project>
