@@ -263,6 +263,10 @@ namespace MelonAutoUpdater
             return (T)customAttribute.ConstructorArguments[index].Value;
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private bool IsMLDebug060() => MelonLaunchOptions.Core.IsDebug;
+
         // Note to self: Don't use async
         /// <summary>
         /// Runs before MelonLoader fully initializes
@@ -284,7 +288,10 @@ namespace MelonAutoUpdater
 
             if (stopPlugin) return;
 
-            if (MelonLaunchOptions.Core.IsDebug) Debug = true;
+            if (new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build) >= new SemVersion(0, 6, 0))
+            {
+                if (IsMLDebug060()) Debug = true;
+            }
 
             Stopwatch sw = null;
 
