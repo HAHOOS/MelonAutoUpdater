@@ -110,16 +110,21 @@ namespace MelonAutoUpdater.Search.Included.Github
             }
         }
 
+        private static bool ShouldNotUseWriter()
+        => (MelonUtils.IsUnderWineOrSteamProton()
+            || !MelonUtils.IsWindows
+            || MelonLaunchOptions.Console.ShouldHide);
+
         internal void CheckAccessToken()
         {
+            var accessToken = GetEntryValue<string>(entry_accessToken);
+            AccessToken = accessToken;
             var use = GetEntryValue<bool>(entry_useDeviceFlow);
             var validate = GetEntryValue<bool>(entry_validateToken);
             if (use && validate)
             {
-                var accessToken = GetEntryValue<string>(entry_accessToken);
                 if (!string.IsNullOrEmpty(accessToken))
                 {
-                    AccessToken = accessToken;
                     Logger.Msg("Access token found, validating");
                     WebClient client2 = new WebClient();
                     client2.Headers.Add("Accept", "application/json");
@@ -222,118 +227,127 @@ namespace MelonAutoUpdater.Search.Included.Github
                     string body = Encoding.UTF8.GetString(response);
                     if (body != null)
                     {
-                        var data = JSON.Load(body).Make<Dictionary<string, string>>();
-                        Logger.MsgPastel($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
+                        if (!ShouldNotUseWriter())
+                        {
+                            var data = JSON.Load(body).Make<Dictionary<string, string>>();
+                            Logger.MsgPastel($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
 
 Go to {data["verification_uri"].ToString().Pastel(Color.Cyan)} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
 You have {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes to enter the code before it expires!
 Press any key to continue, press N to continue without using authenticated requests (You will be limited to 60 requests / hour, instead of 5000 requests / hour)
 
 If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig and open Github.json, in there set 'UseDeviceFlow' to false");
-                        bool canUse = true;
-                        while (true)
-                        {
-                            var key = Console.ReadKey(false);
-                            Logger.Msg(canUse);
-                            if (!canUse)
+                            bool canUse = true;
+                            while (true)
                             {
-                                Logger.Msg("Cooldown!");
-                            }
-                            else
-                            {
-                                if (key.KeyChar.ToString().ToLower() == "N".ToLower())
+                                var key = Console.ReadKey(false);
+                                Logger.Msg(canUse);
+                                if (!canUse)
                                 {
-                                    Logger.Msg("Aborting Device Flow request");
-                                    client.Dispose();
-                                    return;
+                                    Logger.Msg("Cooldown!");
                                 }
                                 else
                                 {
-                                    Logger.Msg("Checking if authorized");
+                                    if (key.KeyChar.ToString().ToLower() == "N".ToLower())
+                                    {
+                                        Logger.Msg("Aborting Device Flow request");
+                                        client.Dispose();
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        Logger.Msg("Checking if authorized");
 
-                                    var _params2 = new NameValueCollection
+                                        var _params2 = new NameValueCollection
                                     {
                                         { "client_id", ClientID },
                                         { "device_code", data["device_code"] },
                                         { "grant_type", "urn:ietf:params:oauth:grant-type:device_code" }
                                     };
 
-                                    byte[] res = null;
-                                    bool threwError2 = false;
-                                    WebClient client2 = new WebClient();
-                                    client2.Headers.Add("Accept", "application/json");
-                                    client2.Headers.Add("User-Agent", UserAgent);
-                                    try
-                                    {
-                                        res = client2.UploadValues($"https://github.com/login/oauth/access_token", "POST", _params2);
-                                    }
-                                    catch (WebException e)
-                                    {
-                                        threwError2 = true;
-                                        HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
-                                        string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
-                                        Logger.Error
-                                                   ($"Failed to validate if authorized using Github, returned {statusCode} with following message:\n{statusDescription}");
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        threwError2 = true;
-                                        Logger.Error
-                                            ($"Failed to validate if authorized using Github, unexpected error occurred:\n{e}");
-                                    }
-                                    if (!threwError2)
-                                    {
-                                        string _body = Encoding.UTF8.GetString(res);
-                                        if (_body != null)
+                                        byte[] res = null;
+                                        bool threwError2 = false;
+                                        WebClient client2 = new WebClient();
+                                        client2.Headers.Add("Accept", "application/json");
+                                        client2.Headers.Add("User-Agent", UserAgent);
+                                        try
                                         {
-                                            var _data = JSON.Load(_body).Make<Dictionary<string, string>>();
-                                            if (_data != null)
+                                            res = client2.UploadValues($"https://github.com/login/oauth/access_token", "POST", _params2);
+                                        }
+                                        catch (WebException e)
+                                        {
+                                            threwError2 = true;
+                                            HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
+                                            string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
+                                            Logger.Error
+                                                       ($"Failed to validate if authorized using Github, returned {statusCode} with following message:\n{statusDescription}");
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            threwError2 = true;
+                                            Logger.Error
+                                                ($"Failed to validate if authorized using Github, unexpected error occurred:\n{e}");
+                                        }
+                                        if (!threwError2)
+                                        {
+                                            string _body = Encoding.UTF8.GetString(res);
+                                            if (_body != null)
                                             {
-                                                if (_data.ContainsKey("error"))
+                                                var _data = JSON.Load(_body).Make<Dictionary<string, string>>();
+                                                if (_data != null)
                                                 {
-                                                    if (_data["error"] == "authorization_pending")
+                                                    if (_data.ContainsKey("error"))
                                                     {
-                                                        Logger.Msg("The plugin is not authorized!");
+                                                        if (_data["error"] == "authorization_pending")
+                                                        {
+                                                            Logger.Msg("The plugin is not authorized!");
+                                                        }
+                                                        else
+                                                        {
+                                                            Logger.Error($"Unexpected error {_data["error"]}, description: {_data["error_description"]}");
+                                                            return;
+                                                        }
                                                     }
-                                                    else
+                                                    else if (_data.ContainsKey("access_token"))
                                                     {
-                                                        Logger.Error($"Unexpected error {_data["error"]}, description: {_data["error_description"]}");
+                                                        entry_accessToken.BoxedValue = _data["access_token"].ToString();
+                                                        AccessToken = _data["access_token"].ToString();
+                                                        category.SaveToFile();
+                                                        Logger.MsgPastel("Successfully retrieved access token".Pastel(Color.LawnGreen));
+
+                                                        client.Dispose();
+                                                        client2.Dispose();
+
                                                         return;
                                                     }
                                                 }
-                                                else if (_data.ContainsKey("access_token"))
+                                                else
                                                 {
-                                                    entry_accessToken.BoxedValue = _data["access_token"].ToString();
-                                                    AccessToken = _data["access_token"].ToString();
-                                                    category.SaveToFile();
-                                                    Logger.MsgPastel("Successfully retrieved access token".Pastel(Color.LawnGreen));
-
-                                                    client.Dispose();
-                                                    client2.Dispose();
-
-                                                    return;
+                                                    Logger.Warning("Missing required data from request");
                                                 }
                                             }
-                                            else
-                                            {
-                                                Logger.Warning("Missing required data from request");
-                                            }
                                         }
+                                        client2.Dispose();
                                     }
-                                    client2.Dispose();
+                                    canUse = false;
+                                    System.Timers.Timer timer = new System.Timers.Timer
+                                    {
+                                        Interval = int.Parse(data["interval"]) * 1000
+                                    };
+                                    timer.Elapsed += (x, y) =>
+                                    {
+                                        canUse = true;
+                                        timer.Stop();
+                                    };
+                                    timer.Start();
                                 }
-                                canUse = false;
-                                System.Timers.Timer timer = new System.Timers.Timer
-                                {
-                                    Interval = int.Parse(data["interval"]) * 1000
-                                };
-                                timer.Elapsed += (x, y) =>
-                                {
-                                    canUse = true;
-                                    timer.Stop();
-                                };
-                                timer.Start();
                             }
+                        }
+                        else
+                        {
+                            var data = JSON.Load(body).Make<Dictionary<string, string>>();
+                            Logger.MsgPastel(
+                                $"Due to the fact that the console cannot be used, you will have to manually do the process, which should be described in the Wiki on the Github page. Your code is {data["user_code"]} and it expires within {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes. If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig and open Github.json, in there set 'UseDeviceFlow' to false. This should make the plugin run faster, but authorized requests wont be used (you will be limited to 60 requests / hour, rather than 5000 requests / hour).");
                         }
                     }
                 }
