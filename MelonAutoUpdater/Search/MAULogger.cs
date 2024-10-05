@@ -11,17 +11,77 @@ namespace MelonAutoUpdater.Search
     /// </summary>
     public class MAULogger
     {
+        #region Internal
+
         internal string Name { get; set; }
 
         internal static readonly Color DefaultMAUSEColor = Color.Cyan;
         internal static readonly Color DefaultTextColor = Color.LightGray;
 
-        private readonly MelonLogger.Instance logger = MelonAutoUpdater.logger;
+        internal readonly MelonLogger.Instance logger = MelonAutoUpdater.logger;
 
         internal MAULogger(string Name)
         {
             this.Name = Name;
         }
+
+        internal void Internal_DebugMsg(Color textColor, string text)
+        {
+            if (textColor == DefaultTextColor) logger.DebugMsgPastel(text);
+            else logger.DebugMsgPastel(text.Pastel(textColor));
+        }
+
+        internal void Internal_DebugMsgPastel(Color textColor, string text)
+        {
+            if (textColor == DefaultTextColor) logger.DebugMsgPastel(text);
+            else logger.DebugMsgPastel(text.Pastel(textColor));
+        }
+
+        internal void Internal_DebugWarning(string text)
+        {
+            logger.DebugWarning(text);
+        }
+
+        internal void Internal_DebugError(string text)
+        {
+            logger.DebugError(text);
+        }
+
+        internal void InternalMsg(Color extColor, Color textColor, string ext, string text)
+        {
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
+            logger.Msg($"{extString}{text.Pastel(textColor)}");
+        }
+
+        internal void InternalMsgPastel(Color extColor, Color textColor, string ext, string text)
+        {
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
+            logger._MsgPastel($"{extString}{text.Pastel(textColor)}");
+        }
+
+        internal void InternalWarning(string ext, string text)
+        {
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext}] ";
+            logger.Warning($"{extString}{text}");
+        }
+
+        internal void InternalError(string ext, string text)
+        {
+            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext}] ";
+            logger.Error($"{extString}{text}");
+        }
+
+        internal void InternalBigError(string ext, string txt)
+        {
+            InternalError(ext, new string('=', 50));
+            foreach (var line in txt.Split('\n'))
+                InternalError(ext, line);
+            InternalError(ext, new string('=', 50));
+        }
+
+        #endregion Internal
+
+        #region Public
 
         /// <summary>
         /// Send a message to console
@@ -155,28 +215,6 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         /// <param name="txt">The text that will be sent</param>
         public void BigError(string txt) => InternalBigError(Name, txt);
-
-        internal void Internal_DebugMsg(Color textColor, string text)
-        {
-            if (textColor == DefaultTextColor) logger.DebugMsgPastel(text);
-            else logger.DebugMsgPastel(text.Pastel(textColor));
-        }
-
-        internal void Internal_DebugMsgPastel(Color textColor, string text)
-        {
-            if (textColor == DefaultTextColor) logger.DebugMsgPastel(text);
-            else logger.DebugMsgPastel(text.Pastel(textColor));
-        }
-
-        internal void Internal_DebugWarning(string text)
-        {
-            logger.DebugWarning(text);
-        }
-
-        internal void Internal_DebugError(string text)
-        {
-            logger.DebugError(text);
-        }
 
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
@@ -401,36 +439,6 @@ namespace MelonAutoUpdater.Search
         /// <param name="ex">Exception to be associated with the message</param>
         public void DebugError(string txt, Exception ex) => Internal_DebugError($"{txt}\n{ex}");
 
-        internal void InternalMsg(Color extColor, Color textColor, string ext, string text)
-        {
-            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
-            logger._MsgPastel($"{extString}{text.Pastel(textColor)}");
-        }
-
-        internal void InternalMsgPastel(Color extColor, Color textColor, string ext, string text)
-        {
-            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
-            logger._MsgPastel($"{extString}{text.Pastel(textColor)}");
-        }
-
-        internal void InternalWarning(string ext, string text)
-        {
-            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext}] ";
-            logger.Warning($"{extString}{text}");
-        }
-
-        internal void InternalError(string ext, string text)
-        {
-            string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext}] ";
-            logger.Error($"{extString}{text}");
-        }
-
-        internal void InternalBigError(string ext, string txt)
-        {
-            InternalError(ext, new string('=', 50));
-            foreach (var line in txt.Split('\n'))
-                InternalError(ext, line);
-            InternalError(ext, new string('=', 50));
-        }
+        #endregion Public
     }
 }
