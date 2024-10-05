@@ -23,7 +23,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Version of MAU
         /// </summary>
-        public const string Version = "0.3.1";
+        public const string Version = "0.4.0";
 
         /// <summary>
         /// User Agent Header for all HTTP requests

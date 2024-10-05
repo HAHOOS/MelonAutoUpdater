@@ -18,7 +18,7 @@ This package exists to easily reference the plugin for developers</Description>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>MAUIcon.png</PackageIcon>
-		<Version>0.3.1</Version>
+		<Version>0.4.0</Version>
 	</PropertyGroup>
 
 	<!-- Embed mime-types.json into the DLL file -->
