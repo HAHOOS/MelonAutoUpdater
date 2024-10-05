@@ -92,6 +92,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                     var core = json["resources"]["core"];
                     var remaining = (int)core["remaining"];
                     var reset = (long)core["reset"];
+                    var limit = (long)core["limit"];
                     if (remaining <= 1)
                     {
                         GithubResetDate = reset;
@@ -99,7 +100,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                     }
                     else
                     {
-                        Logger.Msg($"Remaining requests: {remaining}");
+                        Logger.Msg($"Remaining requests: {remaining}/{limit}");
                     }
                 }
                 catch (Exception ex)
@@ -111,9 +112,17 @@ namespace MelonAutoUpdater.Search.Included.Github
         }
 
         private static bool ShouldNotUseWriter()
-        => (MelonUtils.IsUnderWineOrSteamProton()
-            || !MelonUtils.IsWindows
-            || MelonLaunchOptions.Console.ShouldHide);
+        {
+            try
+            {
+                Console.Write(string.Empty);
+                return false;
+            }
+            catch
+            {
+                return true;
+            }
+        }
 
         internal void CheckAccessToken()
         {
@@ -232,7 +241,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                             var data = JSON.Load(body).Make<Dictionary<string, string>>();
                             Logger.MsgPastel($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
 
-Go to {data["verification_uri"].ToString().Pastel(Color.Cyan)} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
+Go {data["verification_uri"].ToString().Pastel(Theme.Instance.LinkColor).Underline().Blink()} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
 You have {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes to enter the code before it expires!
 Press any key to continue, press N to continue without using authenticated requests (You will be limited to 60 requests / hour, instead of 5000 requests / hour)
 
@@ -241,7 +250,6 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                             while (true)
                             {
                                 var key = Console.ReadKey(false);
-                                Logger.Msg(canUse);
                                 if (!canUse)
                                 {
                                     Logger.Msg("Cooldown!");
