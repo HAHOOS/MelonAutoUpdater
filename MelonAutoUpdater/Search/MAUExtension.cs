@@ -98,11 +98,8 @@ namespace MelonAutoUpdater.Search
             MelonAutoUpdater.logger.DebugMsg($"Setting up logger for {Name}");
             Logger = new MAULogger(Name);
 
-            Logger.DebugMsg(Internal_Category != null ? $"Category exists, {Internal_Category.Identifier}" : "Category does not exist");
-
             Logger.DebugMsg("Creating category");
             Internal_Category = CreateCategory($"{Name}_Internal_Settings");
-            Logger.DebugMsg($"Entries: {Internal_Category.Entries.Count}");
             Logger.DebugMsg("Created category");
 
             Logger.DebugMsg("Creating entry 'Enabled'");
@@ -219,7 +216,6 @@ namespace MelonAutoUpdater.Search
             MelonPreferences_Category _Category = MelonPreferences.CreateCategory(!string.IsNullOrEmpty(category) ? category : Name);
             string path = Path.Combine(Files.ExtConfigFolder, $"{Name}.cfg");
             _Category.SetFilePath(path);
-            Logger.DebugMsg($"Path: {path}");
             return _Category;
         }
 
@@ -252,7 +248,7 @@ namespace MelonAutoUpdater.Search
         /// Get current version of MAU
         /// </summary>
         /// <returns><see cref="SemVersion"/> of current MAU version</returns>
-        public static string GetMAUVersion() => MelonAutoUpdater.Version;
+        public static SemVersion GetMAUVersion() => SemVersion.Parse(MelonAutoUpdater.Version);
 
         #endregion Helper
 
@@ -287,7 +283,7 @@ namespace MelonAutoUpdater.Search
                         MelonAutoUpdater.logger.Warning("Found an extension with identical Names & Author to another extension, not loading");
                         continue;
                     }
-                    MelonAutoUpdater.logger._MsgPastel($"Loaded Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                    MelonAutoUpdater.logger._MsgPastel($"Loaded Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
                     LoadedExtensions.Add(obj);
                     obj.SafeAction(obj.Setup);
                     obj.SafeAction(obj.OnInitialization);
