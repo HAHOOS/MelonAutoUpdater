@@ -107,11 +107,11 @@ namespace MelonAutoUpdater.Helper
             {
                 if (textColor == DefaultTextColor)
                 {
-                    logger.Msg("[" + "DEBUG".Pastel(Color.Aquamarine) + $"] {text}");
+                    logger._MsgPastel("[" + "DEBUG".Pastel(Color.Aquamarine) + $"] {text}");
                 }
                 else
                 {
-                    logger.Msg("[" + "DEBUG".Pastel(Color.Aquamarine) + $"] {text.Pastel(textColor)}");
+                    logger._MsgPastel("[" + "DEBUG".Pastel(Color.Aquamarine) + $"] {text.Pastel(textColor)}");
                 }
             }
         }
