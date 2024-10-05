@@ -158,8 +158,8 @@ namespace MelonAutoUpdater.Search
 
         internal void Internal_DebugMsg(Color textColor, string text)
         {
-            if (textColor == DefaultTextColor) logger.DebugMsg(text);
-            else logger.DebugMsg(text.Pastel(textColor));
+            if (textColor == DefaultTextColor) logger.DebugMsgPastel(text);
+            else logger.DebugMsgPastel(text.Pastel(textColor));
         }
 
         internal void Internal_DebugMsgPastel(Color textColor, string text)
@@ -404,7 +404,7 @@ namespace MelonAutoUpdater.Search
         internal void InternalMsg(Color extColor, Color textColor, string ext, string text)
         {
             string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
-            logger.Msg($"{extString}{text.Pastel(textColor)}");
+            logger._MsgPastel($"{extString}{text.Pastel(textColor)}");
         }
 
         internal void InternalMsgPastel(Color extColor, Color textColor, string ext, string text)
