@@ -10,7 +10,7 @@ namespace MelonAutoUpdater
     /// </summary>
     internal class Logger
     {
-        internal static readonly Color DefaultTextColor = Color.Gray;
+        internal static readonly Color DefaultTextColor = Color.LightGray;
 
         internal static void Msg(object obj) => InternalMsg(DefaultTextColor, obj.ToString());
 
