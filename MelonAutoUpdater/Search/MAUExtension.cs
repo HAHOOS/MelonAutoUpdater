@@ -126,7 +126,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         public void Unload(bool printmsg = true)
         {
-            LoadedExtensions.Remove(this);
+            MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == Author)} matches");
             RottenExtensions.Add(new RottenExtension(this, "The extension has been unloaded by another extension or a melon"));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded by another extension or a melon");
         }
@@ -137,7 +137,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         public void Unload(string message, bool printmsg = true)
         {
-            LoadedExtensions.Remove(this);
+            MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == Author)} matches");
             RottenExtensions.Add(new RottenExtension(this, $"The extension has been unloaded by another extension or a melon, reason provided: {message}"));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded by another extension or a melon with the following message: {message}");
         }
@@ -148,7 +148,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         public static void Unload(MAUExtension extension, bool printmsg = true)
         {
-            LoadedExtensions.Remove(extension);
+            MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == extension.Name && x.Author == extension.Author)} matches");
             RottenExtensions.Add(new RottenExtension(extension, "The extension has been unloaded by another extension or a melon"));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {extension.Name.Pastel(extension.NameColor)} has been unloaded by another extension or a melon");
         }
@@ -159,7 +159,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         public static void Unload(MAUExtension extension, string message, bool printmsg = true)
         {
-            LoadedExtensions.Remove(extension);
+            MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == extension.Name && x.Author == extension.Author)} matches");
             RottenExtensions.Add(new RottenExtension(extension, "The extension has been unloaded by another extension or a melon"));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {extension.Name.Pastel(extension.NameColor)} has been unloaded by another extension or a melon with the following message: {message}");
         }
@@ -170,7 +170,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         internal void InternalUnload(Exception exception, bool printmsg = true)
         {
-            LoadedExtensions.Remove(this);
+            MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == Author)} matches");
             RottenExtensions.Add(new RottenExtension(this, exception));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded");
         }
@@ -181,7 +181,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         internal void InternalUnload(Exception exception, string message, bool printmsg = true)
         {
-            LoadedExtensions.Remove(this);
+            MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == Author)} matches");
             RottenExtensions.Add(new RottenExtension(this, exception, message));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded");
         }
@@ -192,7 +192,7 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         internal void InternalUnload(string message, bool printmsg = true)
         {
-            LoadedExtensions.Remove(this);
+            MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == Author)} matches");
             RottenExtensions.Add(new RottenExtension(this, message));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded");
         }
@@ -288,9 +288,9 @@ namespace MelonAutoUpdater.Search
                         continue;
                     }
                     MelonAutoUpdater.logger._MsgPastel($"Loaded Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                    LoadedExtensions.Add(obj);
                     obj.SafeAction(obj.Setup);
                     obj.SafeAction(obj.OnInitialization);
-                    LoadedExtensions.Add(obj);
                 }
             }
         }
