@@ -24,17 +24,17 @@ namespace MelonAutoUpdater
 
         internal static void Msg(Color txt_color, string txt, params object[] args) => InternalMsg(txt_color, string.Format(txt, args));
 
-        internal static void MsgPastel(object obj) => InternalMsg(DefaultTextColor, obj.ToString());
+        internal static void MsgPastel(object obj) => InternalMsgPastel(DefaultTextColor, obj.ToString());
 
-        internal static void MsgPastel(string txt) => InternalMsg(DefaultTextColor, txt);
+        internal static void MsgPastel(string txt) => InternalMsgPastel(DefaultTextColor, txt);
 
-        internal static void MsgPastel(string txt, params object[] args) => InternalMsg(DefaultTextColor, string.Format(txt, args));
+        internal static void MsgPastel(string txt, params object[] args) => InternalMsgPastel(DefaultTextColor, string.Format(txt, args));
 
-        internal static void MsgPastel(Color txt_color, object obj) => InternalMsg(txt_color, obj.ToString());
+        internal static void MsgPastel(Color txt_color, object obj) => InternalMsgPastel(txt_color, obj.ToString());
 
-        internal static void MsgPastel(Color txt_color, string txt) => InternalMsg(txt_color, txt);
+        internal static void MsgPastel(Color txt_color, string txt) => InternalMsgPastel(txt_color, txt);
 
-        internal static void MsgPastel(Color txt_color, string txt, params object[] args) => InternalMsg(txt_color, string.Format(txt, args));
+        internal static void MsgPastel(Color txt_color, string txt, params object[] args) => InternalMsgPastel(txt_color, string.Format(txt, args));
 
         internal static void Warning(object obj) => InternalWarning(obj.ToString());
 
