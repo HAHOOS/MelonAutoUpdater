@@ -53,5 +53,10 @@ namespace MelonAutoUpdater
         /// </summary>
         [TomlInlineComment("The color of the extension name")]
         public string ExtensionNameDefaultColor { get; set; } = "#FF00FFFF";
+
+        /// <summary>
+        /// The color of links
+        /// </summary>
+        public string LinkColor { get; set; } = "#00FFFF";
     }
 }
