@@ -10,15 +10,19 @@ namespace MelonAutoUpdater.Utils
     {
         private const string _formatStringStart = "\u001b[{0}m";
         private const string _formatStringContent = "{1}";
-        private const string _formatStringEnd = "\u001b[0m";
-        private static readonly string _formatStringFull = $"{_formatStringStart}{_formatStringContent}{_formatStringEnd}";
+        private static readonly string _formatStringFull = $"{_formatStringStart}{_formatStringContent}{Reset}";
 
         /// <summary>
-        /// Inserts provided ANSI codes into the text
+        /// ANSI escape character to reset all styles
         /// </summary>
-        /// <param name="text">The text u want to insert the ANSI codes to</param>
-        /// <param name="codes">The ANSI codes</param>
-        /// <returns>String with ANSI codes inserted</returns>
+        public static readonly string Reset = "\u001b[0m";
+
+        /// <summary>
+        /// Inserts provided ANSI escape characters into the text
+        /// </summary>
+        /// <param name="text">The text u want to insert the ANSI escape characters to</param>
+        /// <param name="codes">The ANSI escape characters</param>
+        /// <returns>String with ANSI escape characters inserted</returns>
         public static string InsertANSI(this string text, params int[] codes)
         {
             if (codes == null || codes.Length == 0 || string.IsNullOrEmpty(text)) return text;
@@ -65,6 +69,16 @@ namespace MelonAutoUpdater.Utils
         }
 
         /// <summary>
+        /// Make provided text italic with ANSI characters
+        /// </summary>
+        /// <param name="text">The text u want to make italic</param>
+        /// <returns>Italic text</returns>
+        public static string Italic(this string text)
+        {
+            return InsertANSI(text, 4);
+        }
+
+        /// <summary>
         /// Underline provided text with ANSI characters
         /// </summary>
         /// <param name="text">The text u want to underline</param>
@@ -92,6 +106,106 @@ namespace MelonAutoUpdater.Utils
         public static string Reverse(this string text)
         {
             return InsertANSI(text, 7);
+        }
+
+        /// <summary>
+        /// Make provided text invisible with ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to make invisible</param>
+        /// <returns>Invisible text</returns>
+        public static string Invisible(this string text)
+        {
+            return InsertANSI(text, 8);
+        }
+
+        /// <summary>
+        /// Strike-through provided text with ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to strike-through</param>
+        /// <returns>Strike-through text</returns>
+        public static string StrikeThrough(this string text)
+        {
+            return InsertANSI(text, 9);
+        }
+
+        /// <summary>
+        /// Double underline provided text with ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to double underline</param>
+        /// <returns>Doubly-underlined text</returns>
+        public static string DoubleUnderline(this string text)
+        {
+            return InsertANSI(text, 21);
+        }
+
+        /// <summary>
+        /// Makes provided text neither bold or dim using ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to normalize</param>
+        /// <returns>Neither bold or dim text</returns>
+        public static string Normal(this string text)
+        {
+            return InsertANSI(text, 22);
+        }
+
+        /// <summary>
+        /// If provided text is italic, removes italic using ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to "un-italic"</param>
+        /// <returns>Not italic text</returns>
+        public static string UnItalic(this string text)
+        {
+            return InsertANSI(text, 23);
+        }
+
+        /// <summary>
+        /// If provided text is underlined, removes underline using ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to "un-underline"</param>
+        /// <returns>Not underlined text</returns>
+        public static string UnUnderline(this string text)
+        {
+            return InsertANSI(text, 24);
+        }
+
+        /// <summary>
+        /// If provided text is blinking, removes the blinking effect using ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to steady</param>
+        /// <returns>Not blinking text</returns>
+        public static string Steady(this string text)
+        {
+            return InsertANSI(text, 25);
+        }
+
+        /// <summary>
+        /// If provided text is reversed, removes the reverse effect using ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to positive, aka "un-reverse"</param>
+        /// <returns>Not reversed text</returns>
+        public static string Positive(this string text)
+        {
+            return InsertANSI(text, 27);
+        }
+
+        /// <summary>
+        /// If provided text is invisible, make it visible using ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to make visible</param>
+        /// <returns>Visible text</returns>
+        public static string Visible(this string text)
+        {
+            return InsertANSI(text, 28);
+        }
+
+        /// <summary>
+        /// If provided text is strike-through, make it not strike-through using ANSI escape characters
+        /// </summary>
+        /// <param name="text">The text u want to make "un-strike-through"</param>
+        /// <returns>Not strike-through text</returns>
+        public static string UnStrikeThrough(this string text)
+        {
+            return InsertANSI(text, 29);
         }
 
         #endregion Decorations
