@@ -233,7 +233,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                     else
                     {
                         Logger.Error
-                                  ($"Failed to use Device Flow using Github, unable to determine the reason, exception description:\n{e.Message}");
+                                  ($"Failed to use Device Flow using Github, unable to determine the reason, exception:\n{e}");
                     }
                     client.Dispose();
                 }
