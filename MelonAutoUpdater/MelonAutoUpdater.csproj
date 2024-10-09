@@ -71,17 +71,18 @@ This package exists to easily reference the plugin for developers</Description>
 	</ItemGroup>
 	
 	<!--				  Add for backwards compatibility			       -->
-	<!-- TODO: Add references for older ML versions for more compatibility -->
+	<!--             TODO: Add references for older ML versions for more compatibility             -->
 	
 	<ItemGroup>
 	  <Reference Include="MelonLoader">
 	    <HintPath>..\Packages\MelonLoader-0.5.7.dll</HintPath>
 	    <Aliases>ml057</Aliases>
 	  </Reference>
-		<Reference Include="MelonLoader">
-			<HintPath>..\Packages\MelonLoader-0.6.5.dll</HintPath>
-			<Aliases>ml065</Aliases>
-		</Reference>
+
+	  <Reference Include="MelonLoader">
+	    <HintPath>..\Packages\MelonLoader-0.6.5.dll</HintPath>
+	    <Aliases>ml065</Aliases>
+	  </Reference>
 	</ItemGroup>
 		
 	
