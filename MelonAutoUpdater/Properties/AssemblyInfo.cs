@@ -1,4 +1,6 @@
-﻿using MelonLoader;
+﻿extern alias ml065;
+
+using ml065.MelonLoader;
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -10,7 +12,9 @@ using System.Runtime.InteropServices;
 // Using ConsoleColor for backwards compatibility
 [assembly: MelonColor(ConsoleColor.Green)]
 #pragma warning restore CS0618 // Type or member is obsolete
+#if !DEBUG
 [assembly: VerifyLoaderVersion("0.5.3", true)]
+#endif
 // They are not optional, but this is to remove the warning as NuGet will install them
 // Not in use anymore
 //[assembly: MelonOptionalDependencies("Net35.Http", "Rackspace.Threading", "System.Threading")]
