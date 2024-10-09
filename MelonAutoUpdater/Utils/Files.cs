@@ -1,5 +1,7 @@
-﻿using MelonAutoUpdater.Helper;
-using MelonLoader;
+﻿extern alias ml065;
+
+using MelonAutoUpdater.Helper;
+using ml065.MelonLoader;
 using System;
 using System.IO;
 

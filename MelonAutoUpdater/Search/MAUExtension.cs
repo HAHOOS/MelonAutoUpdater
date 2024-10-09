@@ -1,10 +1,12 @@
-﻿using Semver;
+﻿extern alias ml065;
+
+using ml065.Semver;
 using System.Collections.Generic;
 using System.Reflection;
 using System;
 using System.Linq;
 using System.Drawing;
-using MelonLoader;
+using ml065.MelonLoader;
 using System.IO;
 using MelonAutoUpdater.Utils;
 using MelonAutoUpdater.Helper;
@@ -229,7 +231,15 @@ namespace MelonAutoUpdater.Search
         {
             if (entry != null)
             {
-                return MelonPreferences.GetEntryValue<T>(entry.Category.Identifier, entry.Identifier);
+                var value = entry.BoxedValue;
+                if (value != null)
+                {
+                    return (T)value;
+                }
+                else
+                {
+                    return default;
+                }
             }
             return default;
         }

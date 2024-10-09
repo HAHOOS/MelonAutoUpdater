@@ -1,4 +1,6 @@
-using MelonLoader;
+extern alias ml065;
+
+using ml065.MelonLoader;
 using System.Drawing;
 using System;
 using MelonAutoUpdater.Utils;

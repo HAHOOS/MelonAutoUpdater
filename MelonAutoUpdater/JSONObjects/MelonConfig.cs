@@ -1,4 +1,6 @@
-﻿using MelonLoader.TinyJSON;
+﻿extern alias ml065;
+
+using ml065.MelonLoader.TinyJSON;
 using System.IO;
 using System.Linq;
 

@@ -1,5 +1,7 @@
-﻿using MelonAutoUpdater.JSONObjects;
-using MelonLoader.TinyJSON;
+﻿extern alias ml065;
+
+using MelonAutoUpdater.JSONObjects;
+using ml065.MelonLoader.TinyJSON;
 using System;
 using System.Collections.Generic;
 using System.IO;

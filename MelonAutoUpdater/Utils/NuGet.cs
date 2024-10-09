@@ -1,10 +1,11 @@
-﻿using MelonAutoUpdater.Helper;
-using MelonLoader;
-using MelonLoader.ICSharpCode.SharpZipLib.Core;
-using MelonLoader.ICSharpCode.SharpZipLib.Zip;
-using MelonLoader.TinyJSON;
+﻿extern alias ml065;
+
+using ml065.MelonLoader;
+using ml065.MelonLoader.ICSharpCode.SharpZipLib.Core;
+using ml065.MelonLoader.ICSharpCode.SharpZipLib.Zip;
+using ml065.MelonLoader.TinyJSON;
 using Mono.Cecil;
-using Semver;
+using ml065.Semver;
 using System;
 using System.Collections.Generic;
 using System.IO;

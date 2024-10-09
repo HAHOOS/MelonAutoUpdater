@@ -1,19 +1,21 @@
-﻿using MelonAutoUpdater.JSONObjects;
+﻿extern alias ml065;
+
+using MelonAutoUpdater.JSONObjects;
 using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Utils;
 using MelonAutoUpdater.Helper;
-using MelonLoader;
-using MelonLoader.TinyJSON;
+using ml065.MelonLoader;
+using ml065.MelonLoader.TinyJSON;
 using Mono.Cecil;
-using Semver;
+using ml065.Semver;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using MelonLoader.ICSharpCode.SharpZipLib.Core;
-using MelonLoader.ICSharpCode.SharpZipLib.Zip;
+using ml065.MelonLoader.ICSharpCode.SharpZipLib.Core;
+using ml065.MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using System.Net;
 using System.Diagnostics;
 
@@ -235,7 +237,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Check if an assembly is a <see cref="MelonMod"/>, a <see cref="MelonPlugin"/> or something else
         /// </summary>
-        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
         /// <returns>A FileType, either <see cref="MelonMod"/>, <see cref="MelonPlugin"/> or Other</returns>
         internal static FileType GetFileType(AssemblyDefinition assembly)
         {
@@ -376,7 +378,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Retrieve information from the <see cref="MelonInfoAttribute"/> in a file using Mono.Cecil
         /// </summary>
-        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
         /// <returns>If present, returns a <see cref="MelonInfoAttribute"/></returns>
 
         internal static MelonInfoAttribute GetMelonInfo(AssemblyDefinition assembly)

@@ -1,11 +1,14 @@
-﻿using MelonLoader;
+﻿extern alias ml065;
+extern alias ml057;
+
+using ml065.MelonLoader;
 using Mono.Cecil;
 using System.Collections.Generic;
 using System;
 using System.IO;
 using System.Linq;
-using Semver;
-using MelonLoader.Preferences;
+using ml065.Semver;
+using ml065.MelonLoader.Preferences;
 using MelonAutoUpdater.Search;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
@@ -267,6 +270,10 @@ namespace MelonAutoUpdater
     System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private bool IsMLDebug060() => MelonLaunchOptions.Core.IsDebug;
 
+        [System.Runtime.CompilerServices.MethodImpl(
+   System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private bool IsMLDebug057() => ml057.MelonLoader.MelonLaunchOptions.Debug.Enabled;
+
         // Note to self: Don't use async
         /// <summary>
         /// Runs before MelonLoader fully initializes
@@ -275,8 +282,9 @@ namespace MelonAutoUpdater
         {
             MLAssembly = AppDomain.CurrentDomain.GetAssemblies().Where(x => x.GetName().Name == "MelonLoader").FirstOrDefault();
             Version MelonLoaderVersion = MLAssembly.GetName().Version;
+            SemVersion MelonLoaderSemVer = new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build);
 
-            if (new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build) >= new SemVersion(0, 6, 5))
+            if (MelonLoaderSemVer >= new SemVersion(0, 6, 5))
             {
                 LoggerInstance.Msg("Checking command line arguments");
                 HandleArguments();
@@ -288,9 +296,13 @@ namespace MelonAutoUpdater
 
             if (stopPlugin) return;
 
-            if (new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build) >= new SemVersion(0, 6, 0))
+            if (MelonLoaderSemVer >= new SemVersion(0, 6, 0))
             {
                 if (IsMLDebug060()) Debug = true;
+            }
+            else if (MelonLoaderSemVer == new SemVersion(0, 5, 7))
+            {
+                if (IsMLDebug057()) Debug = true;
             }
 
             Stopwatch sw = null;

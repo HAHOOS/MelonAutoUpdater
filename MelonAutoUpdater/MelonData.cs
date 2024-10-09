@@ -1,4 +1,6 @@
-﻿using Semver;
+﻿extern alias ml065;
+
+using ml065.Semver;
 using System;
 using System.Collections.Generic;
 
@@ -67,17 +69,17 @@ namespace MelonAutoUpdater
     }
 
     /// <summary>
-    /// Type of file, either <see cref="MelonLoader.MelonMod"/>, <see cref="MelonLoader.MelonPlugin"/> or Other
+    /// Type of file, either <see cref="ml065.MelonLoader.MelonMod"/>, <see cref="ml065.MelonLoader.MelonPlugin"/> or Other
     /// </summary>
     public enum FileType
     {
         /// <summary>
-        /// Has attribute MelonInfo with type MelonMod or MelonModInfo
+        /// Has attribute MelonInfo with type <see cref="ml065.MelonLoader.MelonMod"/> or is attribute <see cref="ml065.MelonLoader.MelonModInfoAttribute"/>
         /// </summary>
         MelonMod = 1,
 
         /// <summary>
-        /// Has attribute MelonInfo with type MelonPlugin or MelonPluginInfo
+        /// Has attribute MelonInfo with type <see cref="ml065.MelonLoader.MelonPlugin"/> or is attribute <see cref="ml065.MelonLoader.MelonPluginInfoAttribute"/>
         /// </summary>
         MelonPlugin = 2,
 

@@ -1,11 +1,12 @@
-﻿using MelonAutoUpdater.Helper;
-using MelonLoader;
-using MelonLoader.TinyJSON;
-using Semver;
+﻿extern alias ml065;
+
+using MelonAutoUpdater.Helper;
+using ml065.MelonLoader;
+using ml065.MelonLoader.TinyJSON;
+using ml065.Semver;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;

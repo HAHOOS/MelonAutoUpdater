@@ -1,12 +1,14 @@
-﻿using MelonAutoUpdater.Helper;
-using MelonLoader.TinyJSON;
-using Semver;
+﻿extern alias ml065;
+
+using MelonAutoUpdater.Helper;
+using ml065.MelonLoader.TinyJSON;
+using ml065.Semver;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using MelonLoader;
+using ml065.MelonLoader;
 using System.Drawing;
 using MelonAutoUpdater.Utils;
 using System.Net;
@@ -211,34 +213,53 @@ namespace MelonAutoUpdater.Search.Included.Github
 
                 byte[] response = null;
                 bool threwError = false;
+
+                Logger.DebugMsg("Sending request");
                 try
                 {
                     response = client.UploadValues("https://github.com/login/device/code", "POST", _params);
                 }
                 catch (WebException e)
                 {
+                    Logger.DebugError("WebException");
                     threwError = true;
-                    HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
-                    string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
-                    Logger.Msg("Error");
-                    Logger.Error
-                            ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
+                    if (e.Response != null)
+                    {
+                        HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
+                        string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
+                        Logger.Error
+                                ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
+                    }
+                    else
+                    {
+                        Logger.Error
+                                  ($"Failed to use Device Flow using Github, unable to determine the reason, exception description:\n{e.Message}");
+                    }
                     client.Dispose();
                 }
                 catch (Exception e)
                 {
+                    Logger.DebugError("Other Exception");
                     threwError = true;
                     Logger.Error
                         ($"Failed to use Device Flow using Github, unexpected error occurred:\n{e}");
                 }
-                if (!threwError)
+                if (!threwError && response != null)
                 {
+                    Logger.DebugMsg("Getting string from bytes");
                     string body = Encoding.UTF8.GetString(response);
                     if (body != null)
                     {
+                        Logger.DebugMsg("Body is not empty");
                         if (!ShouldNotUseWriter())
                         {
+                            Logger.DebugMsg($"Body: {body}");
                             var data = JSON.Load(body).Make<Dictionary<string, string>>();
+                            if (!data.ContainsKeys("verification_uri", "user_code", "expires_in", "device_code"))
+                            {
+                                Logger.Warning("Insufficient data provided by the API, unable to continue");
+                                return;
+                            }
                             Logger.MsgPastel($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
 
 Go {data["verification_uri"].ToString().Pastel(Theme.Instance.LinkColor).Underline().Blink()} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
