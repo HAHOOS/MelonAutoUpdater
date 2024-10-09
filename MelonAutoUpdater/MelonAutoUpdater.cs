@@ -233,7 +233,6 @@ namespace MelonAutoUpdater
 
         #endregion Command Line Arguments
 
-        // If you are wondering, this is from StackOverflow, although a bit edited, I'm just a bit lazy
         /// <summary>
         /// Checks for internet connection
         /// </summary>
