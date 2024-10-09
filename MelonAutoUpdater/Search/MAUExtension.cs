@@ -10,6 +10,7 @@ using ml065.MelonLoader;
 using System.IO;
 using MelonAutoUpdater.Utils;
 using MelonAutoUpdater.Helper;
+using System.Runtime.InteropServices;
 
 namespace MelonAutoUpdater.Search
 {
@@ -58,6 +59,18 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         public virtual bool BruteCheckEnabled
         { get { return false; } }
+
+        /// <summary>
+        /// The required version needed of MAU for the extension to work
+        /// </summary>
+        public virtual (SemVersion version, bool isMinimum) RequiredMAUVersion
+        { get { return (null, false); } }
+
+        /// <summary>
+        /// The required version needed of ML for the extension to work
+        /// </summary>
+        public virtual (SemVersion version, bool isMinimum) RequiredMLVersion
+        { get { return (null, false); } }
 
         #endregion Extension Info
 
@@ -209,6 +222,18 @@ namespace MelonAutoUpdater.Search
         #region Helper
 
         /// <summary>
+        /// Copied from MelonLoader v0.6.4 to make it work with older versions
+        /// </summary>
+        internal static bool IsCompatible(SemVersion ver, bool isMinimum, SemVersion version)
+           => ver == null || version == null || (isMinimum ? ver <= version : ver == version);
+
+        /// <summary>
+        /// Copied from MelonLoader v0.6.4 to make it work with older versions
+        /// </summary>
+        internal static bool IsCompatible(string ver, bool isMinimum, string version)
+            => !SemVersion.TryParse(version, out SemVersion _version) || !SemVersion.TryParse(ver, out SemVersion _ver) || IsCompatible(_ver, isMinimum, _version);
+
+        /// <summary>
         /// Create preferences category for saving data
         /// </summary>
         /// <param name="category">Optional parameter, name for your category</param>
@@ -288,6 +313,27 @@ namespace MelonAutoUpdater.Search
                     .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(MAUExtension))))
                 {
                     var obj = (MAUExtension)Activator.CreateInstance(type);
+                    if (obj.RequiredMAUVersion.version != null)
+                    {
+                        if (!IsCompatible(GetMAUVersion(), obj.RequiredMAUVersion.isMinimum, obj.RequiredMAUVersion.version))
+                        {
+                            MelonAutoUpdater.logger.Msg(
+                                $"Current MAU version is not compatible with the one required by {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" (Current is v{GetMAUVersion()}, v{obj.RequiredMAUVersion.version} {(obj.RequiredMAUVersion.isMinimum ? "minimally" : "specifically")})");
+                        }
+                    }
+
+                    if (obj.RequiredMLVersion.version != null)
+                    {
+                        Version MelonLoaderVersion = MelonAutoUpdater.MLAssembly.GetName().Version;
+                        SemVersion MelonLoaderSemVer = new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build);
+
+                        if (!IsCompatible(MelonLoaderSemVer, obj.RequiredMLVersion.isMinimum, obj.RequiredMLVersion.version))
+                        {
+                            MelonAutoUpdater.logger.Msg(
+                                $"Current MAU version is not compatible with the one required by {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" (Current is v{GetMAUVersion()}, v{obj.RequiredMLVersion.version} {(obj.RequiredMLVersion.isMinimum ? "minimally" : "specifically")})");
+                        }
+                    }
+
                     if (LoadedExtensions.Find(x => x.Name == obj.Name && x.Author == obj.Author) != null)
                     {
                         MelonAutoUpdater.logger.Warning("Found an extension with identical Names & Author to another extension, not loading");
