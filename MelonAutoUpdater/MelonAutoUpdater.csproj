@@ -1,9 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<!-- Framework & Language Version -->
+		
 		<TargetFrameworks>net35</TargetFrameworks>
 		<LangVersion>7.3</LangVersion>
+		
+		<!--  -->
+		
 		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+
+		<!-- NuGet information -->
+		
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>MelonAutoUpdater</Title>
 		<Authors>HAHOOS</Authors>
@@ -19,6 +27,12 @@ This package exists to easily reference the plugin for developers</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>MAUIcon.png</PackageIcon>
 		<Version>0.4.0</Version>
+
+		<!-- Signing the assembly -->
+		
+		<SignAssembly>True</SignAssembly>
+		<AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+		<DelaySign>True</DelaySign>
 	</PropertyGroup>
 
 	<!-- Embed mime-types.json into the DLL file -->
@@ -52,9 +66,22 @@ This package exists to easily reference the plugin for developers</Description>
 	
 	<ItemGroup>
 		<PackageReference Include="Mono.Cecil" Version="0.10.4" />
-		<PackageReference Include="LavaGang.MelonLoader" Version="0.6.5" />
 		<PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
 		<PackageReference Include="ValueTupleBridge" Version="0.1.5" />
+	</ItemGroup>
+	
+	<!--				  Add for backwards compatibility			       -->
+	<!-- TODO: Add references for older ML versions for more compatibility -->
+	
+	<ItemGroup>
+	  <Reference Include="MelonLoader">
+	    <HintPath>..\Packages\MelonLoader-0.5.7.dll</HintPath>
+	    <Aliases>ml057</Aliases>
+	  </Reference>
+		<Reference Include="MelonLoader">
+			<HintPath>..\Packages\MelonLoader-0.6.5.dll</HintPath>
+			<Aliases>ml065</Aliases>
+		</Reference>
 	</ItemGroup>
 		
 	
