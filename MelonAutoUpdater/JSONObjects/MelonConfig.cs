@@ -36,7 +36,7 @@ namespace MelonAutoUpdater.JSONObjects
         [DecodeAlias("dontInclude", "doNotInclude", "DoNotInclude")]
         public string[] DontInclude { get; set; }
 
-        /// <inheritdoc cref="JSONObjects.MelonConfig.Platform" />
+        /// <inheritdoc cref="JSONObjects.MelonConfig.ConfigPlatform" />
         [Include]
         [DecodeAlias("platform", "extension", "Extension")]
         public ConfigPlatform Platform { get; set; }
