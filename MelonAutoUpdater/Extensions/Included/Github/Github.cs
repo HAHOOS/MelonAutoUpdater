@@ -12,13 +12,13 @@ using ml065.MelonLoader;
 using System.Drawing;
 using MelonAutoUpdater.Utils;
 using System.Net;
-using System.Collections.Specialized;
-using System.Text;
 using System.Diagnostics;
+using System.Net.Http;
+using System.Threading.Tasks;
 
-namespace MelonAutoUpdater.Search.Included.Github
+namespace MelonAutoUpdater.Extensions.Included.Github
 {
-    internal class Github : MAUExtension
+    internal class Github : SearchExtension
     {
         public override string Name => "Github";
 
@@ -167,7 +167,7 @@ namespace MelonAutoUpdater.Search.Included.Github
                         threwError2 = true;
                         HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
                         string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
-                        if (statusCode == System.Net.HttpStatusCode.Unauthorized || statusCode == System.Net.HttpStatusCode.Forbidden)
+                        if (statusCode == HttpStatusCode.Unauthorized || statusCode == HttpStatusCode.Forbidden)
                         {
                             Logger.Warning("Access token expired or is incorrect");
                         }
@@ -200,61 +200,23 @@ namespace MelonAutoUpdater.Search.Included.Github
                     }
                 }
                 Logger.Msg("Requesting Device Flow");
-                WebClient client = new WebClient();
+                HttpClient client = new HttpClient();
                 string scopes = "read:user";
-                client.Headers.Add("Accept", "application/json");
-                client.Headers.Add("User-Agent", UserAgent);
-
-                var _params = new NameValueCollection
-                {
-                    { "client_id", ClientID },
-                    { "scope", scopes }
-                };
-
-                byte[] response = null;
-                bool threwError = false;
-
-                Logger.DebugMsg("Sending request");
-                try
-                {
-                    response = client.UploadValues("https://github.com/login/device/code", "POST", _params);
-                }
-                catch (WebException e)
-                {
-                    Logger.DebugError("WebException");
-                    threwError = true;
-                    if (e.Response != null)
-                    {
-                        HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
-                        string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
-                        Logger.Error
-                                ($"Failed to use Device Flow using Github, returned {statusCode} with following message:\n{statusDescription}");
-                    }
-                    else
-                    {
-                        Logger.Error
-                                  ($"Failed to use Device Flow using Github, unable to determine the reason, exception:\n{e}");
-                    }
-                    client.Dispose();
-                }
-                catch (Exception e)
-                {
-                    Logger.DebugError("Other Exception");
-                    threwError = true;
-                    Logger.Error
-                        ($"Failed to use Device Flow using Github, unexpected error occurred:\n{e}");
-                }
-                if (!threwError && response != null)
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
+                var response = client.PostAsync($"https://github.com/login/device/code?client_id={ClientID}&scope={scopes}", null);
+                response.Wait();
+                if (response.Result.IsSuccessStatusCode)
                 {
                     Logger.DebugMsg("Getting string from bytes");
-                    string body = Encoding.UTF8.GetString(response);
-                    if (body != null)
+                    var body = response.Result.Content.ReadAsStringAsync();
+                    body.Wait();
+                    if (body.Result != null)
                     {
                         Logger.DebugMsg("Body is not empty");
                         if (!ShouldNotUseWriter())
                         {
-                            Logger.DebugMsg($"Body: {body}");
-                            var data = JSON.Load(body).Make<Dictionary<string, string>>();
+                            var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
                             if (!data.ContainsKeys("verification_uri", "user_code", "expires_in", "device_code"))
                             {
                                 Logger.Warning("Insufficient data provided by the API, unable to continue");
@@ -287,42 +249,15 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                     {
                                         Logger.Msg("Checking if authorized");
 
-                                        var _params2 = new NameValueCollection
-                                    {
-                                        { "client_id", ClientID },
-                                        { "device_code", data["device_code"] },
-                                        { "grant_type", "urn:ietf:params:oauth:grant-type:device_code" }
-                                    };
-
-                                        byte[] res = null;
-                                        bool threwError2 = false;
-                                        WebClient client2 = new WebClient();
-                                        client2.Headers.Add("Accept", "application/json");
-                                        client2.Headers.Add("User-Agent", UserAgent);
-                                        try
+                                        var res = client.PostAsync($"https://github.com/login/oauth/access_token?client_id={ClientID}&device_code={data["device_code"]}&grant_type=urn:ietf:params:oauth:grant-type:device_code", null);
+                                        res.Wait();
+                                        if (res.Result.IsSuccessStatusCode)
                                         {
-                                            res = client2.UploadValues($"https://github.com/login/oauth/access_token", "POST", _params2);
-                                        }
-                                        catch (WebException e)
-                                        {
-                                            threwError2 = true;
-                                            HttpStatusCode statusCode = ((HttpWebResponse)e.Response).StatusCode;
-                                            string statusDescription = ((HttpWebResponse)e.Response).StatusDescription;
-                                            Logger.Error
-                                                       ($"Failed to validate if authorized using Github, returned {statusCode} with following message:\n{statusDescription}");
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            threwError2 = true;
-                                            Logger.Error
-                                                ($"Failed to validate if authorized using Github, unexpected error occurred:\n{e}");
-                                        }
-                                        if (!threwError2)
-                                        {
-                                            string _body = Encoding.UTF8.GetString(res);
-                                            if (_body != null)
+                                            Task<string> _body = res.Result.Content.ReadAsStringAsync();
+                                            _body.Wait();
+                                            if (_body.Result != null)
                                             {
-                                                var _data = JSON.Load(_body).Make<Dictionary<string, string>>();
+                                                var _data = JSON.Load(_body.Result).Make<Dictionary<string, string>>();
                                                 if (_data != null)
                                                 {
                                                     if (_data.ContainsKey("error"))
@@ -345,7 +280,8 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                                         Logger.MsgPastel("Successfully retrieved access token".Pastel(Color.LawnGreen));
 
                                                         client.Dispose();
-                                                        client2.Dispose();
+                                                        res.Dispose();
+                                                        response.Dispose();
 
                                                         return;
                                                     }
@@ -356,7 +292,6 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                                 }
                                             }
                                         }
-                                        client2.Dispose();
                                     }
                                     canUse = false;
                                     System.Timers.Timer timer = new System.Timers.Timer
@@ -374,7 +309,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                         }
                         else
                         {
-                            var data = JSON.Load(body).Make<Dictionary<string, string>>();
+                            var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
                             Logger.MsgPastel(
                                 $"Due to the fact that the console cannot be used, you will have to manually do the process, which should be described in the Wiki on the Github page. Your code is {data["user_code"]} and it expires within {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes. If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig and open Github.json, in there set 'UseDeviceFlow' to false. This should make the plugin run faster, but authorized requests wont be used (you will be limited to 60 requests / hour, rather than 5000 requests / hour).");
                         }
@@ -398,11 +333,11 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             }
 
             category = CreateCategory();
-            entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
+            entry_useDeviceFlow = category.CreateEntry("UseDeviceFlow", true, "Use Device Flow",
                 description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 5000)\nDefault: true");
-            entry_validateToken = category.CreateEntry<bool>("ValidateToken", true, "Validate Token",
+            entry_validateToken = category.CreateEntry("ValidateToken", true, "Validate Token",
                 description: "If enabled, the access token will be validated, disabling this can result for the plugin to be ~400 ms faster");
-            entry_accessToken = category.CreateEntry<string>("AccessToken", string.Empty, "Access Token",
+            entry_accessToken = category.CreateEntry("AccessToken", string.Empty, "Access Token",
                 description: "Access Token used to make authenticated requests (Do not edit if you do not know what you're doing)");
 
             category.SaveToFile(false);
@@ -462,7 +397,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                         }
                         else
                         {
-                            if (statusCode == System.Net.HttpStatusCode.NotFound)
+                            if (statusCode == HttpStatusCode.NotFound)
                             {
                                 Logger.Warning("Github API could not find the mod/plugin");
                             }
@@ -476,7 +411,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     }
                     else
                     {
-                        if (statusCode == System.Net.HttpStatusCode.NotFound)
+                        if (statusCode == HttpStatusCode.NotFound)
                         {
                             Logger.Warning("Github API could not find the mod/plugin");
                         }
