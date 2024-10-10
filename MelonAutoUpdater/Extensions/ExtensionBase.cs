@@ -1,64 +1,54 @@
 ﻿extern alias ml065;
 
-using ml065.Semver;
-using System.Collections.Generic;
-using System.Reflection;
-using System;
-using System.Linq;
-using System.Drawing;
-using ml065.MelonLoader;
-using System.IO;
-using MelonAutoUpdater.Utils;
 using MelonAutoUpdater.Helper;
-using System.Runtime.InteropServices;
+using MelonAutoUpdater.Utils;
+using ml065::Semver;
+using System.Collections.Generic;
+using System;
+using System.Drawing;
+using System.Reflection;
+using System.Linq;
+using ml065::MelonLoader;
+using System.IO;
 
-namespace MelonAutoUpdater.Search
+namespace MelonAutoUpdater.Extensions
 {
     /// <summary>
-    /// Class to derive from to create search extensions<br/>
-    /// Search Extensions are provided a URL and should get necessary information (Latest Version, File Data) if possible
+    /// Base class for extensions
     /// </summary>
-    public abstract class MAUExtension
+    public abstract class ExtensionBase
     {
-        #region Extension Info
+        /// <summary>
+        /// Type of the extension
+        /// </summary>
+        internal abstract Type Type { get; }
 
         /// <summary>
-        /// Name of the MAU Search Extension that will be displayed in console
+        /// Name of the extension that will be displayed in console
         /// </summary>
         public abstract string Name { get; }
 
         /// <summary>
-        /// Version of the MAU Search Extension that will be displayed in the console
+        /// Version of the extension that will be displayed in the console
         /// </summary>
         public abstract SemVersion Version { get; }
 
         /// <summary>
-        /// Author of the MAU Search Extension that will be displayed in the console
+        /// Author of the extension that will be displayed in the console
         /// </summary>
         public abstract string Author { get; }
 
         /// <summary>
-        /// Link to the platform that the MAU Search Extension supports
-        /// </summary>
-        public abstract string Link { get; }
-
-        /// <summary>
-        /// <see cref="Color"/> that should be displayed with the Author of the MAU Search Extension
+        /// <see cref="Color"/> that should be displayed with the Author of the extension
         /// </summary>
         public virtual Color AuthorColor
         { get { return Color.LightBlue; } }
 
         /// <summary>
-        /// <see cref="Color"/> that should be displayed with the Name of the MAU Search Extension
+        /// <see cref="Color"/> that should be displayed with the Name of the extension
         /// </summary>
         public virtual Color NameColor
         { get { return Color.LightBlue; } }
-
-        /// <summary>
-        /// If true, the brute check event will be called
-        /// </summary>
-        public virtual bool BruteCheckEnabled
-        { get { return false; } }
 
         /// <summary>
         /// The required version needed of MAU for the extension to work
@@ -72,38 +62,11 @@ namespace MelonAutoUpdater.Search
         public virtual (SemVersion version, bool isMinimum) RequiredMLVersion
         { get { return (null, false); } }
 
-        #endregion Extension Info
-
-        #region Internal MelonPreferences
-
-        internal MelonPreferences_Category Internal_Category;
-
-        internal MelonPreferences_Entry Entry_Enabled;
-        internal MelonPreferences_Entry Entry_BruteCheckEnabled;
-
-        #endregion Internal MelonPreferences
-
-        #region Extension Methods
-
         /// <summary>
-        /// Called when the extension needs to perform a search with provided URL
+        /// Called when extension is loaded into the plugin
         /// </summary>
-        /// <param name="url">URL retrieved from mod/plugin that needs to be checked</param>
-        /// <param name="currentVersion">Current version of the mod/plugin</param>
-        /// <returns><see cref="MelonData"/> if able to retrieve information from link, otherwise <see langword="null"/></returns>
-        public abstract MelonData Search(string url, SemVersion currentVersion);
-
-        /// <summary>
-        /// Called when the extension needs to perform a search with provided Author and Name
-        /// </summary>
-        /// <param name="name">Name provided with mod/plugin being checked</param>
-        /// <param name="author">Author provided with mod/plugin being checked</param>
-        /// <param name="currentVersion">Current version of mod/plugin</param>
-        /// <returns><see cref="MelonData"/> if able to retrieve information from name and author, otherwise <see langword="null"/></returns>
-        public virtual MelonData BruteCheck(string name, string author, SemVersion currentVersion)
-        {
-            return null;
-        }
+        public virtual void OnInitialization()
+        { }
 
         /// <summary>
         /// Configure necessary things in extension
@@ -112,28 +75,12 @@ namespace MelonAutoUpdater.Search
         {
             MelonAutoUpdater.logger.DebugMsg($"Setting up logger for {Name}");
             Logger = new MAULogger(Name);
-
-            Logger.DebugMsg("Creating category");
-            Internal_Category = CreateCategory($"{Name}_Internal_Settings");
-            Logger.DebugMsg("Created category");
-
-            Logger.DebugMsg("Creating entry 'Enabled'");
-            Entry_Enabled = Internal_Category.CreateEntry<bool>("Enabled", true, "Enabled",
-                description: "If true, the extension will be enabled, by default its true");
-            Logger.DebugMsg("Created entry 'Enabled'");
-
-            Logger.DebugMsg("Creating entry 'BruteCheckEnabled'");
-            Entry_BruteCheckEnabled = Internal_Category.CreateEntry<bool>("BruteCheckEnabled", BruteCheckEnabled, "Brute Check Enabled",
-                description: "If true, the extension will be used in brute checks if set up");
-            Logger.DebugMsg("Created entry 'BruteCheckEnabled'");
-
-            Internal_Category.SaveToFile(false);
         }
 
         #region Unload
 
         /// <summary>
-        /// Unloads the specified <see cref="MAUExtension"/>, which will cause it to not be used in checking
+        /// Unloads the specified <see cref="ExtensionBase"/>, which will cause it to not be used in checking
         /// <para>Note that this <b>does not</b> unload the <see cref="Assembly"/></para>
         /// </summary>
         public void Unload(bool printmsg = true)
@@ -144,7 +91,7 @@ namespace MelonAutoUpdater.Search
         }
 
         /// <summary>
-        /// Unloads the specified <see cref="MAUExtension"/>, which will cause it to not be used in checking
+        /// Unloads the specified <see cref="ExtensionBase"/>, which will cause it to not be used in checking
         /// <para>Note that this <b>does not</b> unload the <see cref="Assembly"/></para>
         /// </summary>
         public void Unload(string message, bool printmsg = true)
@@ -155,10 +102,10 @@ namespace MelonAutoUpdater.Search
         }
 
         /// <summary>
-        /// Unloads the specified <see cref="MAUExtension"/>, which will cause it to not be used in checking
+        /// Unloads the specified <see cref="ExtensionBase"/>, which will cause it to not be used in checking
         /// <para>Note that this <b>does not</b> unload the <see cref="Assembly"/></para>
         /// </summary>
-        public static void Unload(MAUExtension extension, bool printmsg = true)
+        public static void Unload(SearchExtension extension, bool printmsg = true)
         {
             MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == extension.Name && x.Author == extension.Author)} matches");
             RottenExtensions.Add(new RottenExtension(extension, "The extension has been unloaded by another extension or a melon"));
@@ -166,10 +113,10 @@ namespace MelonAutoUpdater.Search
         }
 
         /// <summary>
-        /// Unloads the specified <see cref="MAUExtension"/>, which will cause it to not be used in checking
+        /// Unloads the specified <see cref="ExtensionBase"/>, which will cause it to not be used in checking
         /// <para>Note that this <b>does not</b> unload the <see cref="Assembly"/></para>
         /// </summary>
-        public static void Unload(MAUExtension extension, string message, bool printmsg = true)
+        public static void Unload(SearchExtension extension, string message, bool printmsg = true)
         {
             MelonAutoUpdater.logger.DebugMsg($"Successfully removed {LoadedExtensions.RemoveAll(x => x.Name == extension.Name && x.Author == extension.Author)} matches");
             RottenExtensions.Add(new RottenExtension(extension, "The extension has been unloaded by another extension or a melon"));
@@ -177,7 +124,7 @@ namespace MelonAutoUpdater.Search
         }
 
         /// <summary>
-        /// Unloads the specified <see cref="MAUExtension"/>, which will cause it to not be used in checking
+        /// Unloads the specified <see cref="ExtensionBase"/>, which will cause it to not be used in checking
         /// <para>Note that this <b>does not</b> unload the <see cref="Assembly"/></para>
         /// </summary>
         internal void InternalUnload(Exception exception, bool printmsg = true)
@@ -188,7 +135,7 @@ namespace MelonAutoUpdater.Search
         }
 
         /// <summary>
-        /// Unloads the specified <see cref="MAUExtension"/>, which will cause it to not be used in checking
+        /// Unloads the specified <see cref="ExtensionBase"/>, which will cause it to not be used in checking
         /// <para>Note that this <b>does not</b> unload the <see cref="Assembly"/></para>
         /// </summary>
         internal void InternalUnload(Exception exception, string message, bool printmsg = true)
@@ -199,7 +146,7 @@ namespace MelonAutoUpdater.Search
         }
 
         /// <summary>
-        /// Unloads the specified <see cref="MAUExtension"/>, which will cause it to not be used in checking
+        /// Unloads the specified <see cref="ExtensionBase"/>, which will cause it to not be used in checking
         /// <para>Note that this <b>does not</b> unload the <see cref="Assembly"/></para>
         /// </summary>
         internal void InternalUnload(string message, bool printmsg = true)
@@ -211,27 +158,7 @@ namespace MelonAutoUpdater.Search
 
         #endregion Unload
 
-        /// <summary>
-        /// Called when extension is loaded into the plugin
-        /// </summary>
-        public virtual void OnInitialization()
-        { }
-
-        #endregion Extension Methods
-
         #region Helper
-
-        /// <summary>
-        /// Copied from MelonLoader v0.6.4 to make it work with older versions
-        /// </summary>
-        internal static bool IsCompatible(SemVersion ver, bool isMinimum, SemVersion version)
-           => ver == null || version == null || (isMinimum ? ver <= version : ver == version);
-
-        /// <summary>
-        /// Copied from MelonLoader v0.6.4 to make it work with older versions
-        /// </summary>
-        internal static bool IsCompatible(string ver, bool isMinimum, string version)
-            => !SemVersion.TryParse(version, out SemVersion _version) || !SemVersion.TryParse(ver, out SemVersion _ver) || IsCompatible(_ver, isMinimum, _version);
 
         /// <summary>
         /// Create preferences category for saving data
@@ -270,9 +197,16 @@ namespace MelonAutoUpdater.Search
         }
 
         /// <summary>
-        /// User Agent Header for all HTTP requests
+        /// Copied from MelonLoader v0.6.4 to make it work with older versions
         /// </summary>
-        public static string UserAgent { get; internal set; }
+        internal static bool IsCompatible(SemVersion ver, bool isMinimum, SemVersion version)
+       => ver == null || version == null || (isMinimum ? ver <= version : ver == version);
+
+        /// <summary>
+        /// Copied from MelonLoader v0.6.4 to make it work with older versions
+        /// </summary>
+        internal static bool IsCompatible(string ver, bool isMinimum, string version)
+            => !SemVersion.TryParse(version, out SemVersion _version) || !SemVersion.TryParse(ver, out SemVersion _ver) || IsCompatible(_ver, isMinimum, _version);
 
         /// <summary>
         /// Logger to use to display information in console
@@ -292,7 +226,7 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// All loaded extensions
         /// </summary>
-        public static List<MAUExtension> LoadedExtensions { get; internal set; } = new List<MAUExtension>();
+        public static List<ExtensionBase> LoadedExtensions { get; internal set; } = new List<ExtensionBase>();
 
         /// <summary>
         /// All extensions that were unloaded due to an exception
@@ -302,47 +236,62 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// Get all loaded extensions
         /// </summary>
-        /// <returns>A list of <see cref="MAUExtension"/> objects</returns>
+        /// <returns>A list of <see cref="ExtensionBase"/> objects</returns>
         internal static void LoadExtensions(Assembly[] loadedAssemblies)
         {
-            LoadedExtensions = new List<MAUExtension>();
+            LoadedExtensions = new List<ExtensionBase>();
             foreach (Assembly assembly in loadedAssemblies)
             {
                 foreach (Type type in
                     assembly.GetTypes()
-                    .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(MAUExtension))))
+                    .Where(myType => myType.IsClass && !myType.IsAbstract))
                 {
-                    var obj = (MAUExtension)Activator.CreateInstance(type);
-                    if (obj.RequiredMAUVersion.version != null)
+                    if (type.IsSubclassOf(typeof(SearchExtension)) || type.IsSubclassOf(typeof(InstallExtension)))
                     {
-                        if (!IsCompatible(GetMAUVersion(), obj.RequiredMAUVersion.isMinimum, obj.RequiredMAUVersion.version))
+                        var obj = (ExtensionBase)Activator.CreateInstance(type);
+                        if (obj.RequiredMAUVersion.version != null)
                         {
-                            MelonAutoUpdater.logger.Msg(
-                                $"Current MAU version is not compatible with the one required by {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" (Current is v{GetMAUVersion()}, v{obj.RequiredMAUVersion.version} {(obj.RequiredMAUVersion.isMinimum ? "minimally" : "specifically")})");
+                            if (!IsCompatible(GetMAUVersion(), obj.RequiredMAUVersion.isMinimum, obj.RequiredMAUVersion.version))
+                            {
+                                MelonAutoUpdater.logger.Msg(
+                                    $"Current MAU version is not compatible with the one required by {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" (Current is v{GetMAUVersion()}, v{obj.RequiredMAUVersion.version} {(obj.RequiredMAUVersion.isMinimum ? "minimally" : "specifically")})");
+                            }
+                        }
+
+                        if (obj.RequiredMLVersion.version != null)
+                        {
+                            Version MelonLoaderVersion = MelonAutoUpdater.MLAssembly.GetName().Version;
+                            SemVersion MelonLoaderSemVer = new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build);
+
+                            if (!IsCompatible(MelonLoaderSemVer, obj.RequiredMLVersion.isMinimum, obj.RequiredMLVersion.version))
+                            {
+                                MelonAutoUpdater.logger.Msg(
+                                    $"Current MAU version is not compatible with the one required by {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" (Current is v{GetMAUVersion()}, v{obj.RequiredMLVersion.version} {(obj.RequiredMLVersion.isMinimum ? "minimally" : "specifically")})");
+                            }
+                        }
+
+                        if (LoadedExtensions.Find(x => x.Name == obj.Name && x.Author == obj.Author) != null)
+                        {
+                            MelonAutoUpdater.logger.Warning("Found an extension with identical Names & Author to another extension, not loading");
+                            continue;
+                        }
+                        if (type.IsSubclassOf(typeof(SearchExtension)))
+                        {
+                            var search = (SearchExtension)obj;
+                            MelonAutoUpdater.logger._MsgPastel($"Loaded Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                            LoadedExtensions.Add(search);
+                            search.SafeAction(obj.Setup);
+                            search.SafeAction(obj.OnInitialization);
+                        }
+                        else if (type.IsSubclassOf(typeof(InstallExtension)))
+                        {
+                            var install = (InstallExtension)obj;
+                            MelonAutoUpdater.logger._MsgPastel($"Loaded Install Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
+                            LoadedExtensions.Add(install);
+                            install.SafeAction(obj.Setup);
+                            install.SafeAction(obj.OnInitialization);
                         }
                     }
-
-                    if (obj.RequiredMLVersion.version != null)
-                    {
-                        Version MelonLoaderVersion = MelonAutoUpdater.MLAssembly.GetName().Version;
-                        SemVersion MelonLoaderSemVer = new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build);
-
-                        if (!IsCompatible(MelonLoaderSemVer, obj.RequiredMLVersion.isMinimum, obj.RequiredMLVersion.version))
-                        {
-                            MelonAutoUpdater.logger.Msg(
-                                $"Current MAU version is not compatible with the one required by {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" (Current is v{GetMAUVersion()}, v{obj.RequiredMLVersion.version} {(obj.RequiredMLVersion.isMinimum ? "minimally" : "specifically")})");
-                        }
-                    }
-
-                    if (LoadedExtensions.Find(x => x.Name == obj.Name && x.Author == obj.Author) != null)
-                    {
-                        MelonAutoUpdater.logger.Warning("Found an extension with identical Names & Author to another extension, not loading");
-                        continue;
-                    }
-                    MelonAutoUpdater.logger._MsgPastel($"Loaded Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
-                    LoadedExtensions.Add(obj);
-                    obj.SafeAction(obj.Setup);
-                    obj.SafeAction(obj.OnInitialization);
                 }
             }
         }
@@ -355,7 +304,7 @@ namespace MelonAutoUpdater.Search
         public static bool IsExtension(Assembly assembly)
         {
             return assembly.GetTypes()
-                .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(MAUExtension))).Any();
+                .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(SearchExtension))).Any();
         }
 
         #endregion Static Methods

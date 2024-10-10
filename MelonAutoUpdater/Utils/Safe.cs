@@ -1,4 +1,4 @@
-﻿using MelonAutoUpdater.Search;
+﻿using MelonAutoUpdater.Extensions;
 using System;
 
 namespace MelonAutoUpdater.Utils
@@ -25,11 +25,11 @@ namespace MelonAutoUpdater.Utils
         }
 
         /// <summary>
-        /// Run an <see cref="Action"/> safely, in case of exception unload <see cref="MAUExtension"/>
+        /// Run an <see cref="Action"/> safely, in case of exception unload <see cref="SearchExtension"/>
         /// </summary>
-        /// <param name="extension">The <see cref="MAUExtension"/> that should be unloaded if an exception is thrown</param>
+        /// <param name="extension">The <see cref="SearchExtension"/> that should be unloaded if an exception is thrown</param>
         /// <param name="action">The <see cref="Action"/> to run</param>
-        public static void SafeAction(this MAUExtension extension, Action action)
+        public static void SafeAction(this ExtensionBase extension, Action action)
         {
             try
             {
@@ -62,13 +62,13 @@ namespace MelonAutoUpdater.Utils
         }
 
         /// <summary>
-        /// Run a <see cref="Func{TResult}"/> safely, in case of exception unload <see cref="MAUExtension"/>
+        /// Run a <see cref="Func{TResult}"/> safely, in case of exception unload <see cref="SearchExtension"/>
         /// </summary>
         /// <typeparam name="T">Type that will be used with <see cref="Func{TResult}"/> and will be returned</typeparam>
-        /// <param name="extension">The <see cref="MAUExtension"/> that should be unloaded if an exception is thrown</param>
+        /// <param name="extension">The <see cref="SearchExtension"/> that should be unloaded if an exception is thrown</param>
         /// <param name="function">The <see cref="Func{TResult}"/> to run safely</param>
         /// <returns>Value of provided type that was returned by <see cref="Func{TResult}"/></returns>
-        public static T SafeFunction<T>(this MAUExtension extension, Func<T> function)
+        public static T SafeFunction<T>(this ExtensionBase extension, Func<T> function)
         {
             try
             {

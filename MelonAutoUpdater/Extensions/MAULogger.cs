@@ -6,7 +6,7 @@ using System;
 using MelonAutoUpdater.Utils;
 using MelonAutoUpdater.Helper;
 
-namespace MelonAutoUpdater.Search
+namespace MelonAutoUpdater.Extensions
 {
     /// <summary>
     /// Provides logging for MAU Search Extensions

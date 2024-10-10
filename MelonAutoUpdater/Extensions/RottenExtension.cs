@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MelonAutoUpdater.Search
+namespace MelonAutoUpdater.Extensions
 {
     /// <summary>
     /// Class for extensions that exited with an exception
@@ -10,7 +10,7 @@ namespace MelonAutoUpdater.Search
         /// <summary>
         /// The extension that exited
         /// </summary>
-        public MAUExtension Extension { get; internal set; }
+        public ExtensionBase Extension { get; internal set; }
 
         /// <summary>
         /// The exception that made the extension exit
@@ -22,20 +22,20 @@ namespace MelonAutoUpdater.Search
         /// </summary>
         public string Message { get; internal set; }
 
-        internal RottenExtension(MAUExtension extension, Exception exception, string message)
+        internal RottenExtension(ExtensionBase extension, Exception exception, string message)
         {
             this.Extension = extension;
             this.Exception = exception;
             this.Message = message;
         }
 
-        internal RottenExtension(MAUExtension extension, Exception exception)
+        internal RottenExtension(ExtensionBase extension, Exception exception)
         {
             this.Extension = extension;
             this.Exception = exception;
         }
 
-        internal RottenExtension(MAUExtension extension, string message)
+        internal RottenExtension(ExtensionBase extension, string message)
         {
             this.Extension = extension;
             this.Message = message;
