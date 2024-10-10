@@ -2,10 +2,10 @@
 	<PropertyGroup>
 		<!-- Framework & Language Version -->
 		
-		<TargetFrameworks>net35</TargetFrameworks>
+		<TargetFrameworks>net472</TargetFrameworks>
 		<LangVersion>7.3</LangVersion>
 		
-		<!--  -->
+		<!-- Some other settings -->
 		
 		<GenerateAssemblyInfo>disable</GenerateAssemblyInfo>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
@@ -83,6 +83,8 @@ This package exists to easily reference the plugin for developers</Description>
 	    <HintPath>..\References\MelonLoader-0.6.5.dll</HintPath>
 	    <Aliases>ml065</Aliases>
 	  </Reference>
+
+	  <Reference Include="System.Net.Http" />
 	</ItemGroup>
 		
 	
@@ -90,7 +92,7 @@ This package exists to easily reference the plugin for developers</Description>
 	<!--                  You will need to edit this                       -->
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins&quot;" />
+		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;C:\Oculus\Software\stress-level-zero-inc-bonelab\Plugins&quot;" />
 		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\V1\Plugins&quot;" />
 		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;C:\Users\HAHOOS\AppData\Roaming\r2modmanPlus-local\BONEWORKS\profiles\Default\Plugins&quot;" />
 	</Target>
