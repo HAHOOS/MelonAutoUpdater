@@ -390,6 +390,13 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
 
         public override void OnInitialization()
         {
+            var monos = AppDomain.CurrentDomain.GetAssemblies().Where(x => x.GetName().Name.StartsWith("Mono"));
+            foreach (var assembly in monos)
+            {
+                var name = assembly.GetName();
+                Logger.DebugMsg($"{name.Name} v{name.Version}");
+            }
+
             category = CreateCategory();
             entry_useDeviceFlow = category.CreateEntry<bool>("UseDeviceFlow", true, "Use Device Flow",
                 description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 5000)\nDefault: true");
