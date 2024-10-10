@@ -1,7 +1,7 @@
 ﻿extern alias ml065;
 
 using MelonAutoUpdater.JSONObjects;
-using MelonAutoUpdater.Search;
+using MelonAutoUpdater.Extensions;
 using MelonAutoUpdater.Utils;
 using MelonAutoUpdater.Helper;
 using ml065.MelonLoader;
@@ -129,7 +129,7 @@ namespace MelonAutoUpdater
             }
         }
 
-        internal static bool CanSearch(MAUExtension extension, MelonConfig melonConfig)
+        internal static bool CanSearch(SearchExtension extension, MelonConfig melonConfig)
         {
             if (melonConfig == null) return true;
             if (extension == null) throw new ArgumentNullException(nameof(extension));
@@ -163,26 +163,30 @@ namespace MelonAutoUpdater
                 Logger.Msg("No download link was provided with the mod");
                 return null;
             }
-            foreach (var ext in MAUExtension.LoadedExtensions)
+            foreach (var _ext in ExtensionBase.LoadedExtensions)
             {
-                if (CanSearch(ext, melonConfig))
+                if (_ext.Type == typeof(SearchExtension))
                 {
-                    Logger.MsgPastel($"Checking {ext.Name.Pastel(ext.NameColor)}");
-                    MelonData func() => ext.Search(downloadLink, currentVersion);
-                    var result = Safe.SafeFunction<MelonData>(func);
-                    if (result == null)
+                    var ext = _ext as SearchExtension;
+                    if (CanSearch(ext, melonConfig))
                     {
-                        Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                        Logger.MsgPastel($"Checking {ext.Name.Pastel(ext.NameColor)}");
+                        MelonData func() => ext.Search(downloadLink, currentVersion);
+                        var result = Safe.SafeFunction<MelonData>(func);
+                        if (result == null)
+                        {
+                            Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                        }
+                        else
+                        {
+                            Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                            return result;
+                        }
                     }
                     else
                     {
-                        Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                        return result;
+                        Logger.MsgPastel($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                     }
-                }
-                else
-                {
-                    Logger.MsgPastel($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                 }
             }
             return null;
@@ -201,33 +205,37 @@ namespace MelonAutoUpdater
                 Logger.Msg("Name/Author was not provided with the mod");
                 return null;
             }
-            foreach (var ext in MAUExtension.LoadedExtensions)
+            foreach (var _ext in ExtensionBase.LoadedExtensions)
             {
-                if (ext.BruteCheckEnabled && (bool)ext.Entry_BruteCheckEnabled.BoxedValue)
+                if (_ext.Type == typeof(SearchExtension))
                 {
-                    if (CanSearch(ext, melonConfig))
+                    var ext = _ext as SearchExtension;
+                    if (ext.BruteCheckEnabled && (bool)ext.Entry_BruteCheckEnabled.BoxedValue)
                     {
-                        Logger.MsgPastel($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
-                        MelonData func() => ext.BruteCheck(name, author, currentVersion);
-                        var result = Safe.SafeFunction<MelonData>(func);
-                        if (result == null)
+                        if (CanSearch(ext, melonConfig))
                         {
-                            Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                            Logger.MsgPastel($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
+                            MelonData func() => ext.BruteCheck(name, author, currentVersion);
+                            var result = Safe.SafeFunction<MelonData>(func);
+                            if (result == null)
+                            {
+                                Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                            }
+                            else
+                            {
+                                Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                                return result;
+                            }
                         }
                         else
                         {
-                            Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                            return result;
+                            Logger.MsgPastel($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                         }
                     }
                     else
                     {
-                        Logger.MsgPastel($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
+                        Logger.MsgPastel($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
                     }
-                }
-                else
-                {
-                    Logger.MsgPastel($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
                 }
             }
 

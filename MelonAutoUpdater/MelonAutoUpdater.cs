@@ -9,7 +9,7 @@ using System.IO;
 using System.Linq;
 using ml065.Semver;
 using ml065.MelonLoader.Preferences;
-using MelonAutoUpdater.Search;
+using MelonAutoUpdater.Extensions;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
 using MelonAutoUpdater.Utils;
@@ -333,7 +333,7 @@ namespace MelonAutoUpdater
 
             logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{Version} Auto-Updater for ML mods";
-            MAUExtension.UserAgent = UserAgent;
+            SearchExtension.UserAgent = UserAgent;
 
             LoggerInstance.Msg("Setup Melon Preferences");
 
@@ -352,7 +352,7 @@ namespace MelonAutoUpdater
             ContentType.Load();
 
             LoggerInstance.Msg("Setting up search extensions");
-            MAUExtension.LoadExtensions(AppDomain.CurrentDomain.GetAssemblies());
+            SearchExtension.LoadExtensions(AppDomain.CurrentDomain.GetAssemblies());
 
 #pragma warning disable CS0618 // Type or member is obsolete
             string pluginsDir = Path.Combine(MelonUtils.BaseDirectory, "Plugins");

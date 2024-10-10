@@ -11,9 +11,9 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace MelonAutoUpdater.Search.Included.Thunderstore
+namespace MelonAutoUpdater.Extensions.Included.Thunderstore
 {
-    internal class Thunderstore : MAUExtension
+    internal class Thunderstore : SearchExtension
     {
         public override string Name => "Thunderstore";
 
