@@ -100,6 +100,11 @@ namespace MelonAutoUpdater
         internal static MelonPreferences_Entry Entry_dontUpdate { get; private set; }
 
         /// <summary>
+        /// A Melon Preferences entry of a boolean value indicating whether or not should incompatible melons be removed if not updated
+        /// </summary>
+        internal static MelonPreferences_Entry Entry_removeIncompatible { get; private set; }
+
+        /// <summary>
         /// Themes Category in Preferences
         /// </summary>
         internal static MelonPreferences_ReflectiveCategory ThemesCategory { get; private set; }
@@ -141,7 +146,7 @@ namespace MelonAutoUpdater
 
             LoggerInstance.DebugMsg($"Added BruteCheck to config.cfg");
 
-            Entry_dontUpdate = MainCategory.CreateEntry<bool>("DontUpdate", false, "Dont Update",
+            Entry_dontUpdate = MainCategory.CreateEntry<bool>("DontUpdate", false, "Don't Update",
                 description: "If true, Melons will only be checked if they are outdated or not, they will not be updated automatically");
 
             LoggerInstance.DebugMsg($"Added DontUpdate to config.cfg");
@@ -151,6 +156,11 @@ namespace MelonAutoUpdater
                 LoggerInstance.DebugMsg($"Don't Update mode enabled via Preferences");
                 dontUpdate = (bool)Entry_dontUpdate.BoxedValue;
             }
+
+            Entry_removeIncompatible = MainCategory.CreateEntry<bool>("RemoveIncompatible", false, "Remove Incompatible",
+                description: "If true, if incompatible melons are not updated, they will be removed to avoid possible crashes (for example due to a \"Too new\" version of .NET)");
+
+            LoggerInstance.DebugMsg($"Added RemoveIncompatible to config.cfg");
 
             MainCategory.SaveToFile(false);
             LoggerInstance.DebugMsg("Set up config.cfg");
