@@ -76,7 +76,7 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Configure necessary things in extension
         /// </summary>
-        internal void Setup()
+        internal virtual void Setup()
         {
             MelonAutoUpdater.logger.DebugMsg($"Setting up logger for {Name}");
             Logger = new MAULogger(Name, ID);
@@ -369,16 +369,16 @@ namespace MelonAutoUpdater.Extensions
                             var search = (SearchExtension)obj;
                             MelonAutoUpdater.logger._MsgPastel($"Loaded Search Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
                             LoadedExtensions.Add(search);
-                            search.SafeAction(obj.Setup);
-                            search.SafeAction(obj.OnInitialization);
+                            search.SafeAction(search.Setup);
+                            search.SafeAction(search.OnInitialization);
                         }
                         else if (type.IsSubclassOf(typeof(InstallExtension)))
                         {
                             var install = (InstallExtension)obj;
                             MelonAutoUpdater.logger._MsgPastel($"Loaded Install Extension: {obj.Name.Pastel(obj.NameColor)} " + $"v{obj.Version}".Pastel(MelonAutoUpdater.theme.NewVersionColor) + $" by {obj.Author.Pastel(obj.AuthorColor)}");
                             LoadedExtensions.Add(install);
-                            install.SafeAction(obj.Setup);
-                            install.SafeAction(obj.OnInitialization);
+                            install.SafeAction(install.Setup);
+                            install.SafeAction(install.OnInitialization);
                         }
                     }
                 }
