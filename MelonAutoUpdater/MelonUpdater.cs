@@ -18,6 +18,7 @@ using ml065.MelonLoader.ICSharpCode.SharpZipLib.Core;
 using ml065.MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using System.Net;
 using System.Diagnostics;
+using System.Net.Http;
 
 namespace MelonAutoUpdater
 {
@@ -768,28 +769,15 @@ namespace MelonAutoUpdater
                                             {
                                                 sw3 = Stopwatch.StartNew();
                                             }
-                                            var httpClient = new WebClient();
                                             string tempFile = $"{MelonUtils.RandomString(7)}.temp";
                                             FileStream downloadedFile = null;
+                                            var httpClient = new HttpClient();
+                                            var response = httpClient.GetAsync(retFile.URL, HttpCompletionOption.ResponseHeadersRead);
+                                            response.Wait();
                                             try
                                             {
-                                                httpClient.DownloadFile(retFile.URL, tempFile);
-                                            }
-                                            catch (WebException e)
-                                            {
-                                                Logger.Error($"Failed to download file through link{e}");
-                                                downloadedFile.Dispose();
-                                                downloadedFile = null;
-                                                if (MelonAutoUpdater.Debug)
-                                                {
-                                                    sw3.Stop();
-                                                    MelonAutoUpdater.ElapsedTime.Add($"DownloadFile-Fail-{name}", sw.ElapsedMilliseconds);
-                                                }
-                                                continue;
-                                            }
-                                            try
-                                            {
-                                                string resContentType = httpClient.ResponseHeaders.Get("Content-Type");
+                                                response.Result.EnsureSuccessStatusCode();
+                                                string resContentType = response.Result.Headers.GetValues("Content-Type").FirstOrDefault();
                                                 ContentType contentType;
                                                 if (!string.IsNullOrEmpty(retFile.ContentType))
                                                 {
@@ -857,18 +845,18 @@ namespace MelonAutoUpdater
                                                         }
                                                     }
                                                 }
-                                                var f = new FileInfo(tempFile);
-                                                if (f.Exists)
-                                                {
-                                                    f.MoveTo(pathToSave);
-                                                    var f2 = new FileInfo(pathToSave);
-                                                    if (f2.Exists) downloadedFile = f2.Open(FileMode.Open, FileAccess.ReadWrite);
-                                                }
+                                                var ms = response.Result.Content.ReadAsStreamAsync();
+                                                ms.Wait();
+                                                var fs = File.Create(pathToSave);
+                                                ms.Result.CopyTo(fs);
+                                                fs.Flush();
+                                                downloadedFile = fs;
+                                                ms.Dispose();
                                                 Logger.Msg($"Download successful");
                                             }
                                             catch (Exception ex)
                                             {
-                                                Logger.Error($"Failed to download file through link{ex}");
+                                                Logger.Error($"Failed to download file through link, exception:\n{ex}");
                                                 downloadedFile.Dispose();
                                                 downloadedFile = null;
                                             }
