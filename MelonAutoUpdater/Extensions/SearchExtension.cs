@@ -67,7 +67,7 @@ namespace MelonAutoUpdater.Extensions
         internal new void Setup()
         {
             MelonAutoUpdater.logger.DebugMsg($"Setting up logger for {Name}");
-            Logger = new MAULogger(Name);
+            Logger = new MAULogger(Name, ID);
 
             Logger.DebugMsg("Creating category");
             Internal_Category = CreateCategory($"{Name}_Internal_Settings");
