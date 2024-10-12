@@ -19,6 +19,7 @@ namespace MelonAutoUpdater.Utils
     /// <summary>
     /// Class responsible for handling NuGet Packages
     /// </summary>
+    // TODO: Replace WebClient with HttpClient
     public class NuGet
     {
         /// <summary>
