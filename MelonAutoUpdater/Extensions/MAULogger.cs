@@ -53,7 +53,7 @@ namespace MelonAutoUpdater.Extensions
         internal void InternalMsg(Color extColor, Color textColor, string ext, string text)
         {
             string extString = string.IsNullOrEmpty(ext) ? "" : $"[{ext.Pastel(extColor)}] ";
-            logger.Msg($"{extString}{text.Pastel(textColor)}");
+            logger._MsgPastel($"{extString}{text.Pastel(textColor)}");
         }
 
         internal void InternalMsgPastel(Color extColor, Color textColor, string ext, string text)
