@@ -13,55 +13,102 @@ namespace MelonAutoUpdater.Utils
     public static class Files
     {
         /// <summary>
-        /// Path to the main folder for Temporary files and/or folders
+        /// Path to the main Directory for Temporary files and/or Directories
         /// </summary>
-        public static string TemporaryMainFolder { get; internal set; }
+        public static string TemporaryMainDirectory { get; internal set; }
 
         /// <summary>
-        /// Path to folder where Melons have files (for example downloads) stored temporarily
+        /// Path to Directory where Melons have files (for example downloads) stored temporarily
         /// </summary>
-        public static string TemporaryMelonsFolder { get; internal set; }
+        public static string TemporaryMelonsDirectory { get; internal set; }
 
         /// <summary>
-        /// Path to folder for packages that are cached
+        /// Path to Directory for packages that are cached
         /// </summary>
-        public static string CachePackagesFolder { get; internal set; }
+        public static string CachePackagesDirectory { get; internal set; }
 
         /// <summary>
-        /// Path to folder where folders and/or files should be saved when in another folder the path is too long
+        /// Path to Directory where Directories and/or files should be saved when in another Directory the path is too long
         /// </summary>
-        public static string RedirectFolder { get; internal set; }
+        public static string RedirectDirectory { get; internal set; }
 
         /// <summary>
-        /// Path to folder where Melons have files (for example downloads) stored temporarily
+        /// Path to Directory where Melons have files (for example downloads) stored temporarily
         /// </summary>
-        public static string Redirect_TemporaryMelonsFolder { get; internal set; }
+        public static string Redirect_TemporaryMelonsDirectory { get; internal set; }
 
         /// <summary>
-        /// Path to folder for packages that are cached
+        /// Path to Directory for packages that are cached
         /// </summary>
-        public static string Redirect_CachePackagesFolder { get; internal set; }
+        public static string Redirect_CachePackagesDirectory { get; internal set; }
 
         /// <summary>
-        /// Path of MelonAutoUpdate folder containing all the other folders
+        /// Path of MelonAutoUpdater Directory containing all the other Directories
         /// </summary>
-        public static string MainFolder { get; internal set; }
+        public static string MainDirectory { get; internal set; }
 
         /// <summary>
-        /// Path of Backup folder where old versions of mods are saved
+        /// Path of Backup Directory where old versions of mods are saved
         /// </summary>
-        public static string BackupFolder { get; internal set; }
+        public static string BackupDirectory { get; internal set; }
 
         /// <summary>
-        /// Path of Config folder for all extension config's
+        /// Path of Config Directory for all extension config's
         /// </summary>
-        public static string ExtConfigFolder { get; internal set; }
+        public static string ExtConfigDirectory { get; internal set; }
+
+        /// <summary>
+        /// Directory for MelonLoader mods
+        /// </summary>
+        public static string ModsDirectory { get; internal set; }
+
+        /// <summary>
+        /// Directory for MelonLoader plugins
+        /// </summary>
+        public static string PluginsDirectory { get; internal set; }
+
+        /// <summary>
+        /// Directory of MelonLoader
+        /// </summary>
+        public static string MelonLoaderDirectory { get; internal set; }
+
+        /// <summary>
+        /// Directory for MelonLoader configs
+        /// </summary>
+        public static string UserDataDirectory { get; internal set; }
+
+        /// <summary>
+        /// Directory for MelonLoader mod/plugin libraries
+        /// </summary>
+        public static string UserLibsDirectory { get; internal set; }
+
+        /// <summary>
+        /// Directory of the game
+        /// </summary>
+        public static string BaseDirectory { get; internal set; }
+
+        /// <summary>
+        /// Finds a directory in base directory
+        /// </summary>
+        /// <param name="directoryName">Name of the directory you want to find</param>
+        /// <returns><see cref="DirectoryInfo"/> of the requested directory</returns>
+        public static DirectoryInfo GetDirectoryInBaseDir(string directoryName)
+        { return new DirectoryInfo(Path.Combine(BaseDirectory, directoryName)); }
 
         /// <summary>
         /// Setup
         /// </summary>
         internal static void Setup()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
+            BaseDirectory = MelonUtils.BaseDirectory;
+#pragma warning restore CS0618 // Type or member is obsolete
+            ModsDirectory = GetDirectoryInBaseDir("Mods").FullName;
+            PluginsDirectory = GetDirectoryInBaseDir("Plugins").FullName;
+            MelonLoaderDirectory = GetDirectoryInBaseDir("MelonLoader").FullName;
+            UserDataDirectory = GetDirectoryInBaseDir("UserData").FullName;
+            UserLibsDirectory = GetDirectoryInBaseDir("UserLibs").FullName;
+
             string path;
 
             if (Platform.IsWindows)
@@ -73,14 +120,12 @@ namespace MelonAutoUpdater.Utils
                 path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Documents");
             }
             var mau_documents = Directory.CreateDirectory(Path.Combine(path, "MelonAutoUpdater"));
-            RedirectFolder = mau_documents.FullName;
+            RedirectDirectory = mau_documents.FullName;
 
-            Redirect_TemporaryMelonsFolder = mau_documents.CreateSubdirectory("Melons").FullName;
-            Redirect_CachePackagesFolder = mau_documents.CreateSubdirectory("Packages").FullName;
+            Redirect_TemporaryMelonsDirectory = mau_documents.CreateSubdirectory("Melons").FullName;
+            Redirect_CachePackagesDirectory = mau_documents.CreateSubdirectory("Packages").FullName;
 
-#pragma warning disable CS0618 // Type or member is obsolete
-            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(MelonUtils.UserDataDirectory, "MelonAutoUpdater"));
-#pragma warning restore CS0618 // Type or member is obsolete
+            DirectoryInfo mainDir = Directory.CreateDirectory(Path.Combine(UserDataDirectory, "MelonAutoUpdater"));
             DirectoryInfo tempDir = mainDir.CreateSubdirectory("Temporary");
             DirectoryInfo cacheDir = mainDir.CreateSubdirectory("Cache");
 
@@ -89,20 +134,21 @@ namespace MelonAutoUpdater.Utils
             DirectoryInfo melonsDir = tempDir.CreateSubdirectory("Melons");
 
             DirectoryInfo backupDir = mainDir.CreateSubdirectory("Backups");
+
             DirectoryInfo extConfigDir = mainDir.CreateSubdirectory("ExtensionsConfig");
 
-            ExtConfigFolder = extConfigDir.FullName;
+            ExtConfigDirectory = extConfigDir.FullName;
 
-            MainFolder = mainDir.FullName;
-            BackupFolder = backupDir.FullName;
+            MainDirectory = mainDir.FullName;
+            BackupDirectory = backupDir.FullName;
 
-            TemporaryMainFolder = tempDir.FullName;
-            CachePackagesFolder = packagesDir.FullName;
-            TemporaryMelonsFolder = melonsDir.FullName;
+            TemporaryMainDirectory = tempDir.FullName;
+            CachePackagesDirectory = packagesDir.FullName;
+            TemporaryMelonsDirectory = melonsDir.FullName;
         }
 
         /// <summary>
-        /// Remove all files and folders from a directory/folder
+        /// Remove all files and Directories from a directory/Directory
         /// </summary>
         /// <param name="path">Path to the directory</param>
         /// <exception cref="DirectoryNotFoundException">Directory was not found</exception>
@@ -122,7 +168,7 @@ namespace MelonAutoUpdater.Utils
         }
 
         /// <summary>
-        /// Remove all files and folders from a directory/folder
+        /// Remove all files and Directories from a directory/Directory
         /// </summary>
         /// <param name="dir">The directory</param>
         /// <exception cref="DirectoryNotFoundException">Directory was not found</exception>
@@ -342,18 +388,18 @@ namespace MelonAutoUpdater.Utils
         {
             if (directory == TempDirectory.Melons)
             {
-                RemoveAll(TemporaryMelonsFolder);
-                RemoveAll(Redirect_TemporaryMelonsFolder);
+                RemoveAll(TemporaryMelonsDirectory);
+                RemoveAll(Redirect_TemporaryMelonsDirectory);
             }
             else if (directory == TempDirectory.Packages)
             {
-                RemoveAll(CachePackagesFolder);
-                RemoveAll(Redirect_CachePackagesFolder);
+                RemoveAll(CachePackagesDirectory);
+                RemoveAll(Redirect_CachePackagesDirectory);
             }
             else if (directory == TempDirectory.Redirect)
             {
-                RemoveAll(Redirect_TemporaryMelonsFolder);
-                RemoveAll(Redirect_CachePackagesFolder);
+                RemoveAll(Redirect_TemporaryMelonsDirectory);
+                RemoveAll(Redirect_CachePackagesDirectory);
             }
             else if (directory == TempDirectory.All)
             {
@@ -368,17 +414,17 @@ namespace MelonAutoUpdater.Utils
     }
 
     /// <summary>
-    /// <see cref="Enum"/> used to indicate what folder to clear off of temporary files
+    /// <see cref="Enum"/> used to indicate what Directory to clear off of temporary files
     /// </summary>
     public enum TempDirectory
     {
         /// <summary>
-        /// Temporary path for Melon downloads
+        /// Temporary path for Melon downloads (including redirected ones)
         /// </summary>
         Melons,
 
         /// <summary>
-        /// Temporary path for Package downloads
+        /// Temporary path for Package downloads (including redirected ones)
         /// </summary>
         Packages,
 
