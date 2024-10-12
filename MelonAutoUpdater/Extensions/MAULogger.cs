@@ -22,9 +22,10 @@ namespace MelonAutoUpdater.Extensions
 
         internal readonly MelonLogger.Instance logger = MelonAutoUpdater.logger;
 
-        internal MAULogger(string Name)
+        internal MAULogger(string Name, string ID)
         {
-            this.Name = Name;
+            if (string.IsNullOrEmpty(ID)) this.Name = Name;
+            else this.Name = $"{ID}:{Name}";
         }
 
         internal void Internal_DebugMsg(Color textColor, string text)
