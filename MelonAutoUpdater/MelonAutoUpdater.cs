@@ -54,6 +54,11 @@ namespace MelonAutoUpdater
         internal static Assembly MLAssembly;
 
         /// <summary>
+        /// Version of MelonLoader
+        /// </summary>
+        public static SemVersion MLVersion;
+
+        /// <summary>
         /// If <see langword="true"/>, debug mode is enabled
         /// </summary>
 #if DEBUG
@@ -119,7 +124,7 @@ namespace MelonAutoUpdater
             LoggerInstance.DebugMsg("Setting up config.cfg");
 
             MainCategory = MelonPreferences.CreateCategory("MelonAutoUpdater", "Melon Auto Updater");
-            MainCategory.SetFilePath(Path.Combine(Files.MainFolder, "config.cfg"));
+            MainCategory.SetFilePath(Path.Combine(Files.MainDirectory, "config.cfg"));
 
             Entry_enabled = MainCategory.CreateEntry<bool>("Enabled", true, "Enabled",
                 description: "If true, Mods & Plugins will update on every start");
@@ -155,7 +160,7 @@ namespace MelonAutoUpdater
             LoggerInstance.DebugMsg("Setting up theme.cfg");
 
             ThemesCategory = MelonPreferences.CreateCategory<Theme>("Theme", "Theme");
-            ThemesCategory.SetFilePath(Path.Combine(Files.MainFolder, "theme.cfg"));
+            ThemesCategory.SetFilePath(Path.Combine(Files.MainDirectory, "theme.cfg"));
             ThemesCategory.SaveToFile(false);
 
             LoggerInstance.DebugMsg("Set up theme.cfg");
@@ -281,9 +286,9 @@ namespace MelonAutoUpdater
         {
             MLAssembly = AppDomain.CurrentDomain.GetAssemblies().Where(x => x.GetName().Name == "MelonLoader").FirstOrDefault();
             Version MelonLoaderVersion = MLAssembly.GetName().Version;
-            SemVersion MelonLoaderSemVer = new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build);
+            MLVersion = new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build);
 
-            if (MelonLoaderSemVer >= new SemVersion(0, 6, 5))
+            if (MLVersion >= new SemVersion(0, 6, 5))
             {
                 LoggerInstance.Msg("Checking command line arguments");
                 HandleArguments();
@@ -295,11 +300,11 @@ namespace MelonAutoUpdater
 
             if (stopPlugin) return;
 
-            if (MelonLoaderSemVer >= new SemVersion(0, 6, 0))
+            if (MLVersion >= new SemVersion(0, 6, 0))
             {
                 if (IsMLDebug060()) Debug = true;
             }
-            else if (MelonLoaderSemVer == new SemVersion(0, 5, 7))
+            else if (MLVersion == new SemVersion(0, 5, 7))
             {
                 if (IsMLDebug057()) Debug = true;
             }
@@ -354,19 +359,14 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg("Setting up search extensions");
             SearchExtension.LoadExtensions(AppDomain.CurrentDomain.GetAssemblies());
 
-#pragma warning disable CS0618 // Type or member is obsolete
-            string pluginsDir = Path.Combine(MelonUtils.BaseDirectory, "Plugins");
-            string modsDir = Path.Combine(MelonUtils.BaseDirectory, "Mods");
-#pragma warning restore CS0618 // Type or member is obsolete
-
             var updater = new MelonUpdater(UserAgent, theme, GetEntryValue<List<string>>(Entry_ignore), GetEntryValue<bool>(Entry_bruteCheck));
 
             LoggerInstance.Msg("Checking plugins...");
-            updater.CheckDirectory(pluginsDir, false);
+            updater.CheckDirectory(Files.PluginsDirectory, false);
             LoggerInstance.Msg("Done checking plugins");
 
             LoggerInstance.Msg("Checking mods...");
-            updater.CheckDirectory(modsDir);
+            updater.CheckDirectory(Files.ModsDirectory);
             LoggerInstance.Msg("Done checking mods");
 
             if (Debug)

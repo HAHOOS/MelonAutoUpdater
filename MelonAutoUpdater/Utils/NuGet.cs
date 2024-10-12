@@ -68,7 +68,7 @@ namespace MelonAutoUpdater.Utils
                         var fullZipToPath = Path.Combine(outFolder, entryFileName);
                         if (fullZipToPath.Length >= 256 && !isRedirect)
                         {
-                            var _outFolder = new DirectoryInfo(Files.Redirect_CachePackagesFolder).CreateSubdirectory(dirName);
+                            var _outFolder = new DirectoryInfo(Files.Redirect_CachePackagesDirectory).CreateSubdirectory(dirName);
                             return UnzipFromStream(zipStream, _outFolder.FullName, dirName, true);
                         }
                         else if (fullZipToPath.Length > 256 && isRedirect)
@@ -186,9 +186,7 @@ namespace MelonAutoUpdater.Utils
         {
             OnLog($"Installing {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
             var (DLLFile, AllFiles) = DownloadPackage(name, version, includePreRelease);
-#pragma warning disable CS0618 // Type or member is obsolete
-            var userLibs = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
-#pragma warning restore CS0618 // Type or member is obsolete
+            var userLibs = Files.UserLibsDirectory;
             if (DLLFile != null && AllFiles != null && AllFiles.Count > 0)
             {
                 var files = new List<FileInfo>();
@@ -239,7 +237,7 @@ namespace MelonAutoUpdater.Utils
                 }
             }
 
-            var tempDir = Directory.CreateDirectory(Path.Combine(Files.CachePackagesFolder, $"{name}-{version}"));
+            var tempDir = Directory.CreateDirectory(Path.Combine(Files.CachePackagesDirectory, $"{name}-{version}"));
             if (tempDir.Exists && tempDir.GetFiles("*.dll").Length > 0)
             {
                 OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.DEBUG);
@@ -249,7 +247,7 @@ namespace MelonAutoUpdater.Utils
                 return (dllFile, allFiles);
             }
 
-            var tempDir2 = Directory.CreateDirectory(Path.Combine(Files.Redirect_CachePackagesFolder, $"{name}-{version}"));
+            var tempDir2 = Directory.CreateDirectory(Path.Combine(Files.Redirect_CachePackagesDirectory, $"{name}-{version}"));
             if (tempDir2.Exists && tempDir2.GetFiles("*.dll").Length > 0)
             {
                 OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.DEBUG);
@@ -431,9 +429,7 @@ namespace MelonAutoUpdater.Utils
             {
                 // Check if file exists
 
-#pragma warning disable CS0618 // Type or member is obsolete
-                var userLibs = Path.Combine(MelonUtils.BaseDirectory, "UserLibs");
-#pragma warning restore CS0618 // Type or member is obsolete
+                var userLibs = Files.UserLibsDirectory;
                 var libs = Directory.GetFiles(userLibs, "*.dll");
                 var assemblyName = GetAssemblyNameOfNuGetPackage(dllFile);
                 if (!string.IsNullOrEmpty(dllFile))
