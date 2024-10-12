@@ -492,25 +492,51 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
 
         public override MelonData Search(string url, SemVersion currentVersion)
         {
+            Stopwatch stopwatch = null;
+            if (MelonAutoUpdater.Debug) stopwatch = Stopwatch.StartNew();
             Regex regex = new Regex(@"github\.com\/([\w.-]+)\/([\w.-]+)");
             var match = regex.Match(url);
             if (match.Success && match.Length >= 1 && match.Groups.Count == 3)
             {
                 string authorName = match.Groups[1].Value;
                 string repoName = match.Groups[2].Value;
-                return Check(authorName, repoName);
+                var check = Check(authorName, repoName);
+                if (MelonAutoUpdater.Debug)
+                {
+                    stopwatch.Stop();
+                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{authorName}/{repoName}", stopwatch.ElapsedMilliseconds);
+                }
+                return check;
+            }
+            if (MelonAutoUpdater.Debug)
+            {
+                stopwatch.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{MelonUtils.RandomString(10)}", stopwatch.ElapsedMilliseconds);
             }
             return null;
         }
 
         public override MelonData BruteCheck(string name, string author, SemVersion currentVersion)
         {
+            Stopwatch stopwatch = null;
+            if (MelonAutoUpdater.Debug) stopwatch = Stopwatch.StartNew();
             if (name.ToCharArray().Where(x => disallowedChars.Contains(x)).Any() || author.ToCharArray().Where(x => disallowedChars.Contains(x)).Any())
             {
                 Logger.Warning("Disallowed characters found in Name or Author, cannot brute check");
+                if (MelonAutoUpdater.Debug)
+                {
+                    stopwatch.Stop();
+                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name}-failed (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                }
                 return null;
             }
-            return Check(author, name);
+            var check = Check(author, name);
+            if (MelonAutoUpdater.Debug)
+            {
+                stopwatch.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name} (with Brute Check)", stopwatch.ElapsedMilliseconds);
+            }
+            return check;
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿extern alias ml065;
 
 using MelonAutoUpdater.Helper;
+using ml065::Harmony;
 using ml065.MelonLoader;
 using ml065.MelonLoader.TinyJSON;
 using ml065.Semver;
@@ -116,13 +117,26 @@ namespace MelonAutoUpdater.Extensions.Included.Thunderstore
 
         public override MelonData Search(string url, SemVersion currentVersion)
         {
+            Stopwatch stopwatch = null;
+            if (MelonAutoUpdater.Debug) stopwatch = Stopwatch.StartNew();
             Regex regex = new Regex(@"thunderstore.io(?:/c/[\w]+/p/|/package/)(?!_)([\w]+)(?!_)/(?!_)([\w]+)(?!_)");
             var match = regex.Match(url);
             if (match.Success && match.Length >= 1 && match.Groups.Count == 3)
             {
                 string namespaceName = match.Groups[1].Value;
                 string packageName = match.Groups[2].Value;
-                return Check(packageName, namespaceName);
+                var check = Check(packageName, namespaceName);
+                if (MelonAutoUpdater.Debug)
+                {
+                    stopwatch.Stop();
+                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{namespaceName}/{packageName}", stopwatch.ElapsedMilliseconds);
+                }
+                return check;
+            }
+            if (MelonAutoUpdater.Debug)
+            {
+                stopwatch.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{MelonUtils.RandomString(10)}", stopwatch.ElapsedMilliseconds);
             }
             return null;
         }
@@ -137,13 +151,27 @@ namespace MelonAutoUpdater.Extensions.Included.Thunderstore
 
         public override MelonData BruteCheck(string name, string author, SemVersion currentVersion)
         {
+            Stopwatch stopwatch = null;
+            if (MelonAutoUpdater.Debug) stopwatch = Stopwatch.StartNew();
             if (!IsValid(name) || !IsValid(author))
             {
                 Logger.Warning("Disallowed characters found in Name or Author, cannot brute check");
+                if (MelonAutoUpdater.Debug)
+                {
+                    stopwatch.Stop();
+                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name}-failed (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                }
                 return null;
             }
 
-            return Check(name.Replace(" ", ""), author.Replace(" ", ""));
+            var check = Check(name.Replace(" ", ""), author.Replace(" ", ""));
+
+            if (MelonAutoUpdater.Debug)
+            {
+                stopwatch.Stop();
+                MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name} (with Brute Check)", stopwatch.ElapsedMilliseconds);
+            }
+            return check;
         }
     }
 }
