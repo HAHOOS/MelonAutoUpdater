@@ -36,14 +36,6 @@ This package exists to easily reference the plugin for developers</Description>
 	</PropertyGroup>
 
 	<!-- Embed mime-types.json into the DLL file -->
-	
-	<ItemGroup>
-	  <None Remove="Embedded\mime-types.json" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Include="Embedded\mime-types.json" />
-	</ItemGroup>
 
 	<!-- NuGet package stuff -->
 	

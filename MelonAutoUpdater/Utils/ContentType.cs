@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 
 namespace MelonAutoUpdater.Utils
 {
@@ -40,11 +41,29 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         internal static void Load()
         {
-            System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var stream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Embedded.mime-types.json");
-            StreamReader streamReader = new StreamReader(stream);
-            string text_json = streamReader.ReadToEnd();
-            _db = new MimeTypeDB() { mimeTypes = JSON.Load(text_json).Make<Dictionary<string, MimeType>>() };
+            MelonAutoUpdater.logger.Msg("Getting all known Mime-Types from the internet");
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", MelonAutoUpdater.UserAgent);
+            var res = client.GetAsync("https://cdn.jsdelivr.net/gh/jshttp/mime-db@master/db.json");
+            res.Wait();
+            if (res.Result.IsSuccessStatusCode)
+            {
+                var body = res.Result.Content.ReadAsStringAsync();
+                body.Wait();
+                if (body.Result != null)
+                {
+                    _db = new MimeTypeDB() { mimeTypes = JSON.Load(body.Result).Make<Dictionary<string, MimeType>>() };
+                    MelonAutoUpdater.logger.Msg($"Successfully loaded all {_db.mimeTypes.Count} mime-types!");
+                }
+                else
+                {
+                    MelonAutoUpdater.logger.Error("No data returned when checking mime-types");
+                }
+            }
+            else
+            {
+                MelonAutoUpdater.logger.Error($"The CDN returned status code {res.Result.StatusCode} with reason: {res.Result.ReasonPhrase}");
+            }
         }
 
         /// <summary>
