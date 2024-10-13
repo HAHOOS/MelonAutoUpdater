@@ -1,7 +1,5 @@
 ﻿extern alias ml065;
 
-using MelonAutoUpdater.Helper;
-using ml065::Harmony;
 using ml065.MelonLoader;
 using ml065.MelonLoader.TinyJSON;
 using ml065.Semver;
@@ -9,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;

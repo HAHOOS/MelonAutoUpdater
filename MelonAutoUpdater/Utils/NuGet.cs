@@ -1,6 +1,5 @@
 ﻿extern alias ml065;
 
-using ml065.MelonLoader;
 using ml065.MelonLoader.ICSharpCode.SharpZipLib.Core;
 using ml065.MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using ml065.MelonLoader.TinyJSON;
