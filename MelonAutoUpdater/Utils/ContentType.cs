@@ -4,7 +4,6 @@ using MelonAutoUpdater.JSONObjects;
 using ml065.MelonLoader.TinyJSON;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 
@@ -37,7 +36,7 @@ namespace MelonAutoUpdater.Utils
         }
 
         /// <summary>
-        /// Loads all Mime Types saved in <c>mime-types.json</c>
+        /// Loads all Mime Types from a CDN
         /// </summary>
         internal static void Load()
         {
