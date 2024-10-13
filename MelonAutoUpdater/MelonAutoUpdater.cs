@@ -1,14 +1,14 @@
 ﻿extern alias ml065;
 extern alias ml057;
 
-using ml065.MelonLoader;
+using ml065::MelonLoader;
 using Mono.Cecil;
 using System.Collections.Generic;
 using System;
 using System.IO;
 using System.Linq;
-using ml065.Semver;
-using ml065.MelonLoader.Preferences;
+using ml065::Semver;
+using ml065::MelonLoader.Preferences;
 using MelonAutoUpdater.Extensions;
 using MelonAutoUpdater.Helper;
 using System.Reflection;
@@ -221,7 +221,7 @@ namespace MelonAutoUpdater
     System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void HandleArguments()
         {
-            var args = MelonLaunchOptions.ExternalArguments;
+            var args = ml065.MelonLoader.MelonLaunchOptions.ExternalArguments;
 
             // Disable argument - melonautoupdater.disable
             if (args.ContainsKey("melonautoupdater.disable"))
@@ -282,7 +282,7 @@ namespace MelonAutoUpdater
 
         [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private bool IsMLDebug060() => MelonLaunchOptions.Core.IsDebug;
+        private bool IsMLDebug060() => ml065.MelonLoader.MelonLaunchOptions.Core.IsDebug;
 
         [System.Runtime.CompilerServices.MethodImpl(
    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
