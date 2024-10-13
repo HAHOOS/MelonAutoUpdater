@@ -360,6 +360,17 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
 
         public override void OnInitialization()
         {
+            if (MelonAutoUpdater.MLVersion == new SemVersion(0, 5, 5) || MelonAutoUpdater.MLVersion == new SemVersion(0, 5, 7))
+            {
+                if (!MelonAutoUpdater.Debug)
+                {
+                    Logger.Msg("Due to earlier tests that have shown unexplainable errors regarding Github's SSL certificate on versions of ML v0.5.5 and v0.5.7, this extension is disabled on those versions");
+                    Logger.Msg("If you wish to try and still use the extension, turn on Debug mode (on ML v0.6.5 and higher, run game with arguments --melonautoupdater.debug, or on ML v0.5.7 and higher --melonloader.debug)");
+                    this.Unload("Unsupported");
+                    return;
+                }
+            }
+
             category = CreateCategory();
             entry_useDeviceFlow = category.CreateEntry("UseDeviceFlow", true, "Use Device Flow",
                 description: "If enabled, you will be prompted to authenticate using Github's Device Flow to make authenticated requests if access token is not registered or valid (will raise request limit from 60 to 5000)\nDefault: true");
