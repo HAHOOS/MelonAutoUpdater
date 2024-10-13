@@ -951,7 +951,6 @@ namespace MelonAutoUpdater
                 if (melonAssemblyInfo != null)
                 {
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
-                    Type assemblyType = (Type)melonAssemblyInfo.SystemType;
                     if (melonAssemblyInfo != null)
                     {
                         if (!CheckCompability(mainAssembly)) needUpdate = true;
