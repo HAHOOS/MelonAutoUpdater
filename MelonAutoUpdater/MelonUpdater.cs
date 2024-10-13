@@ -341,7 +341,7 @@ namespace MelonAutoUpdater
             }
             foreach (string dir in Directory.GetDirectories(path))
             {
-                if (!config.CanInclude(dir))
+                if (config != null && !config.CanInclude(dir))
                 {
                     Logger.MsgPastel($"[{prefix}] {GetDirName(dir)} will not be loaded due to the Melon being configured this way");
                     continue;
