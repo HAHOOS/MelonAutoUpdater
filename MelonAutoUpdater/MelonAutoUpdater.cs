@@ -167,7 +167,7 @@ namespace MelonAutoUpdater
 
             LoggerInstance.DebugMsg($"Added RemoveIncompatible to config.cfg");
 
-            Entry_removeIncompatible = MainCategory.CreateEntry<bool>("CheckCompatibility", false, "Check Compatibility",
+            Entry_removeIncompatible = MainCategory.CreateEntry<bool>("CheckCompatibility", true, "Check Compatibility",
                 description: "If true, melons will be checked to determine if they are compatible with the install, if not, they will not be installed (if those were the download update melons) or removed if the melon was checked, not updated, incompatible and RemoveIncompatible is true\nWARNING: This may cause some melons to stop working or the game to crash, due to faulty/incompatible versions");
 
             LoggerInstance.DebugMsg($"Added RemoveIncompatible to config.cfg");
