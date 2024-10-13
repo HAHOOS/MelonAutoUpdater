@@ -265,7 +265,9 @@ namespace MelonAutoUpdater.Extensions
                 }
                 else
                 {
-                    return pluginInfo;
+#pragma warning disable CS0618 // Type or member is obsolete
+                    return new MelonInfoAttribute(pluginInfo.SystemType, pluginInfo.Name, pluginInfo.Version, pluginInfo.Author, pluginInfo.DownloadLink);
+#pragma warning restore CS0618 // Type or member is obsolete
                 }
             }
             else
@@ -280,9 +282,8 @@ namespace MelonAutoUpdater.Extensions
             return info;
         }
 
-        /// <summary>
-        ///
-        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         internal static bool IsLoaded(string Name, string Author, string ID = "")
         {
             if (!string.IsNullOrEmpty(ID))
@@ -314,19 +315,22 @@ namespace MelonAutoUpdater.Extensions
                         if (info == null) { MelonAutoUpdater.logger.Msg("Attempted to load an extension that is not a Melon, skipping"); return; }
                         else
                         {
-                            var id = GetIDFromAssembly(assembly);
-                            if (id != null)
+                            if (MelonAutoUpdater.MLVersion >= new SemVersion(0, 5, 4))
                             {
-                                if (!IsLoaded(info.Name, info.Author, id.ID))
+                                var id = GetIDFromAssembly(assembly);
+                                if (id != null)
                                 {
-                                    continue;
+                                    if (!IsLoaded(info.Name, info.Author, id.ID))
+                                    {
+                                        continue;
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                if (!IsLoaded(info.Name, info.Author))
+                                else
                                 {
-                                    continue;
+                                    if (!IsLoaded(info.Name, info.Author))
+                                    {
+                                        continue;
+                                    }
                                 }
                             }
                         }
