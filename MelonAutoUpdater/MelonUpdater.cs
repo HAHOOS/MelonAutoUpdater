@@ -323,9 +323,12 @@ namespace MelonAutoUpdater
                     if (Path.GetExtension(file) == ".dll")
                     {
                         var res = InstallPackage(file, latestVersion);
-                        if (res.threwError) threwError = true;
-                        if (res.success) success++;
-                        else failed++;
+                        if (res.threwError || res.success)
+                        {
+                            if (res.threwError) threwError = true;
+                            if (res.success) success++;
+                            else failed++;
+                        }
                     }
                     else
                     {
@@ -600,8 +603,8 @@ namespace MelonAutoUpdater
                         {
                             Logger.Msg("Found attribute");
                             var a = attr.First();
-                            var semVersionType = module.ImportReference(typeof(SemVersion));
-                            a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion);
+                            var semVersionType = module.ImportReference(typeof(string));
+                            a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion.ToString());
                             _assembly.Write();
                             Logger.Msg("Fixed incorrect version of plugin");
                         }
