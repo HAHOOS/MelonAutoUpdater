@@ -1212,7 +1212,7 @@ namespace MelonAutoUpdater
                                 }
                             }
                         }
-                        if (needUpdate)
+                        if (needUpdate && GetEntryValue<bool>(MelonAutoUpdater.Entry_removeIncompatible))
                         {
                             Logger.Msg($"Removing {fileName.Pastel(theme.FileNameColor)}, due to it being incompatible and not being updated");
                             if (GetFileType(melonAssemblyInfo) == FileType.MelonMod)
