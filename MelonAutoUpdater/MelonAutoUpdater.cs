@@ -120,7 +120,7 @@ namespace MelonAutoUpdater
         private void SetupPreferences()
         {
             Stopwatch sw = null;
-            if (MelonAutoUpdater.Debug)
+            if (Debug)
             {
                 sw = Stopwatch.StartNew();
             }
