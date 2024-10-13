@@ -17,6 +17,8 @@ using ml065.MelonLoader.ICSharpCode.SharpZipLib.Core;
 using ml065.MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using System.Diagnostics;
 using System.Net.Http;
+using static ml065::MelonLoader.MelonPlatformAttribute;
+using static ml065::MelonLoader.MelonPlatformDomainAttribute;
 
 namespace MelonAutoUpdater
 {
@@ -381,7 +383,7 @@ namespace MelonAutoUpdater
         /// <returns>A value from the Custom Attribute with provided <see cref="Type"/></returns>
         internal static T Get<T>(CustomAttribute customAttribute, int index)
         {
-            if (customAttribute.ConstructorArguments.Count <= 0) return default;
+            if (customAttribute == null || !customAttribute.HasConstructorArguments || customAttribute.ConstructorArguments.Count <= 0) return default;
             return (T)customAttribute.ConstructorArguments[index].Value;
         }
 
@@ -434,7 +436,6 @@ namespace MelonAutoUpdater
                         int minor = Get<int>(attr, 1);
                         int patch = Get<int>(attr, 2);
                         bool isMinimum = Get<bool>(attr, 3);
-                        assembly.Dispose();
                         return new VerifyLoaderVersionAttribute(major, minor, patch, isMinimum);
                     }
                     catch (Exception)
@@ -448,6 +449,133 @@ namespace MelonAutoUpdater
             }
             assembly.Dispose();
             return null;
+        }
+
+        /// <summary>
+        /// Retrieve information from the <see cref="MelonGameAttribute"/> in a file using Mono.Cecil
+        /// </summary>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
+        /// <returns>If present, returns a <see cref="MelonGameAttribute"/></returns>
+        internal static MelonGameAttribute[] GetMelonGameAttribute(AssemblyDefinition assembly)
+        {
+            List<MelonGameAttribute> games = new List<MelonGameAttribute>();
+            foreach (var attr in assembly.CustomAttributes)
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                if (attr.AttributeType.Name == nameof(MelonGameAttribute)
+                    || attr.AttributeType.Name == nameof(MelonModGameAttribute)
+                    || attr.AttributeType.Name == nameof(MelonPluginGameAttribute))
+                {
+                    string developer = Get<string>(attr, 0);
+                    string name = Get<string>(attr, 1);
+                    games.Add(new MelonGameAttribute(developer, name));
+                }
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+            assembly.Dispose();
+            return games.ToArray();
+        }
+
+        /// <summary>
+        /// Retrieve information from the <see cref="MelonProcessAttribute"/> in a file using Mono.Cecil
+        /// </summary>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
+        /// <returns>If present, returns a <see cref="MelonProcessAttribute"/></returns>
+        internal static MelonProcessAttribute[] GetMelonProcessAttribute(AssemblyDefinition assembly)
+        {
+            List<MelonProcessAttribute> games = new List<MelonProcessAttribute>();
+            foreach (var attr in assembly.CustomAttributes)
+            {
+                if (attr.AttributeType.Name == nameof(MelonProcessAttribute))
+                {
+                    string exe = Get<string>(attr, 0);
+                    games.Add(new MelonProcessAttribute(exe));
+                }
+            }
+            assembly.Dispose();
+            return games.ToArray();
+        }
+
+        /// <summary>
+        /// Retrieve information from the <see cref="MelonPlatformAttribute"/> in a file using Mono.Cecil
+        /// </summary>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
+        /// <returns>If present, returns a <see cref="MelonPlatformAttribute"/></returns>
+        internal static MelonPlatformAttribute GetMelonPlatformAttribute(AssemblyDefinition assembly)
+        {
+            foreach (var attr in assembly.CustomAttributes)
+            {
+                if (attr.AttributeType.Name == nameof(MelonPlatformAttribute))
+                {
+                    CompatiblePlatforms platforms = Get<CompatiblePlatforms>(attr, 0);
+                    assembly.Dispose();
+                    return new MelonPlatformAttribute(platforms);
+                }
+            }
+            assembly.Dispose();
+            return null;
+        }
+
+        /// <summary>
+        /// Retrieve information from the <see cref="VerifyLoaderBuildAttribute"/> in a file using Mono.Cecil
+        /// </summary>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
+        /// <returns>If present, returns a <see cref="VerifyLoaderBuildAttribute"/></returns>
+        internal static VerifyLoaderBuildAttribute GetVerifyLoaderBuildAttribute(AssemblyDefinition assembly)
+        {
+            foreach (var attr in assembly.CustomAttributes)
+            {
+                if (attr.AttributeType.Name == nameof(VerifyLoaderBuildAttribute))
+                {
+                    string build = Get<string>(attr, 0);
+                    assembly.Dispose();
+                    return new VerifyLoaderBuildAttribute(build);
+                }
+            }
+            assembly.Dispose();
+            return null;
+        }
+
+        /// <summary>
+        /// Retrieve information from the <see cref="MelonPlatformDomainAttribute"/> in a file using Mono.Cecil
+        /// </summary>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
+        /// <returns>If present, returns a <see cref="MelonPlatformDomainAttribute"/></returns>
+        internal static MelonPlatformDomainAttribute GetMelonPlatformDomainAttribute(AssemblyDefinition assembly)
+        {
+            foreach (var attr in assembly.CustomAttributes)
+            {
+                if (attr.AttributeType.Name == nameof(MelonPlatformDomainAttribute))
+                {
+                    CompatibleDomains domains = Get<CompatibleDomains>(attr, 0);
+                    assembly.Dispose();
+                    return new MelonPlatformDomainAttribute(domains);
+                }
+            }
+            assembly.Dispose();
+            return null;
+        }
+
+        /// <summary>
+        /// Retrieve information from the <see cref="MelonGameVersionAttribute"/> in a file using Mono.Cecil
+        /// </summary>
+        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
+        /// <returns>If present, returns a <see cref="MelonGameAttribute"/></returns>
+        internal static MelonGameVersionAttribute[] GetMelonGameVersionAttribute(AssemblyDefinition assembly)
+        {
+            List<MelonGameVersionAttribute> versions = new List<MelonGameVersionAttribute>();
+            foreach (var attr in assembly.CustomAttributes)
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                if (attr.AttributeType.Name == nameof(MelonGameVersionAttribute))
+                {
+                    string version = Get<string>(attr, 0);
+                    versions.Add(new MelonGameVersionAttribute(version));
+                }
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+            assembly.Dispose();
+            return versions.ToArray();
         }
 
         internal MelonConfig GetMelonConfig(AssemblyDefinition assembly)
@@ -475,6 +603,21 @@ namespace MelonAutoUpdater
             return null;
         }
 
+        public bool IsBuildCompatible(VerifyLoaderBuildAttribute attr, string hashCode)
+             => attr == null || string.IsNullOrEmpty(attr.HashCode) || string.IsNullOrEmpty(hashCode) || attr.HashCode == hashCode;
+
+        public bool IsDomainCompatible(MelonPlatformDomainAttribute attr, CompatibleDomains domain)
+           => attr.Domain == CompatibleDomains.UNIVERSAL || domain == CompatibleDomains.UNIVERSAL || attr.Domain == domain;
+
+        public bool IsPlatformCompatible(MelonPlatformAttribute attr, CompatiblePlatforms platform)
+            => attr.Platforms == null || attr.Platforms.Length == 0 || attr.Platforms.Contains(platform);
+
+        public bool IsProcessCompatible(MelonProcessAttribute attr, string processName)
+            => attr.Universal || string.IsNullOrEmpty(processName) || (RemoveExtension(processName) == attr.EXE_Name);
+
+        private string RemoveExtension(string name)
+            => name == null ? null : (name.EndsWith(".exe") ? name.Remove(name.Length - 4) : name);
+
         /// <summary>
         /// Checks if the <see cref="Assembly"/> is compatible with the current ML Instance
         /// </summary>
@@ -482,16 +625,36 @@ namespace MelonAutoUpdater
         /// <returns><see langword="true"/>, if compatible, otherwise <see langword="false"/></returns>
         internal bool CheckCompability(AssemblyDefinition assembly)
         {
+            CompatiblePlatforms CurrentPlatform = MelonUtils.IsGame32Bit() ? MelonPlatformAttribute.CompatiblePlatforms.WINDOWS_X86 : MelonPlatformAttribute.CompatiblePlatforms.WINDOWS_X64; // Temporarily
+            CompatibleDomains CurrentDomain = MelonUtils.IsGameIl2Cpp() ? MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP : MelonPlatformDomainAttribute.CompatibleDomains.MONO;
+
+            bool _return = true;
+
+            var name = AssemblyNameReference.Parse(MelonAutoUpdater.MLAssembly.FullName);
+            assembly.MainModule.AssemblyReferences.Add(name);
+
             var modInfo = GetMelonInfo(assembly);
             var loaderVer = GetLoaderVersionRequired(assembly);
-            if (loaderVer != null)
+            var game = GetMelonGameAttribute(assembly);
+            var gameVers = GetMelonGameVersionAttribute(assembly);
+            var process = GetMelonProcessAttribute(assembly);
+            var platform = GetMelonPlatformAttribute(assembly);
+            var domain = GetMelonPlatformDomainAttribute(assembly);
+            var build = GetVerifyLoaderBuildAttribute(assembly);
+
+            if (!(loaderVer == null || IsCompatible(loaderVer, MelonAutoUpdater.MLVersion)))
             {
-                if (!IsCompatible(loaderVer, MelonAutoUpdater.MLVersion))
-                {
-                    string installString = loaderVer.IsMinimum ? $"{loaderVer.SemVer} or later" : $"{loaderVer.SemVer} specifically";
-                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current version of MelonLoader ({MelonAutoUpdater.MLVersion}), its only compatible with {installString}");
-                    return false;
-                }
+                Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current version of MelonLoader : v{MelonAutoUpdater.MLVersion}");
+                Logger.Warning($"Compatible Versions:");
+                Logger.Warning($"    - v{loaderVer.SemVer} {(loaderVer.IsMinimum ? "or higher" : "")}");
+                _return = false;
+            }
+            else if (!(build == null || IsBuildCompatible(build, MelonUtils.HashCode)))
+            {
+                Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current build hash code of MelonLoader : {MelonUtils.HashCode}");
+                Logger.Warning($"Compatible Build Hash Codes:");
+                Logger.Warning($"    - v{build.HashCode}");
+                _return = false;
             }
             bool net6 = Environment.Version.Major >= 6;
             if (!net6)
@@ -500,10 +663,68 @@ namespace MelonAutoUpdater
                 if (!isFramework)
                 {
                     Logger.Error($"{modInfo.Name} {modInfo.Version} is not compatible with .NET Framework");
-                    return false;
+                    _return = false;
                 }
             }
-            return true;
+#pragma warning disable CS0618 // Type or member is obsolete
+            var gameName = ml065.MelonLoader.MelonUtils.GameName;
+            var gameDev = ml065.MelonLoader.MelonUtils.GameDeveloper;
+            var gameVer = ml065.MelonLoader.MelonUtils.GameVersion;
+#pragma warning restore CS0618 // Type or member is obsolete
+            if (!(game.Length == 0 || game.Any(x => x.IsCompatible(gameDev, gameName))))
+            {
+                Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running game: {gameName} (by {gameDev})");
+                Logger.Warning($"Compatible Games:");
+                foreach (var g in game)
+                {
+                    Logger.Warning($"=  - {g.Name} by {g.Developer}");
+                }
+                _return = false;
+            }
+            else
+            {
+                if (!(gameVers.Length == 0 || gameVers.Any(x => x.Version == gameVer)))
+                {
+                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the version of the running game: {gameVer}");
+                    Logger.Warning($"Compatible Game Versions:");
+                    foreach (var g in gameVers)
+                    {
+                        Logger.Warning($"   - {g.Version}");
+                    }
+                    _return = false;
+                }
+                var processName = Process.GetCurrentProcess().ProcessName;
+                if (!(process.Length == 0 || process.Any(x => IsProcessCompatible(x, processName))))
+                {
+                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running process: {processName}");
+                    Logger.Warning($"Compatible Processes:");
+                    foreach (var g in process)
+                    {
+                        Logger.Warning($"   - {g.EXE_Name}");
+                    }
+                    _return = false;
+                }
+
+                if (!(platform == null || IsPlatformCompatible(platform, CurrentPlatform)))
+                {
+                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentPlatform}");
+                    Logger.Warning($"Compatible Platforms:");
+                    foreach (var p in platform.Platforms)
+                    {
+                        Logger.Warning($"   - {p}");
+                    }
+                    _return = false;
+                }
+                if (!(domain == null || IsDomainCompatible(domain, CurrentDomain)))
+                {
+                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentDomain}");
+                    Logger.Warning($"Compatible Domain:");
+                    Logger.Warning($"   - {domain.Domain}");
+                    _return = false;
+                }
+            }
+
+            return _return;
         }
 
         /// <summary>
@@ -522,7 +743,7 @@ namespace MelonAutoUpdater
             bool success = false;
             bool threwError = false;
             string fileName = Path.GetFileName(path);
-            AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(path);
+            AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
             FileType _fileType = GetFileType(_assembly);
             if (_fileType == FileType.MelonMod)
             {
@@ -537,7 +758,7 @@ namespace MelonAutoUpdater
 
                     Logger.Msg("Checking if mod version is valid");
                     var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
-                    _assembly = AssemblyDefinition.ReadAssembly(fileStream);
+                    _assembly = AssemblyDefinition.ReadAssembly(fileStream, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
                     var melonInfo = GetMelonInfo(_assembly);
                     if (melonInfo.Version < latestVersion)
                     {
@@ -590,7 +811,7 @@ namespace MelonAutoUpdater
 
                     Logger.Msg("Checking if plugin version is valid");
                     var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
-                    _assembly = AssemblyDefinition.ReadAssembly(fileStream);
+                    _assembly = AssemblyDefinition.ReadAssembly(fileStream, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
                     var melonInfo = GetMelonInfo(_assembly);
                     if (melonInfo.Version < latestVersion)
                     {
@@ -713,7 +934,7 @@ namespace MelonAutoUpdater
                     previousFileName = fileName;
                 }
                 Logger.MsgPastel($"File: {fileName.Pastel(theme.FileNameColor)}");
-                AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path);
+                AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
                 var config = GetMelonConfig(mainAssembly);
                 if (config != null)
                 {
@@ -730,6 +951,7 @@ namespace MelonAutoUpdater
                 if (melonAssemblyInfo != null)
                 {
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
+                    Type assemblyType = (Type)melonAssemblyInfo.SystemType;
                     if (melonAssemblyInfo != null)
                     {
                         if (!CheckCompability(mainAssembly)) needUpdate = true;
@@ -993,7 +1215,14 @@ namespace MelonAutoUpdater
                         if (needUpdate)
                         {
                             Logger.Msg($"Removing {fileName.Pastel(theme.FileNameColor)}, due to it being incompatible and not being updated");
-                            File.Delete(path);
+                            if (GetFileType(melonAssemblyInfo) == FileType.MelonMod)
+                            {
+                                File.Delete(path);
+                            }
+                            else
+                            {
+                                Logger.Warning("Cannot remove due to it being a plugin, meaning its already loaded by MelonLoader");
+                            }
                         }
                     }
                 }
