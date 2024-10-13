@@ -379,7 +379,7 @@ namespace MelonAutoUpdater.Utils
                 if (DLLFile != null) dllFile = DLLFile;
                 if (DLLFile != null && AllFiles != null)
                 {
-                    AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile);
+                    AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
                     var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
                     assName = assemblyName; // Once again, this is not meant to be read as ass, but as a short of assembly.
                 }
@@ -470,7 +470,7 @@ namespace MelonAutoUpdater.Utils
             var (DLLFile, AllFiles) = DownloadPackage(name, version, includePreRelease: includePreRelease);
             if (DLLFile != null && AllFiles != null)
             {
-                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile);
+                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
                 var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
                 return assemblyName;
             }
@@ -486,7 +486,7 @@ namespace MelonAutoUpdater.Utils
         {
             if (DLLFile != null && Path.GetExtension(DLLFile) == ".dll")
             {
-                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile);
+                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(DLLFile, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
                 var assemblyName = Path.GetFileNameWithoutExtension(assembly.MainModule.Name);
                 return assemblyName;
             }
