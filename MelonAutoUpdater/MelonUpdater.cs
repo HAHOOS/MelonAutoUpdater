@@ -625,6 +625,7 @@ namespace MelonAutoUpdater
         /// <returns><see langword="true"/>, if compatible, otherwise <see langword="false"/></returns>
         internal bool CheckCompability(AssemblyDefinition assembly)
         {
+            if (!GetEntryValue<bool>(MelonAutoUpdater.Entry_checkCompatibility)) return true;
             CompatiblePlatforms CurrentPlatform = MelonUtils.IsGame32Bit() ? MelonPlatformAttribute.CompatiblePlatforms.WINDOWS_X86 : MelonPlatformAttribute.CompatiblePlatforms.WINDOWS_X64; // Temporarily
             CompatibleDomains CurrentDomain = MelonUtils.IsGameIl2Cpp() ? MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP : MelonPlatformDomainAttribute.CompatibleDomains.MONO;
 

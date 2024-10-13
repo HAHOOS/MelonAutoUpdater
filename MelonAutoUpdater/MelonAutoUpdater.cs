@@ -105,6 +105,11 @@ namespace MelonAutoUpdater
         internal static MelonPreferences_Entry Entry_removeIncompatible { get; private set; }
 
         /// <summary>
+        /// A Melon Preferences entry of a boolean value indicating whether or not should melons be checked for compatibility
+        /// </summary>
+        internal static MelonPreferences_Entry Entry_checkCompatibility { get; private set; }
+
+        /// <summary>
         /// Themes Category in Preferences
         /// </summary>
         internal static MelonPreferences_ReflectiveCategory ThemesCategory { get; private set; }
@@ -137,7 +142,7 @@ namespace MelonAutoUpdater
             LoggerInstance.DebugMsg($"Added Enabled to config.cfg");
 
             Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
-                description: "List of all names of Mods & Plugins that will be ignored when checking for updates");
+                description: "List of all file names (without extension) of Mods & Plugins that will be ignored when checking for updates");
 
             LoggerInstance.DebugMsg($"Added IgnoreList to config.cfg");
 
@@ -159,6 +164,11 @@ namespace MelonAutoUpdater
 
             Entry_removeIncompatible = MainCategory.CreateEntry<bool>("RemoveIncompatible", false, "Remove Incompatible",
                 description: "If true, if incompatible melons are not updated, they will be removed to avoid possible crashes (for example due to a \"Too new\" version of .NET)");
+
+            LoggerInstance.DebugMsg($"Added RemoveIncompatible to config.cfg");
+
+            Entry_removeIncompatible = MainCategory.CreateEntry<bool>("CheckCompatibility", false, "Check Compatibility",
+                description: "If true, melons will be checked to determine if they are compatible with the install, if not, they will not be installed (if those were the download update melons) or removed if the melon was checked, not updated, incompatible and RemoveIncompatible is true\nWARNING: This may cause some melons to stop working or the game to crash, due to faulty/incompatible versions");
 
             LoggerInstance.DebugMsg($"Added RemoveIncompatible to config.cfg");
 
