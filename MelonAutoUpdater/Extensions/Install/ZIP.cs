@@ -115,10 +115,10 @@ namespace MelonAutoUpdater.Extensions.Install
                     string _path = Path.Combine(directory, Path.GetFileName(file));
                     if (Path.GetExtension(file) == ".dll")
                     {
-                        var res = InstallPackage(file, latestVersion);
-                        if (!res.threwError || res.isMelon) success += 1;
-                        else if (res.threwError) failed += 1;
-                        if (!res.isMelon)
+                        var (isMelon, threwError) = InstallPackage(file, latestVersion);
+                        if (!threwError || isMelon) success += 1;
+                        else if (threwError) failed += 1;
+                        if (!isMelon)
                         {
                             if (!File.Exists(_path)) File.Move(file, _path);
                             else File.Replace(file, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
@@ -228,8 +228,8 @@ namespace MelonAutoUpdater.Extensions.Install
                 }
                 else if (Path.GetExtension(extPath) == ".dll")
                 {
-                    var res = InstallPackage(extPath, MelonData.LatestVersion);
-                    if (res.threwError) failed += 1;
+                    var (isMelon, threwError) = InstallPackage(extPath, MelonData.LatestVersion);
+                    if (threwError) failed += 1;
                     else success += 1;
                 }
                 else
