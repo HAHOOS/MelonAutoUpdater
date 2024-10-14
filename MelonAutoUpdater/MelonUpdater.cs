@@ -13,8 +13,6 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using ml065.MelonLoader.ICSharpCode.SharpZipLib.Core;
-using ml065.MelonLoader.ICSharpCode.SharpZipLib.Zip;
 using System.Diagnostics;
 using System.Net.Http;
 using static ml065::MelonLoader.MelonPlatformAttribute;
@@ -22,7 +20,10 @@ using static ml065::MelonLoader.MelonPlatformDomainAttribute;
 
 namespace MelonAutoUpdater
 {
-    internal class MelonUpdater
+    /// <summary>
+    /// Class that handles all of the checking and updating
+    /// </summary>
+    public class MelonUpdater
     {
         /// <summary>
         /// User Agent Header for all HTTP requests
@@ -76,60 +77,6 @@ namespace MelonAutoUpdater
             return default;
         }
 
-        /// <summary>
-        /// Copied from MelonLoader v0.6.4 to make it work with older versions
-        /// </summary>
-        internal static bool IsCompatible(VerifyLoaderVersionAttribute attribute, SemVersion version)
-           => attribute.SemVer == null || version == null || (attribute.IsMinimum ? attribute.SemVer <= version : attribute.SemVer == version);
-
-        /// <summary>
-        /// Copied from MelonLoader v0.6.4 to make it work with older versions
-        /// </summary>
-        internal static bool IsCompatible(VerifyLoaderVersionAttribute attribute, string version)
-            => !SemVersion.TryParse(version, out SemVersion ver) || IsCompatible(attribute, ver);
-
-        /// <summary>
-        /// Unzip a file from <see cref="Stream"/><br/>
-        /// </summary>
-        /// <param name="zipStream"><see cref="Stream"/> of the ZIP File</param>
-        /// <param name="outFolder">Path to folder which will have the content of the zip</param>
-        internal static void UnzipFromStream(Stream zipStream, string outFolder)
-        {
-            Stopwatch sw = null;
-            if (MelonAutoUpdater.Debug)
-            {
-                sw = Stopwatch.StartNew();
-            }
-            using (var zipInputStream = new ZipInputStream(zipStream))
-            {
-                while (zipInputStream.GetNextEntry() is ZipEntry zipEntry)
-                {
-                    var entryFileName = zipEntry.Name;
-
-                    var buffer = new byte[4096];
-
-                    var fullZipToPath = Path.Combine(outFolder, entryFileName);
-                    var directoryName = Path.GetDirectoryName(fullZipToPath);
-
-                    if (directoryName.Length > 0)
-                        Directory.CreateDirectory(directoryName);
-                    if (Path.GetFileName(fullZipToPath).Length == 0)
-                    {
-                        continue;
-                    }
-                    using (FileStream streamWriter = File.Create(fullZipToPath))
-                    {
-                        StreamUtils.Copy(zipInputStream, streamWriter, buffer);
-                    }
-                }
-            }
-            if (MelonAutoUpdater.Debug)
-            {
-                sw.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"Unzip-{MelonUtils.RandomString(5)}", sw.ElapsedMilliseconds);
-            }
-        }
-
         internal static bool CanSearch(SearchExtension extension, MelonConfig melonConfig)
         {
             if (melonConfig == null) return true;
@@ -164,30 +111,36 @@ namespace MelonAutoUpdater
                 Logger.Msg("No download link was provided with the mod");
                 return null;
             }
+            List<SearchExtension> extensions = new List<SearchExtension>();
             foreach (var _ext in ExtensionBase.LoadedExtensions)
             {
                 if (_ext.Type == typeof(SearchExtension))
                 {
                     var ext = _ext as SearchExtension;
-                    if (CanSearch(ext, melonConfig))
+                    extensions.Add(ext);
+                }
+            }
+            extensions.OrderBy(x => x.Priority * (-1));
+            foreach (var ext in extensions)
+            {
+                if (CanSearch(ext, melonConfig))
+                {
+                    Logger.MsgPastel($"Checking {ext.Name.Pastel(ext.NameColor)}");
+                    MelonData func() => ext.Search(downloadLink, currentVersion);
+                    var result = Safe.SafeFunction<MelonData>(func);
+                    if (result == null)
                     {
-                        Logger.MsgPastel($"Checking {ext.Name.Pastel(ext.NameColor)}");
-                        MelonData func() => ext.Search(downloadLink, currentVersion);
-                        var result = Safe.SafeFunction<MelonData>(func);
-                        if (result == null)
-                        {
-                            Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
-                        }
-                        else
-                        {
-                            Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                            return result;
-                        }
+                        Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                     }
                     else
                     {
-                        Logger.MsgPastel($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
+                        Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                        return result;
                     }
+                }
+                else
+                {
+                    Logger.MsgPastel($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                 }
             }
             return null;
@@ -206,73 +159,47 @@ namespace MelonAutoUpdater
                 Logger.Msg("Name/Author was not provided with the mod");
                 return null;
             }
+            List<SearchExtension> extensions = new List<SearchExtension>();
             foreach (var _ext in ExtensionBase.LoadedExtensions)
             {
                 if (_ext.Type == typeof(SearchExtension))
                 {
                     var ext = _ext as SearchExtension;
-                    if (ext.BruteCheckEnabled && (bool)ext.Entry_BruteCheckEnabled.BoxedValue)
+                    extensions.Add(ext);
+                }
+            }
+            extensions.OrderBy(x => x.Priority * (-1));
+            foreach (var ext in extensions)
+            {
+                if (ext.BruteCheckEnabled && (bool)ext.Entry_BruteCheckEnabled.BoxedValue)
+                {
+                    if (CanSearch(ext, melonConfig))
                     {
-                        if (CanSearch(ext, melonConfig))
+                        Logger.MsgPastel($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
+                        MelonData func() => ext.BruteCheck(name, author, currentVersion);
+                        var result = Safe.SafeFunction<MelonData>(func);
+                        if (result == null)
                         {
-                            Logger.MsgPastel($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
-                            MelonData func() => ext.BruteCheck(name, author, currentVersion);
-                            var result = Safe.SafeFunction<MelonData>(func);
-                            if (result == null)
-                            {
-                                Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
-                            }
-                            else
-                            {
-                                Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
-                                return result;
-                            }
+                            Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                         }
                         else
                         {
-                            Logger.MsgPastel($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
+                            Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                            return result;
                         }
                     }
                     else
                     {
-                        Logger.MsgPastel($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
+                        Logger.MsgPastel($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                     }
+                }
+                else
+                {
+                    Logger.MsgPastel($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
                 }
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Check if an assembly is a <see cref="MelonMod"/>, a <see cref="MelonPlugin"/> or something else
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
-        /// <returns>A FileType, either <see cref="MelonMod"/>, <see cref="MelonPlugin"/> or Other</returns>
-        internal static FileType GetFileType(AssemblyDefinition assembly)
-        {
-            MelonInfoAttribute infoAttribute = GetMelonInfo(assembly);
-
-            if (infoAttribute != null)
-            {
-                return infoAttribute.SystemType == typeof(MelonMod) ? FileType.MelonMod : infoAttribute.SystemType == typeof(MelonPlugin) ? FileType.MelonPlugin : FileType.Other;
-            }
-
-            return FileType.Other;
-        }
-
-        /// <summary>
-        /// Check if an assembly is a <see cref="MelonMod"/>, a <see cref="MelonPlugin"/> or something else
-        /// </summary>
-        /// <param name="infoAttribute"><see cref="MelonInfoAttribute"/> of the assembly</param>
-        /// <returns>A FileType, either <see cref="MelonMod"/>, <see cref="MelonPlugin"/> or Other</returns>
-        internal static FileType GetFileType(MelonInfoAttribute infoAttribute)
-        {
-            if (infoAttribute != null)
-            {
-                return infoAttribute.SystemType == typeof(MelonMod) ? FileType.MelonMod : infoAttribute.SystemType == typeof(MelonPlugin) ? FileType.MelonPlugin : FileType.Other;
-            }
-
-            return FileType.Other;
         }
 
         /// <summary>
@@ -289,293 +216,6 @@ namespace MelonAutoUpdater
                 return info.Name;
             }
             return path;
-        }
-
-        /// <summary>
-        /// Move all files from one directory to another
-        /// </summary>
-        /// <param name="path">A path to directory to copy from</param>
-        /// <param name="directory">A path to directory to copy to</param>
-        /// <param name="mainDirectoryName">Only used in prefix, just set <see cref="string.Empty"/></param>
-        /// <param name="latestVersion">The latest version of the mod the files are from</param>
-        /// <param name="config">Config of the Melon</param>
-        /// <returns>Info about melon install (times when it succeeded, times when it failed, and if it threw an error)</returns>
-        internal (int success, int failed, bool threwError) MoveAllFiles(string path, string directory, string mainDirectoryName, SemVersion latestVersion, MelonConfig config)
-        {
-            Stopwatch sw = null;
-            if (MelonAutoUpdater.Debug)
-            {
-                sw = Stopwatch.StartNew();
-            }
-            int success = 0;
-            int failed = 0;
-            bool threwError = false;
-            string prefix = (string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{GetDirName(directory)}" : GetDirName(directory)).Pastel(Color.Cyan);
-            foreach (string file in Directory.GetFiles(path))
-            {
-                if (config != null && !config.CanInclude(file))
-                {
-                    Logger.MsgPastel($"[{prefix}] {Path.GetFileName(file)} will not be loaded due to the Melon being configured this way");
-                    continue;
-                }
-                Logger.MsgPastel($"[{prefix}] {Path.GetFileName(file)} found, copying file to folder");
-                try
-                {
-                    string _path = Path.Combine(directory, Path.GetFileName(file));
-                    if (Path.GetExtension(file) == ".dll")
-                    {
-                        var res = InstallPackage(file, latestVersion);
-                        if (res.threwError || res.success)
-                        {
-                            if (res.threwError) threwError = true;
-                            if (res.success) success++;
-                            else failed++;
-                        }
-                    }
-                    else
-                    {
-                        if (!File.Exists(_path)) File.Move(file, _path);
-                        else File.Replace(file, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
-                        Logger.MsgPastel($"[{prefix}] Successfully copied {Path.GetFileName(file)}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"[{prefix}] Failed to copy {Path.GetFileName(file)}, exception thrown:{ex}");
-                }
-            }
-            foreach (string dir in Directory.GetDirectories(path))
-            {
-                if (config != null && !config.CanInclude(dir))
-                {
-                    Logger.MsgPastel($"[{prefix}] {GetDirName(dir)} will not be loaded due to the Melon being configured this way");
-                    continue;
-                }
-                Logger.MsgPastel($"[{prefix}] Found folder {GetDirName(dir)}, going through files");
-                try
-                {
-                    string _path = Path.Combine(directory, GetDirName(dir));
-                    if (!Directory.Exists(_path)) Directory.CreateDirectory(_path);
-                    var res = MoveAllFiles(dir, _path, prefix, latestVersion, config);
-                    if (res.threwError) threwError = true;
-                    success += res.success;
-                    failed += res.failed;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"[{prefix}] Failed to copy folder {GetDirName(dir)}, exception thrown:{ex}");
-                }
-            }
-            if (MelonAutoUpdater.Debug)
-            {
-                sw.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"MoveFiles-{GetDirName(path)}", sw.ElapsedMilliseconds);
-            }
-            return (success, failed, threwError);
-        }
-
-        /// <summary>
-        /// Get value from a custom attribute
-        /// </summary>
-        /// <typeparam name="T"><see cref="Type"/> that will be returned as value</typeparam>
-        /// <param name="customAttribute">The custom attribute you want to get value from</param>
-        /// <param name="index">Index of the value</param>
-        /// <returns>A value from the Custom Attribute with provided <see cref="Type"/></returns>
-        internal static T Get<T>(CustomAttribute customAttribute, int index)
-        {
-            if (customAttribute == null || !customAttribute.HasConstructorArguments || customAttribute.ConstructorArguments.Count <= 0) return default;
-            return (T)customAttribute.ConstructorArguments[index].Value;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="MelonInfoAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MelonInfoAttribute"/></returns>
-
-        internal static MelonInfoAttribute GetMelonInfo(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-#pragma warning disable CS0618 // Type or member is obsolete
-                if (attr.AttributeType.Name == nameof(MelonInfoAttribute)
-                    || attr.AttributeType.Name == nameof(MelonModInfoAttribute)
-                    || attr.AttributeType.Name == nameof(MelonPluginInfoAttribute))
-                {
-                    var _type = Get<TypeDefinition>(attr, 0);
-                    Type type = _type.BaseType.Name == "MelonMod" ? typeof(MelonMod) : _type.BaseType.Name == "MelonPlugin" ? typeof(MelonPlugin) : null;
-                    string Name = Get<string>(attr, 1);
-                    string Version = Get<string>(attr, 2);
-                    string Author = Get<string>(attr, 3);
-                    string DownloadLink = Get<string>(attr, 4);
-
-                    assembly.Dispose();
-
-                    return new MelonInfoAttribute(type: type, name: Name, version: Version, author: Author, downloadLink: DownloadLink);
-                }
-#pragma warning restore CS0618 // Type or member is obsolete
-            }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="VerifyLoaderVersionAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="Assembly"/> of the file</param>
-        /// <returns>If present, returns a <see cref="VerifyLoaderVersionAttribute"/></returns>
-        internal static VerifyLoaderVersionAttribute GetLoaderVersionRequired(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-                if (attr.AttributeType.Name == nameof(VerifyLoaderVersionAttribute))
-                {
-                    try
-                    {
-                        int major = Get<int>(attr, 0);
-                        int minor = Get<int>(attr, 1);
-                        int patch = Get<int>(attr, 2);
-                        bool isMinimum = Get<bool>(attr, 3);
-                        return new VerifyLoaderVersionAttribute(major, minor, patch, isMinimum);
-                    }
-                    catch (Exception)
-                    {
-                        string version = Get<string>(attr, 0);
-                        bool isMinimum = Get<bool>(attr, 1);
-                        assembly.Dispose();
-                        return new VerifyLoaderVersionAttribute(version, isMinimum);
-                    }
-                }
-            }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="MelonGameAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MelonGameAttribute"/></returns>
-        internal static MelonGameAttribute[] GetMelonGameAttribute(AssemblyDefinition assembly)
-        {
-            List<MelonGameAttribute> games = new List<MelonGameAttribute>();
-            foreach (var attr in assembly.CustomAttributes)
-            {
-#pragma warning disable CS0618 // Type or member is obsolete
-                if (attr.AttributeType.Name == nameof(MelonGameAttribute)
-                    || attr.AttributeType.Name == nameof(MelonModGameAttribute)
-                    || attr.AttributeType.Name == nameof(MelonPluginGameAttribute))
-                {
-                    string developer = Get<string>(attr, 0);
-                    string name = Get<string>(attr, 1);
-                    games.Add(new MelonGameAttribute(developer, name));
-                }
-#pragma warning restore CS0618 // Type or member is obsolete
-            }
-            assembly.Dispose();
-            return games.ToArray();
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="MelonProcessAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MelonProcessAttribute"/></returns>
-        internal static MelonProcessAttribute[] GetMelonProcessAttribute(AssemblyDefinition assembly)
-        {
-            List<MelonProcessAttribute> games = new List<MelonProcessAttribute>();
-            foreach (var attr in assembly.CustomAttributes)
-            {
-                if (attr.AttributeType.Name == nameof(MelonProcessAttribute))
-                {
-                    string exe = Get<string>(attr, 0);
-                    games.Add(new MelonProcessAttribute(exe));
-                }
-            }
-            assembly.Dispose();
-            return games.ToArray();
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="MelonPlatformAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MelonPlatformAttribute"/></returns>
-        internal static MelonPlatformAttribute GetMelonPlatformAttribute(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-                if (attr.AttributeType.Name == nameof(MelonPlatformAttribute))
-                {
-                    CompatiblePlatforms platforms = Get<CompatiblePlatforms>(attr, 0);
-                    assembly.Dispose();
-                    return new MelonPlatformAttribute(platforms);
-                }
-            }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="VerifyLoaderBuildAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
-        /// <returns>If present, returns a <see cref="VerifyLoaderBuildAttribute"/></returns>
-        internal static VerifyLoaderBuildAttribute GetVerifyLoaderBuildAttribute(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-                if (attr.AttributeType.Name == nameof(VerifyLoaderBuildAttribute))
-                {
-                    string build = Get<string>(attr, 0);
-                    assembly.Dispose();
-                    return new VerifyLoaderBuildAttribute(build);
-                }
-            }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="MelonPlatformDomainAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MelonPlatformDomainAttribute"/></returns>
-        internal static MelonPlatformDomainAttribute GetMelonPlatformDomainAttribute(AssemblyDefinition assembly)
-        {
-            foreach (var attr in assembly.CustomAttributes)
-            {
-                if (attr.AttributeType.Name == nameof(MelonPlatformDomainAttribute))
-                {
-                    CompatibleDomains domains = Get<CompatibleDomains>(attr, 0);
-                    assembly.Dispose();
-                    return new MelonPlatformDomainAttribute(domains);
-                }
-            }
-            assembly.Dispose();
-            return null;
-        }
-
-        /// <summary>
-        /// Retrieve information from the <see cref="MelonGameVersionAttribute"/> in a file using Mono.Cecil
-        /// </summary>
-        /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
-        /// <returns>If present, returns a <see cref="MelonGameAttribute"/></returns>
-        internal static MelonGameVersionAttribute[] GetMelonGameVersionAttribute(AssemblyDefinition assembly)
-        {
-            List<MelonGameVersionAttribute> versions = new List<MelonGameVersionAttribute>();
-            foreach (var attr in assembly.CustomAttributes)
-            {
-#pragma warning disable CS0618 // Type or member is obsolete
-                if (attr.AttributeType.Name == nameof(MelonGameVersionAttribute))
-                {
-                    string version = Get<string>(attr, 0);
-                    versions.Add(new MelonGameVersionAttribute(version));
-                }
-#pragma warning restore CS0618 // Type or member is obsolete
-            }
-            assembly.Dispose();
-            return versions.ToArray();
         }
 
         internal MelonConfig GetMelonConfig(AssemblyDefinition assembly)
@@ -603,129 +243,174 @@ namespace MelonAutoUpdater
             return null;
         }
 
-        public bool IsBuildCompatible(VerifyLoaderBuildAttribute attr, string hashCode)
-             => attr == null || string.IsNullOrEmpty(attr.HashCode) || string.IsNullOrEmpty(hashCode) || attr.HashCode == hashCode;
-
-        public bool IsDomainCompatible(MelonPlatformDomainAttribute attr, CompatibleDomains domain)
-           => attr.Domain == CompatibleDomains.UNIVERSAL || domain == CompatibleDomains.UNIVERSAL || attr.Domain == domain;
-
-        public bool IsPlatformCompatible(MelonPlatformAttribute attr, CompatiblePlatforms platform)
-            => attr.Platforms == null || attr.Platforms.Length == 0 || attr.Platforms.Contains(platform);
-
-        public bool IsProcessCompatible(MelonProcessAttribute attr, string processName)
-            => attr.Universal || string.IsNullOrEmpty(processName) || (RemoveExtension(processName) == attr.EXE_Name);
-
-        private string RemoveExtension(string name)
-            => name == null ? null : (name.EndsWith(".exe") ? name.Remove(name.Length - 4) : name);
-
         /// <summary>
         /// Checks if the <see cref="Assembly"/> is compatible with the current ML Instance
         /// </summary>
         /// <param name="assembly"><see cref="AssemblyDefinition"/> to check</param>
-        /// <returns><see langword="true"/>, if compatible, otherwise <see langword="false"/></returns>
-        internal bool CheckCompability(AssemblyDefinition assembly)
+        /// <param name="printmsg">If <see langword="true"/>, will log the incompatibilities</param>
+        /// <returns>Array of all incompatibilities</returns>
+        public static Incompatibility[] CheckCompatibility(AssemblyDefinition assembly, bool printmsg = true)
         {
-            if (!GetEntryValue<bool>(MelonAutoUpdater.Entry_checkCompatibility)) return true;
-            CompatiblePlatforms CurrentPlatform = MelonUtils.IsGame32Bit() ? MelonPlatformAttribute.CompatiblePlatforms.WINDOWS_X86 : MelonPlatformAttribute.CompatiblePlatforms.WINDOWS_X64; // Temporarily
-            CompatibleDomains CurrentDomain = MelonUtils.IsGameIl2Cpp() ? MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP : MelonPlatformDomainAttribute.CompatibleDomains.MONO;
-
-            bool _return = true;
-
-            var name = AssemblyNameReference.Parse(MelonAutoUpdater.MLAssembly.FullName);
-            assembly.MainModule.AssemblyReferences.Add(name);
-
-            var modInfo = GetMelonInfo(assembly);
-            var loaderVer = GetLoaderVersionRequired(assembly);
-            var game = GetMelonGameAttribute(assembly);
-            var gameVers = GetMelonGameVersionAttribute(assembly);
-            var process = GetMelonProcessAttribute(assembly);
-            var platform = GetMelonPlatformAttribute(assembly);
-            var domain = GetMelonPlatformDomainAttribute(assembly);
-            var build = GetVerifyLoaderBuildAttribute(assembly);
-
-            if (!(loaderVer == null || IsCompatible(loaderVer, MelonAutoUpdater.MLVersion)))
+            if (!GetEntryValue<bool>(MelonAutoUpdater.Entry_checkCompatibility)) return new Incompatibility[] { };
+            var result = new List<Incompatibility>();
+            var modInfo = MelonAttribute.GetMelonInfo(assembly);
+            if (modInfo == null)
             {
-                Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current version of MelonLoader : v{MelonAutoUpdater.MLVersion}");
-                Logger.Warning($"Compatible Versions:");
-                Logger.Warning($"    - v{loaderVer.SemVer} {(loaderVer.IsMinimum ? "or higher" : "")}");
-                _return = false;
-            }
-            else if (!(build == null || IsBuildCompatible(build, MelonUtils.HashCode)))
-            {
-                Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current build hash code of MelonLoader : {MelonUtils.HashCode}");
-                Logger.Warning($"Compatible Build Hash Codes:");
-                Logger.Warning($"    - v{build.HashCode}");
-                _return = false;
-            }
-            bool net6 = Environment.Version.Major >= 6;
-            if (!net6)
-            {
-                bool isFramework = assembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib") != null;
-                if (!isFramework)
+                // Assembly is not a mod, only checking .NET version
+                bool net6 = Environment.Version.Major >= 6;
+                if (!net6)
                 {
-                    Logger.Error($"{modInfo.Name} {modInfo.Version} is not compatible with .NET Framework");
-                    _return = false;
+                    bool isFramework = assembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib") != null;
+                    if (!isFramework)
+                    {
+                        result.Add(Incompatibility.NETVersion);
+                    }
                 }
-            }
-#pragma warning disable CS0618 // Type or member is obsolete
-            var gameName = ml065.MelonLoader.MelonUtils.GameName;
-            var gameDev = ml065.MelonLoader.MelonUtils.GameDeveloper;
-            var gameVer = ml065.MelonLoader.MelonUtils.GameVersion;
-#pragma warning restore CS0618 // Type or member is obsolete
-            if (!(game.Length == 0 || game.Any(x => x.IsCompatible(gameDev, gameName))))
-            {
-                Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running game: {gameName} (by {gameDev})");
-                Logger.Warning($"Compatible Games:");
-                foreach (var g in game)
-                {
-                    Logger.Warning($"=  - {g.Name} by {g.Developer}");
-                }
-                _return = false;
             }
             else
             {
-                if (!(gameVers.Length == 0 || gameVers.Any(x => x.Version == gameVer)))
-                {
-                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the version of the running game: {gameVer}");
-                    Logger.Warning($"Compatible Game Versions:");
-                    foreach (var g in gameVers)
-                    {
-                        Logger.Warning($"   - {g.Version}");
-                    }
-                    _return = false;
-                }
-                var processName = Process.GetCurrentProcess().ProcessName;
-                if (!(process.Length == 0 || process.Any(x => IsProcessCompatible(x, processName))))
-                {
-                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running process: {processName}");
-                    Logger.Warning($"Compatible Processes:");
-                    foreach (var g in process)
-                    {
-                        Logger.Warning($"   - {g.EXE_Name}");
-                    }
-                    _return = false;
-                }
+                CompatiblePlatforms CurrentPlatform = MelonUtils.IsGame32Bit() ? CompatiblePlatforms.WINDOWS_X86 : CompatiblePlatforms.WINDOWS_X64; // Temporarily
+                CompatibleDomains CurrentDomain = MelonUtils.IsGameIl2Cpp() ? CompatibleDomains.IL2CPP : CompatibleDomains.MONO;
 
-                if (!(platform == null || IsPlatformCompatible(platform, CurrentPlatform)))
+                var name = AssemblyNameReference.Parse(MelonAutoUpdater.MLAssembly.FullName);
+                assembly.MainModule.AssemblyReferences.Add(name);
+
+                var loaderVer = MelonAttribute.GetLoaderVersionRequired(assembly);
+                var game = MelonAttribute.GetMelonGameAttribute(assembly);
+                var gameVers = MelonAttribute.GetMelonGameVersionAttribute(assembly);
+                var process = MelonAttribute.GetMelonProcessAttribute(assembly);
+                var platform = MelonAttribute.GetMelonPlatformAttribute(assembly);
+                var domain = MelonAttribute.GetMelonPlatformDomainAttribute(assembly);
+                var build = MelonAttribute.GetVerifyLoaderBuildAttribute(assembly);
+                if (!(loaderVer == null || MelonAttribute.IsCompatible(loaderVer, MelonAutoUpdater.MLVersion)))
                 {
-                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentPlatform}");
-                    Logger.Warning($"Compatible Platforms:");
-                    foreach (var p in platform.Platforms)
-                    {
-                        Logger.Warning($"   - {p}");
-                    }
-                    _return = false;
+                    if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current version of MelonLoader : v{MelonAutoUpdater.MLVersion}");
+                    if (printmsg) Logger.Warning($"Compatible Versions:");
+                    if (printmsg) Logger.Warning($"    - v{loaderVer.SemVer} {(loaderVer.IsMinimum ? "or higher" : "")}");
+                    result.Add(Incompatibility.MLVersion);
                 }
-                if (!(domain == null || IsDomainCompatible(domain, CurrentDomain)))
+                else if (!(build == null || MelonAttribute.IsCompatible(build, MelonUtils.HashCode)))
                 {
-                    Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentDomain}");
-                    Logger.Warning($"Compatible Domain:");
-                    Logger.Warning($"   - {domain.Domain}");
-                    _return = false;
+                    if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current build hash code of MelonLoader : {MelonUtils.HashCode}");
+                    if (printmsg) Logger.Warning($"Compatible Build Hash Codes:");
+                    if (printmsg) Logger.Warning($"    - v{build.HashCode}");
+                    result.Add(Incompatibility.MLBuild);
+                }
+                bool net6 = Environment.Version.Major >= 6;
+                if (!net6)
+                {
+                    bool isFramework = assembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib") != null;
+                    if (!isFramework)
+                    {
+                        if (printmsg) Logger.Error($"{modInfo.Name} {modInfo.Version} is not compatible with .NET Framework");
+                        result.Add(Incompatibility.NETVersion);
+                    }
+                }
+#pragma warning disable CS0618 // Type or member is obsolete
+                var gameName = ml065.MelonLoader.MelonUtils.GameName;
+                var gameDev = ml065.MelonLoader.MelonUtils.GameDeveloper;
+                var gameVer = ml065.MelonLoader.MelonUtils.GameVersion;
+#pragma warning restore CS0618 // Type or member is obsolete
+                if (!(game.Length == 0 || game.Any(x => x.IsCompatible(gameDev, gameName))))
+                {
+                    if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running game: {gameName} (by {gameDev})");
+                    if (printmsg) Logger.Warning($"Compatible Games:");
+                    foreach (var g in game)
+                    {
+                        if (printmsg) Logger.Warning($"=  - {g.Name} by {g.Developer}");
+                    }
+                    result.Add(Incompatibility.Game);
+                }
+                else
+                {
+                    if (!(gameVers.Length == 0 || gameVers.Any(x => x.Version == gameVer)))
+                    {
+                        if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the version of the running game: {gameVer}");
+                        if (printmsg) Logger.Warning($"Compatible Game Versions:");
+                        foreach (var g in gameVers)
+                        {
+                            if (printmsg) Logger.Warning($"   - {g.Version}");
+                        }
+                        result.Add(Incompatibility.GameVersion);
+                    }
+                    var processName = Process.GetCurrentProcess().ProcessName;
+                    if (!(process.Length == 0 || process.Any(x => MelonAttribute.IsCompatible(x, processName))))
+                    {
+                        if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running process: {processName}");
+                        if (printmsg) Logger.Warning($"Compatible Processes:");
+                        foreach (var g in process)
+                        {
+                            if (printmsg) Logger.Warning($"   - {g.EXE_Name}");
+                        }
+                        result.Add(Incompatibility.ProcessName);
+                    }
+
+                    if (!(platform == null || MelonAttribute.IsCompatible(platform, CurrentPlatform)))
+                    {
+                        if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentPlatform}");
+                        if (printmsg) Logger.Warning($"Compatible Platforms:");
+                        foreach (var p in platform.Platforms)
+                        {
+                            if (printmsg) Logger.Warning($"   - {p}");
+                        }
+                        result.Add(Incompatibility.Platform);
+                    }
+                    if (!(domain == null || MelonAttribute.IsCompatible(domain, CurrentDomain)))
+                    {
+                        if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentDomain}");
+                        if (printmsg) Logger.Warning($"Compatible Domain:");
+                        if (printmsg) Logger.Warning($"   - {domain.Domain}");
+                        result.Add(Incompatibility.Domain);
+                    }
                 }
             }
+            return result.ToArray();
+        }
 
-            return _return;
+        /// <summary>
+        /// Enum indicating what incompatibilities a <see cref="AssemblyDefinition"/> has
+        /// </summary>
+        public enum Incompatibility
+        {
+            /// <summary>
+            /// Incompatible MelonLoader Version (indicated by <see cref="VerifyLoaderVersionAttribute"/>)
+            /// </summary>
+            MLVersion,
+
+            /// <summary>
+            /// Incompatible MelonLoader Build (indicated by <see cref="VerifyLoaderBuildAttribute"/>)
+            /// </summary>
+            MLBuild,
+
+            /// <summary>
+            /// Incompatible Game (indicated by <see cref="MelonGameAttribute"/>)
+            /// </summary>
+            Game,
+
+            /// <summary>
+            /// Incompatible Game Version (indicated by <see cref="MelonGameVersionAttribute"/>)
+            /// </summary>
+            GameVersion,
+
+            /// <summary>
+            /// Incompatible Process Name (indicated by <see cref="MelonProcessAttribute"/>)
+            /// </summary>
+            ProcessName,
+
+            /// <summary>
+            /// Incompatible Domain (indicated by <see cref="MelonPlatformDomainAttribute"/>)
+            /// </summary>
+            Domain,
+
+            /// <summary>
+            /// Incompatible Platform (indicated by <see cref="MelonPlatformAttribute"/>)
+            /// </summary>
+            Platform,
+
+            /// <summary>
+            /// Incompatible Version of .NET (<see cref="AssemblyDefinition"/> is running on .NET 6, meanwhile the game is .NET Framework [some version here])
+            /// </summary>
+            NETVersion
         }
 
         /// <summary>
@@ -745,13 +430,13 @@ namespace MelonAutoUpdater
             bool threwError = false;
             string fileName = Path.GetFileName(path);
             AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
-            FileType _fileType = GetFileType(_assembly);
+            FileType _fileType = _assembly.GetFileType();
             if (_fileType == FileType.MelonMod)
             {
                 try
                 {
                     Logger.MsgPastel("Installing mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                    if (!CheckCompability(_assembly)) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
+                    if (CheckCompatibility(_assembly).Length > 0) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
                     string _path = Path.Combine(Files.ModsDirectory, Path.GetFileName(path));
                     if (!File.Exists(_path)) File.Move(path, _path);
                     else File.Replace(path, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
@@ -760,7 +445,7 @@ namespace MelonAutoUpdater
                     Logger.Msg("Checking if mod version is valid");
                     var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
                     _assembly = AssemblyDefinition.ReadAssembly(fileStream, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
-                    var melonInfo = GetMelonInfo(_assembly);
+                    var melonInfo = _assembly.GetMelonInfo();
                     if (melonInfo.Version < latestVersion)
                     {
                         Logger.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
@@ -803,7 +488,7 @@ namespace MelonAutoUpdater
                 try
                 {
                     Logger.MsgPastel("Installing plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                    if (!CheckCompability(_assembly)) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
+                    if (CheckCompatibility(_assembly).Length > 0) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
 
                     string pluginPath = Path.Combine(Files.PluginsDirectory, fileName);
                     string _path = Path.Combine(Files.PluginsDirectory, Path.GetFileName(path));
@@ -813,7 +498,7 @@ namespace MelonAutoUpdater
                     Logger.Msg("Checking if plugin version is valid");
                     var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
                     _assembly = AssemblyDefinition.ReadAssembly(fileStream, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
-                    var melonInfo = GetMelonInfo(_assembly);
+                    var melonInfo = _assembly.GetMelonInfo();
                     if (melonInfo.Version < latestVersion)
                     {
                         Logger.Warning("Plugin has incorrect version which can lead to repeated unnecessary updates, fixing");
@@ -871,12 +556,12 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Variable if melon being checked needs to be updated due to being incompatible
         /// </summary>
-        private bool needUpdate = false;
+        internal static bool needUpdate = false;
 
         /// <summary>
         /// Variable if melon being checked needs to be updated due to being incompatible
         /// </summary>
-        private string melonFileName = string.Empty;
+        internal static string melonFileName = string.Empty;
 
         /// <summary>
         /// Check directory for mods and plugins that can be updated
@@ -942,7 +627,7 @@ namespace MelonAutoUpdater
                     Logger.Msg("Found MAU config associated with Melon");
                 }
                 bool _ignore = config != null && config.Disable;
-                var melonAssemblyInfo = GetMelonInfo(mainAssembly);
+                var melonAssemblyInfo = mainAssembly.GetMelonInfo();
                 if (_ignore)
                 {
                     Logger.MsgPastel($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
@@ -954,7 +639,7 @@ namespace MelonAutoUpdater
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
                     if (melonAssemblyInfo != null)
                     {
-                        if (!CheckCompability(mainAssembly)) needUpdate = true;
+                        if (CheckCompatibility(mainAssembly).Length > 0) { InstallExtension.NeedUpdate = true; } else { InstallExtension.NeedUpdate = false; }
                         SemVersion currentVersion = SemVersion.Parse(melonAssemblyInfo.Version);
                         var data = GetModData(melonAssemblyInfo.DownloadLink, currentVersion, config);
                         if (data == null || string.IsNullOrEmpty(melonAssemblyInfo.DownloadLink))
@@ -979,6 +664,7 @@ namespace MelonAutoUpdater
                                         int success = 0;
                                         int failed = 0;
                                         bool threwError = false;
+                                        List<string> downloadedFiles = new List<string>();
                                         foreach (var retFile in data.DownloadFiles)
                                         {
                                             string pathToSave = "";
@@ -1071,6 +757,8 @@ namespace MelonAutoUpdater
                                                 downloadedFile = fs;
                                                 ms.Dispose();
                                                 Logger.Msg($"Download successful");
+                                                downloadedFile.Dispose();
+                                                downloadedFiles.Add(pathToSave);
                                             }
                                             catch (Exception ex)
                                             {
@@ -1079,104 +767,39 @@ namespace MelonAutoUpdater
                                                 downloadedFile = null;
                                             }
 
-                                            if (downloadedFile != null)
+                                            if (MelonAutoUpdater.Debug)
+                                            {
+                                                sw3.Stop();
+                                                MelonAutoUpdater.ElapsedTime.Add($"DownloadFile-{name}", sw.ElapsedMilliseconds);
+                                            }
+                                        }
+                                        InstallExtension.InstallList = downloadedFiles.ToArray();
+                                        InstallExtension.MelonCurrentVersion = currentVersion;
+                                        InstallExtension.MelonConfig = config;
+                                        InstallExtension.MelonFileName = fileName;
+                                        InstallExtension.MelonData = data;
+                                        foreach (var downloadPath in downloadedFiles)
+                                        {
+                                            InstallExtension.FileName = Path.GetFileNameWithoutExtension(downloadPath);
+
+                                            var downloadedFile = new FileInfo(downloadPath).OpenRead();
+                                            if (downloadedFile != null && downloadedFile.Length > 0)
                                             {
                                                 downloadedFile.Dispose();
-                                                if (Path.GetExtension(pathToSave) == ".zip")
+                                                var res = InstallExtension.HandleFile(downloadPath);
+                                                if (res.handled)
                                                 {
-                                                    Logger.Msg("File is a ZIP, extracting files...");
-                                                    string extractPath = Path.Combine(Files.TemporaryMelonsDirectory, name.Replace(" ", "-"));
-                                                    try
-                                                    {
-                                                        UnzipFromStream(File.OpenRead(pathToSave), extractPath);
-                                                        Logger.Msg("Successfully extracted files! Installing content..");
-                                                        downloadedFile.Dispose();
-                                                    }
-                                                    catch (Exception ex)
-                                                    {
-                                                        threwError = true;
-                                                        Logger.Error($"An exception occurred while extracting files from a ZIP file{ex}");
-                                                        File.Delete(pathToSave);
-                                                        DirectoryInfo tempDir = new DirectoryInfo(Files.TemporaryMelonsDirectory);
-                                                        foreach (FileInfo file in tempDir.GetFiles()) file.Delete();
-                                                        foreach (DirectoryInfo subDirectory in tempDir.GetDirectories()) subDirectory.Delete(true);
-                                                    }
-                                                    var allContent = new List<string>();
-                                                    var extracedDirectories = Directory.GetDirectories(extractPath).ToList();
-                                                    var extractedFiles = Directory.GetFiles(extractPath).ToList();
-                                                    extractedFiles.ForEach(x => allContent.Add(x));
-                                                    extracedDirectories.ForEach((x) => allContent.Add(x));
-                                                    Logger.Msg($"Found {extractedFiles.Count} files and {extracedDirectories.Count} directories");
-                                                    foreach (string extPath in allContent)
-                                                    {
-                                                        if (Directory.Exists(extPath))
-                                                        {
-                                                            string dirName = GetDirName(extPath);
-                                                            List<string> SubDirCheck = new List<string>
-                                                                {
-                                                                    "Mods",
-                                                                    "Plugins",
-                                                                    "MelonLoader",
-                                                                    "UserData",
-                                                                    "UserLibs"
-                                                                };
-                                                            int checkedDirs = 0;
-                                                            foreach (var subdir in SubDirCheck)
-                                                            {
-                                                                if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
-                                                                {
-                                                                    var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Files.GetDirectoryInBaseDir(subdir).FullName, string.Empty, data.LatestVersion, config);
-                                                                    checkedDirs++;
-                                                                    success += res1.success;
-                                                                    failed += res1.failed;
-                                                                    if (res1.threwError) threwError = true;
-                                                                }
-                                                            }
-                                                            if (checkedDirs <= Directory.GetDirectories(extPath).Length)
-                                                            {
-                                                                Logger.Msg($"Found {dirName}, installing all content from it...");
-                                                                var res1 = MoveAllFiles(extPath, Files.GetDirectoryInBaseDir(dirName).FullName, string.Empty, data.LatestVersion, config);
-                                                                success += res1.success;
-                                                                failed += res1.failed;
-                                                                if (res1.threwError) threwError = true;
-                                                            }
-                                                        }
-                                                        else if (Path.GetExtension(extPath) == ".dll")
-                                                        {
-                                                            var res = InstallPackage(extPath, data.LatestVersion);
-                                                            if (res.threwError) threwError = true;
-                                                            if (res.success) success += 1;
-                                                            else failed += 1;
-                                                        }
-                                                        else
-                                                        {
-                                                            Logger.Warning($"Not moving {Path.GetFileName(extPath)}, as it seems useless, sorry in advance");
-                                                        }
-                                                    }
-                                                    Directory.Delete(extractPath, true);
-                                                    File.Delete(pathToSave);
-                                                }
-                                                else if (Path.GetExtension(pathToSave) == ".dll")
-                                                {
-                                                    Logger.Msg("Downloaded file is a DLL file, installing content...");
-                                                    var res = InstallPackage(pathToSave, data.LatestVersion);
-                                                    if (res.threwError) threwError = true;
-                                                    if (res.success) success += 1;
-                                                    else failed += 1;
+                                                    success += res.success;
+                                                    failed += res.failed;
                                                 }
                                                 else
                                                 {
-                                                    Logger.Warning($"Not moving {Path.GetFileName(pathToSave)}, as it seems useless, sorry in advance");
+                                                    File.Delete(downloadPath);
                                                 }
                                             }
                                             else
                                             {
                                                 Logger.Error("Downloaded file is empty, unable to update melon");
-                                            }
-                                            if (MelonAutoUpdater.Debug)
-                                            {
-                                                sw3.Stop();
-                                                MelonAutoUpdater.ElapsedTime.Add($"DownloadFile-{name}", sw.ElapsedMilliseconds);
                                             }
                                         }
                                         Logger.MsgPastel(
@@ -1215,7 +838,7 @@ namespace MelonAutoUpdater
                         if (needUpdate && GetEntryValue<bool>(MelonAutoUpdater.Entry_removeIncompatible))
                         {
                             Logger.Msg($"Removing {fileName.Pastel(theme.FileNameColor)}, due to it being incompatible and not being updated");
-                            if (GetFileType(melonAssemblyInfo) == FileType.MelonMod)
+                            if (MelonAttribute.GetFileType(melonAssemblyInfo) == FileType.MelonMod)
                             {
                                 File.Delete(path);
                             }
