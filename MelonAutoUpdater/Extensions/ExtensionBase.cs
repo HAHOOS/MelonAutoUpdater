@@ -315,7 +315,7 @@ System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
                         if (info == null) { MelonAutoUpdater.logger.Msg("Attempted to load an extension that is not a Melon, skipping"); return; }
                         else
                         {
-                            if (MelonAutoUpdater.MLVersion >= new SemVersion(0, 5, 4))
+                            if (MelonAutoUpdater.MLVersion > new SemVersion(0, 5, 4))
                             {
                                 var id = GetIDFromAssembly(assembly);
                                 if (id != null)
