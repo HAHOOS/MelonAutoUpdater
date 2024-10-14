@@ -10,7 +10,6 @@ using System.IO;
 using System.Linq;
 using static MelonAutoUpdater.MelonUpdater;
 using System.Collections.Generic;
-using System.Net.Http;
 using MelonAutoUpdater.JSONObjects;
 
 namespace MelonAutoUpdater.Extensions
@@ -18,7 +17,6 @@ namespace MelonAutoUpdater.Extensions
     /// <summary>
     /// Extension for installing file types from downloaded files if update found
     /// </summary>
-    // TODO: make this work
     public abstract class InstallExtension : ExtensionBase
     {
         internal override Type Type => typeof(InstallExtension);
