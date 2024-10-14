@@ -17,7 +17,7 @@ namespace MelonAutoUpdater.Extensions.Install
         public override (bool handled, int success, int failed) Install(string path)
         {
             Logger.Msg("Downloaded file is a DLL file, installing content...");
-            var (isMelon, error) = InstallPackage(path, MelonData.LatestVersion);
+            var (_, error) = InstallPackage(path, MelonData.LatestVersion);
             if (error) return (false, 1, 0);
             else return (true, 0, 1);
         }
