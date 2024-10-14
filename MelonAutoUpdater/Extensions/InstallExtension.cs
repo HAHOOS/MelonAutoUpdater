@@ -110,8 +110,10 @@ namespace MelonAutoUpdater.Extensions
                     installExtensions.OrderBy(x => x.Priority * (-1));
                     foreach (var ext in installExtensions)
                     {
+                        MelonAutoUpdater.logger.Msg($"Handling with {ext.Name.Pastel(ext.NameColor)}");
                         var ret = ext.Install(path);
                         if (ret.handled == true) return ret;
+                        else MelonAutoUpdater.logger.Msg($"{ext.Name.Pastel(ext.NameColor)} could not handle the file");
                     }
                 }
                 else
@@ -175,7 +177,6 @@ namespace MelonAutoUpdater.Extensions
                             var a = attr.First();
                             var versionType = module.ImportReference(typeof(string));
                             a.ConstructorArguments[2] = new CustomAttributeArgument(versionType, latestVersion.ToString());
-                            _assembly.Write();
                             Logger.Msg("Fixed incorrect version of mod");
                         }
                         else
@@ -201,8 +202,7 @@ namespace MelonAutoUpdater.Extensions
                             Logger.Msg("Found attribute");
                             var a = attr.First();
                             var versionType = module.ImportReference(typeof(string));
-                            a.ConstructorArguments[5] = new CustomAttributeArgument(versionType, MelonData.DownloadLink);
-                            _assembly.Write();
+                            a.ConstructorArguments[4] = new CustomAttributeArgument(versionType, MelonData.DownloadLink.ToString());
                             Logger.Msg("Added download link");
                         }
                         else
@@ -210,6 +210,7 @@ namespace MelonAutoUpdater.Extensions
                             Logger.Error("Could not find attribute, cannot add download link");
                         }
                     }
+                    _assembly.Write();
                     fileStream.Flush();
                     fileStream.Dispose();
                     _assembly.Dispose();
@@ -252,7 +253,6 @@ namespace MelonAutoUpdater.Extensions
                             var a = attr.First();
                             var semVersionType = module.ImportReference(typeof(string));
                             a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion.ToString());
-                            _assembly.Write();
                             Logger.Msg("Fixed incorrect version of plugin");
                         }
                         else
@@ -265,10 +265,10 @@ namespace MelonAutoUpdater.Extensions
                         Logger.Msg("Correct plugin version, not changing anything");
                     }
 
-                    Logger.Msg("Checking if mod contains download link");
+                    Logger.Msg("Checking if plugin contains download link");
                     if (string.IsNullOrEmpty(melonInfo.DownloadLink))
                     {
-                        Logger.Warning("Mod has no download link provided, to improve future checking, one will be added");
+                        Logger.Warning("Plugin has no download link provided, to improve future checking, one will be added");
                         var module = _assembly.MainModule;
 #pragma warning disable CS0618 // Type or member is obsolete
                         var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonPluginInfoAttribute));
@@ -278,8 +278,7 @@ namespace MelonAutoUpdater.Extensions
                             Logger.Msg("Found attribute");
                             var a = attr.First();
                             var versionType = module.ImportReference(typeof(string));
-                            a.ConstructorArguments[5] = new CustomAttributeArgument(versionType, MelonData.DownloadLink);
-                            _assembly.Write();
+                            a.ConstructorArguments[4] = new CustomAttributeArgument(versionType, MelonData.DownloadLink.ToString());
                             Logger.Msg("Added download link");
                         }
                         else
@@ -287,6 +286,7 @@ namespace MelonAutoUpdater.Extensions
                             Logger.Error("Could not find attribute, cannot add download link");
                         }
                     }
+                    _assembly.Write();
                     _assembly.Dispose();
                     fileStream.Flush();
                     fileStream.Dispose();
