@@ -16,7 +16,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace MelonAutoUpdater.Extensions.Included.Github
+namespace MelonAutoUpdater.Extensions.Search.Github
 {
     internal class Github : SearchExtension
     {
@@ -195,7 +195,7 @@ namespace MelonAutoUpdater.Extensions.Included.Github
                     }
                     else
                     {
-                        if (response2.Result.StatusCode == System.Net.HttpStatusCode.Unauthorized || response2.Result.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        if (response2.Result.StatusCode == HttpStatusCode.Unauthorized || response2.Result.StatusCode == HttpStatusCode.Forbidden)
                         {
                             Logger.Warning("Access token expired or is incorrect");
                             if (MelonAutoUpdater.Debug)
@@ -366,7 +366,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                 {
                     Logger.Msg("Due to earlier tests that have shown unexplainable errors regarding Github's SSL certificate on versions of ML v0.5.5 and v0.5.7, this extension is disabled on those versions");
                     Logger.Msg("If you wish to try and still use the extension, turn on Debug mode (on ML v0.6.5 and higher, run game with arguments --melonautoupdater.debug, or on ML v0.5.7 and higher --melonloader.debug)");
-                    this.Unload("Unsupported");
+                    Unload("Unsupported");
                     return;
                 }
             }
@@ -464,7 +464,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                         }
                         else
                         {
-                            if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
+                            if (response.Result.StatusCode == HttpStatusCode.NotFound)
                             {
                                 Logger.Warning("Github API could not find the mod/plugin");
                             }
@@ -477,7 +477,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     }
                     else
                     {
-                        if (response.Result.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        if (response.Result.StatusCode == HttpStatusCode.NotFound)
                         {
                             Logger.Warning("Github API could not find the mod/plugin");
                         }

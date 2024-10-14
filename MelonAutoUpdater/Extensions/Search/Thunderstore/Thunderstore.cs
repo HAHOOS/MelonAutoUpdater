@@ -11,7 +11,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace MelonAutoUpdater.Extensions.Included.Thunderstore
+namespace MelonAutoUpdater.Extensions.Search.Thunderstore
 {
     internal class Thunderstore : SearchExtension
     {
