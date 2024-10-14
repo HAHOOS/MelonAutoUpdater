@@ -126,7 +126,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                 if (MelonAutoUpdater.Debug)
                 {
                     stopwatch.Stop();
-                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{namespaceName}/{packageName}", stopwatch.ElapsedMilliseconds);
+                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{namespaceName}/{packageName}-{MelonUtils.RandomString(10)}", stopwatch.ElapsedMilliseconds);
                 }
                 return check;
             }
@@ -156,7 +156,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                 if (MelonAutoUpdater.Debug)
                 {
                     stopwatch.Stop();
-                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name}-failed (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name}-failed-{MelonUtils.RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
                 }
                 return null;
             }
@@ -166,7 +166,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
             if (MelonAutoUpdater.Debug)
             {
                 stopwatch.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name} (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name}-{MelonUtils.RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
             }
             return check;
         }

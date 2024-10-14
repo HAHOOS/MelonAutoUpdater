@@ -515,7 +515,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                 if (MelonAutoUpdater.Debug)
                 {
                     stopwatch.Stop();
-                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{authorName}/{repoName}", stopwatch.ElapsedMilliseconds);
+                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{authorName}/{repoName}-{MelonUtils.RandomString(10)}", stopwatch.ElapsedMilliseconds);
                 }
                 return check;
             }
@@ -537,7 +537,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                 if (MelonAutoUpdater.Debug)
                 {
                     stopwatch.Stop();
-                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name}-failed (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name}-failed-{MelonUtils.RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
                 }
                 return null;
             }
@@ -545,7 +545,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             if (MelonAutoUpdater.Debug)
             {
                 stopwatch.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name} (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name}-{MelonUtils.RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
             }
             return check;
         }
