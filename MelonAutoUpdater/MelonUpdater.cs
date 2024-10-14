@@ -414,146 +414,6 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Installs melon from path
-        /// </summary>
-        /// <param name="path">Path of melon</param>
-        /// <param name="latestVersion">Latest version of melon, used to modify <see cref="MelonInfoAttribute"/> in case the version is not correct</param>
-        /// <returns>A <see langword="Tuple"/>, success and threwError, self explanatory</returns>
-        internal (bool success, bool threwError) InstallPackage(string path, SemVersion latestVersion)
-        {
-            Stopwatch sw = null;
-            if (MelonAutoUpdater.Debug)
-            {
-                sw = Stopwatch.StartNew();
-            }
-            bool success = false;
-            bool threwError = false;
-            string fileName = Path.GetFileName(path);
-            AssemblyDefinition _assembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
-            FileType _fileType = _assembly.GetFileType();
-            if (_fileType == FileType.MelonMod)
-            {
-                try
-                {
-                    Logger.MsgPastel("Installing mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                    if (CheckCompatibility(_assembly).Length > 0) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
-                    string _path = Path.Combine(Files.ModsDirectory, Path.GetFileName(path));
-                    if (!File.Exists(_path)) File.Move(path, _path);
-                    else File.Replace(path, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-                    success = true;
-
-                    Logger.Msg("Checking if mod version is valid");
-                    var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
-                    _assembly = AssemblyDefinition.ReadAssembly(fileStream, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
-                    var melonInfo = _assembly.GetMelonInfo();
-                    if (melonInfo.Version < latestVersion)
-                    {
-                        Logger.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
-                        var module = _assembly.MainModule;
-#pragma warning disable CS0618 // Type or member is obsolete
-                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonModInfoAttribute));
-#pragma warning restore CS0618 // Type or member is obsolete
-                        if (attr.Any())
-                        {
-                            Logger.Msg("Found attribute");
-                            var a = attr.First();
-                            var versionType = module.ImportReference(typeof(string));
-                            a.ConstructorArguments[2] = new CustomAttributeArgument(versionType, latestVersion.ToString());
-                            _assembly.Write();
-                            Logger.Msg("Fixed incorrect version of mod");
-                        }
-                        else
-                        {
-                            Logger.Error("Could not find attribute, cannot fix incorrect version");
-                        }
-                    }
-                    else
-                    {
-                        Logger.Msg("Correct mod version, not changing anything");
-                    }
-                    fileStream.Flush();
-                    fileStream.Dispose();
-                    _assembly.Dispose();
-                    Logger.MsgPastel("Successfully installed mod file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"An unexpected error occurred while installing content{ex}");
-                    threwError = true;
-                    success = false;
-                }
-            }
-            else if (_fileType == FileType.MelonPlugin)
-            {
-                try
-                {
-                    Logger.MsgPastel("Installing plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                    if (CheckCompatibility(_assembly).Length > 0) { _assembly.Dispose(); threwError = true; success = false; return (success, threwError); }
-
-                    string pluginPath = Path.Combine(Files.PluginsDirectory, fileName);
-                    string _path = Path.Combine(Files.PluginsDirectory, Path.GetFileName(path));
-                    if (!File.Exists(_path)) File.Move(path, _path);
-                    else File.Replace(path, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.dll"));
-
-                    Logger.Msg("Checking if plugin version is valid");
-                    var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
-                    _assembly = AssemblyDefinition.ReadAssembly(fileStream, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
-                    var melonInfo = _assembly.GetMelonInfo();
-                    if (melonInfo.Version < latestVersion)
-                    {
-                        Logger.Warning("Plugin has incorrect version which can lead to repeated unnecessary updates, fixing");
-                        var module = _assembly.MainModule;
-#pragma warning disable CS0618 // Type or member is obsolete
-                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonPluginInfoAttribute));
-#pragma warning restore CS0618 // Type or member is obsolete
-                        if (attr.Any())
-                        {
-                            Logger.Msg("Found attribute");
-                            var a = attr.First();
-                            var semVersionType = module.ImportReference(typeof(string));
-                            a.ConstructorArguments[2] = new CustomAttributeArgument(semVersionType, latestVersion.ToString());
-                            _assembly.Write();
-                            Logger.Msg("Fixed incorrect version of plugin");
-                        }
-                        else
-                        {
-                            Logger.Error("Could not find attribute, cannot fix incorrect version");
-                        }
-                    }
-                    else
-                    {
-                        Logger.Msg("Correct plugin version, not changing anything");
-                    }
-                    _assembly.Dispose();
-                    fileStream.Flush();
-                    fileStream.Dispose();
-
-                    //var melonAssembly = MelonAssembly.LoadMelonAssembly(pluginPath);
-                    Logger.Warning("WARNING: The plugin will only work after game restart");
-                    Logger.MsgPastel("Successfully installed plugin file " + Path.GetFileName(path).Pastel(theme.FileNameColor));
-                    success = true;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"An unexpected error occurred while installing content{ex}");
-                    threwError = true;
-                    success = false;
-                }
-            }
-            else
-            {
-                Logger.Msg($"Not extracting {Path.GetFileName(path)}, because it does not have the Melon Info Attribute");
-            }
-            if (MelonAutoUpdater.Debug)
-            {
-                sw.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"InstallPackage-{Path.GetFileName(path)}", sw.ElapsedMilliseconds);
-            }
-            if (success && melonFileName == fileName) needUpdate = false;
-            return (success, threwError);
-        }
-
-        /// <summary>
         /// Variable if melon being checked needs to be updated due to being incompatible
         /// </summary>
         internal static bool needUpdate = false;
@@ -803,14 +663,14 @@ namespace MelonAutoUpdater
                                             }
                                         }
                                         Logger.MsgPastel(
-                                            threwError
+                                            failed > 0
                                                 ? $"Failed to update {assemblyName}".Pastel(Color.Red)
                                                 : success + failed > 0
                                                 ? $"Updated {assemblyName.Pastel(theme.FileNameColor)} from " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + " --> " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + ", " + $"({success}/{success + failed})".Pastel(theme.DownloadCountColor) + " melons installed successfully"
                                                 : "No melons were installed".Pastel(Color.Yellow)
                                         );
 
-                                        if (threwError) result.error++;
+                                        if (failed > 0) result.error++;
                                         else if (success + failed > 0) result.success++;
                                         else result.warn++;
 
@@ -861,7 +721,7 @@ namespace MelonAutoUpdater
             {
                 foreach (var (name, oldVersion, newVersion, threwError, success, failed) in result.updates)
                 {
-                    if (!threwError)
+                    if (failed <= 0)
                     {
                         if (success + failed > 0)
                         {
