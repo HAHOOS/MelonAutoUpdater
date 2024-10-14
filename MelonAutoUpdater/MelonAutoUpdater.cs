@@ -110,6 +110,11 @@ namespace MelonAutoUpdater
         internal static MelonPreferences_Entry Entry_checkCompatibility { get; private set; }
 
         /// <summary>
+        /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin use Pastel (ANSI colors)
+        /// </summary>
+        internal static MelonPreferences_Entry Entry_usePastel { get; private set; }
+
+        /// <summary>
         /// Themes Category in Preferences
         /// </summary>
         internal static MelonPreferences_ReflectiveCategory ThemesCategory { get; private set; }
@@ -170,7 +175,12 @@ namespace MelonAutoUpdater
             Entry_removeIncompatible = MainCategory.CreateEntry<bool>("CheckCompatibility", true, "Check Compatibility",
                 description: "If true, melons will be checked to determine if they are compatible with the install, if not, they will not be installed (if those were the download update melons) or removed if the melon was checked, not updated, incompatible and RemoveIncompatible is true\nWARNING: This may cause some melons to stop working or the game to crash, due to faulty/incompatible versions");
 
-            LoggerInstance.DebugMsg($"Added RemoveIncompatible to config.cfg");
+            LoggerInstance.DebugMsg($"Added CheckCompatibility to config.cfg");
+
+            Entry_usePastel = MainCategory.CreateEntry<bool>("UsePastel", true, "Use Pastel",
+                description: "If true, the plugin will use ANSI colors, but might and most likely will make logs hardly readable");
+
+            LoggerInstance.DebugMsg($"Added UsePastel to config.cfg");
 
             MainCategory.SaveToFile(false);
             LoggerInstance.DebugMsg("Set up config.cfg");
@@ -365,6 +375,8 @@ namespace MelonAutoUpdater
             SetupPreferences();
 
             theme = ThemesCategory.GetValue<Theme>();
+
+            if (!GetEntryValue<bool>(Entry_usePastel)) ConsoleExtensions.Disable();
 
             bool enabled = GetEntryValue<bool>(Entry_enabled);
 
