@@ -3,7 +3,7 @@
 namespace MelonAutoUpdater.Extensions
 {
     /// <summary>
-    /// Class for extensions that exited with an exception
+    /// Class for extensions that exited with an exception or were unloaded
     /// </summary>
     public class RottenExtension
     {
