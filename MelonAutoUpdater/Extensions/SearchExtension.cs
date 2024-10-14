@@ -28,6 +28,11 @@ namespace MelonAutoUpdater.Extensions
         /// </summary>
         public abstract string Link { get; }
 
+        /// <summary>
+        /// Priority at which this extension will be used for searches
+        /// </summary>
+        public virtual int Priority { get => 0; }
+
         #endregion Extension Info
 
         #region Internal MelonPreferences
