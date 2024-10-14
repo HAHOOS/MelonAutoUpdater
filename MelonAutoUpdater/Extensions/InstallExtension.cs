@@ -15,7 +15,7 @@ using MelonAutoUpdater.JSONObjects;
 namespace MelonAutoUpdater.Extensions
 {
     /// <summary>
-    /// Extension for installing file types from downloaded files if update found
+    /// Extension for installing downloaded files if update was found
     /// </summary>
     public abstract class InstallExtension : ExtensionBase
     {
