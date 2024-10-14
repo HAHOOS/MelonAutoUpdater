@@ -6,7 +6,7 @@ namespace MelonAutoUpdater.Utils
 {
     internal class CustomCecilResolver : BaseAssemblyResolver
     {
-        private DefaultAssemblyResolver _defaultResolver;
+        private readonly DefaultAssemblyResolver _defaultResolver;
 
         public CustomCecilResolver()
         {
