@@ -97,18 +97,18 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Get data about the mod from a downloadLink<br/>
+        /// Get data about the melon from a downloadLink<br/>
         /// Currently Supported: Thunderstore, Github
         /// </summary>
         /// <param name="downloadLink">Download Link, possibly included in the <see cref="MelonInfoAttribute"/></param>
         /// <param name="currentVersion">Current version of the Melon in question</param>
         /// <param name="melonConfig">Config, if found, of the Melon</param>
-        /// <returns>If found, returns a <see cref="MelonData"/> object which includes the latest version of the mod online and the download link(s)</returns>
-        internal MelonData GetModData(string downloadLink, SemVersion currentVersion, MelonConfig melonConfig)
+        /// <returns>If found, returns a <see cref="MelonData"/> object which includes the latest version of the melon online and the download link(s)</returns>
+        internal MelonData GetMelonData(string downloadLink, SemVersion currentVersion, MelonConfig melonConfig)
         {
             if (string.IsNullOrEmpty(downloadLink) || downloadLink == "UNKNOWN")
             {
-                Logger.Msg("No download link was provided with the mod");
+                Logger.Msg("No download link was provided with the melon");
                 return null;
             }
             List<SearchExtension> extensions = new List<SearchExtension>();
@@ -125,7 +125,7 @@ namespace MelonAutoUpdater
             {
                 if (CanSearch(ext, melonConfig))
                 {
-                    Logger.MsgPastel($"Checking {ext.Name.Pastel(ext.NameColor)}");
+                    Logger.MsgPastel($"Checking with {ext.Name.Pastel(ext.NameColor)}");
                     MelonData func() => ext.Search(downloadLink, currentVersion);
                     var result = Safe.SafeFunction<MelonData>(func);
                     if (result == null)
@@ -147,16 +147,16 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Get data about the mod from a name and author<br/>
+        /// Get data about the melon from name and author<br/>
         /// Github is not supported in brute checking due to extremely strict rate limits
         /// Currently Supported: Thunderstore
         /// </summary>
-        /// <returns>If found, returns a <see cref="MelonData"/> object which includes the latest version of the mod online and the download link(s)</returns>
-        internal MelonData GetModDataFromInfo(string name, string author, SemVersion currentVersion, MelonConfig melonConfig)
+        /// <returns>If found, returns a <see cref="MelonData"/> object which includes the latest version of the melon online and the download link(s)</returns>
+        internal MelonData GetMelonDataFromInfo(string name, string author, SemVersion currentVersion, MelonConfig melonConfig)
         {
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author) || author == "UNKNOWN")
             {
-                Logger.Msg("Name/Author was not provided with the mod");
+                Logger.Msg("Name/Author was not provided with the melon");
                 return null;
             }
             List<SearchExtension> extensions = new List<SearchExtension>();
@@ -479,7 +479,6 @@ namespace MelonAutoUpdater
                     sw2 = Stopwatch.StartNew();
                     previousFileName = fileName;
                 }
-                Logger.MsgPastel($"File: {fileName.Pastel(theme.FileNameColor)}");
                 AssemblyDefinition mainAssembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
                 var config = GetMelonConfig(mainAssembly);
                 if (config != null)
@@ -497,20 +496,20 @@ namespace MelonAutoUpdater
                 }
                 if (melonAssemblyInfo != null)
                 {
-                    Logger.Msg($"File is a {(MelonAttribute.GetFileType(melonAssemblyInfo) == FileType.MelonMod ? "mod" : "plugin")}: {melonAssemblyInfo.Name.Pastel(Theme.Instance.FileNameColor)} " + $"v{melonAssemblyInfo.Version}".Pastel(Theme.Instance.OldVersionColor));
+                    Logger.Msg($"{melonAssemblyInfo.Name.Pastel(Theme.Instance.FileNameColor)} " + $"v{melonAssemblyInfo.Version}".Pastel(Theme.Instance.OldVersionColor));
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
                     if (melonAssemblyInfo != null)
                     {
                         if (CheckCompatibility(mainAssembly).Length > 0) { InstallExtension.NeedUpdate = true; } else { InstallExtension.NeedUpdate = false; }
                         SemVersion currentVersion = melonAssemblyInfo.SemanticVersion;
-                        var data = GetModData(melonAssemblyInfo.DownloadLink, currentVersion, config);
+                        var data = GetMelonData(melonAssemblyInfo.DownloadLink, currentVersion, config);
                         if (data == null || string.IsNullOrEmpty(melonAssemblyInfo.DownloadLink))
                         {
                             if (bruteCheck)
                             {
                                 Logger.MsgPastel("Running " + "brute check..".Pastel(Color.Red));
                                 _bruteCheck = true;
-                                data = GetModDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author, currentVersion, config);
+                                data = GetMelonDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author, currentVersion, config);
                             }
                         }
                         if (data != null)
