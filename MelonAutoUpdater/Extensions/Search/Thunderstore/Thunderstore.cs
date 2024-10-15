@@ -70,7 +70,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                         }
                         var communityListings = _data["community_listings"] as ProxyArray;
                         string community = communityListings.First()["community"];
-                        return new MelonData(semver, files, new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}"));
+                        return new MelonData(semver, files, new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}"), new MelonInstallSettings() { IgnoreFiles = new string[] { "icon.png", "README.md", "CHANGELOG.md", "manifest.json" } });
                     }
                     else
                     {
