@@ -4,9 +4,9 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.1.0   | :white_check_mark: |
-| 0.2.0   | :white_check_mark: |
-| 0.3.0   | :white_check_mark: |
+| 0.2.0 and earlier | ❌ |
+| 0.3.0 or later | ✅ |
+
 
 ## Reporting a Vulnerability
 
@@ -24,4 +24,4 @@ How to reproduce:
 [your text here]
 ```
 
-You should receive a response within 48 hours, you will be notified when I started an investigation regarding the vulnerability and email back if it is found to be a serious vulnerability or not
+You should receive a response within 48 hours, you will be notified when I started an investigation regarding the vulnerability and notified again when it will be patched
