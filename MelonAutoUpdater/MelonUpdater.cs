@@ -492,15 +492,17 @@ namespace MelonAutoUpdater
                 {
                     Logger.MsgPastel($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
                     Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
+                    mainAssembly.Dispose();
                     continue;
                 }
                 if (melonAssemblyInfo != null)
                 {
+                    Logger.Msg($"File is a {(MelonAttribute.GetFileType(melonAssemblyInfo) == FileType.MelonMod ? "mod" : "plugin")}: {melonAssemblyInfo.Name.Pastel(Theme.Instance.FileNameColor)} " + $"v{melonAssemblyInfo.Version}".Pastel(Theme.Instance.OldVersionColor));
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
                     if (melonAssemblyInfo != null)
                     {
                         if (CheckCompatibility(mainAssembly).Length > 0) { InstallExtension.NeedUpdate = true; } else { InstallExtension.NeedUpdate = false; }
-                        SemVersion currentVersion = SemVersion.Parse(melonAssemblyInfo.Version);
+                        SemVersion currentVersion = melonAssemblyInfo.SemanticVersion;
                         var data = GetModData(melonAssemblyInfo.DownloadLink, currentVersion, config);
                         if (data == null || string.IsNullOrEmpty(melonAssemblyInfo.DownloadLink))
                         {
