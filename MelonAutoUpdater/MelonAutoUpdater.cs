@@ -115,6 +115,11 @@ namespace MelonAutoUpdater
         internal static MelonPreferences_Entry Entry_usePastel { get; private set; }
 
         /// <summary>
+        /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin be in Debug mode
+        /// </summary>
+        internal static MelonPreferences_Entry Entry_debug { get; private set; }
+
+        /// <summary>
         /// Themes Category in Preferences
         /// </summary>
         internal static MelonPreferences_ReflectiveCategory ThemesCategory { get; private set; }
@@ -130,10 +135,7 @@ namespace MelonAutoUpdater
         private void SetupPreferences()
         {
             Stopwatch sw = null;
-            if (Debug)
-            {
-                sw = Stopwatch.StartNew();
-            }
+            sw = Stopwatch.StartNew();
             // Main Category
 
             LoggerInstance.DebugMsg("Setting up config.cfg");
@@ -156,6 +158,17 @@ namespace MelonAutoUpdater
 
             LoggerInstance.DebugMsg($"Added BruteCheck to config.cfg");
 
+            Entry_debug = MainCategory.CreateEntry<bool>("Debug", false, "Debug",
+               description: "If true, the plugin will be enabled in Debug mode, providing some possibly useful information");
+
+            LoggerInstance.DebugMsg($"Added Debug to config.cfg");
+
+            if (Debug == false)
+            {
+                Debug = (bool)Entry_debug.BoxedValue;
+                LoggerInstance.DebugMsg("Debug mode enabled via Preferences");
+            }
+
             Entry_dontUpdate = MainCategory.CreateEntry<bool>("DontUpdate", false, "Don't Update",
                 description: "If true, Melons will only be checked if they are outdated or not, they will not be updated automatically");
 
@@ -172,7 +185,7 @@ namespace MelonAutoUpdater
 
             LoggerInstance.DebugMsg($"Added RemoveIncompatible to config.cfg");
 
-            Entry_removeIncompatible = MainCategory.CreateEntry<bool>("CheckCompatibility", true, "Check Compatibility",
+            Entry_checkCompatibility = MainCategory.CreateEntry<bool>("CheckCompatibility", true, "Check Compatibility",
                 description: "If true, melons will be checked to determine if they are compatible with the install, if not, they will not be installed (if those were the download update melons) or removed if the melon was checked, not updated, incompatible and RemoveIncompatible is true\nWARNING: This may cause some melons to stop working or the game to crash, due to faulty/incompatible versions");
 
             LoggerInstance.DebugMsg($"Added CheckCompatibility to config.cfg");
@@ -340,11 +353,7 @@ namespace MelonAutoUpdater
             }
 
             Stopwatch sw = null;
-
-            if (Debug)
-            {
-                sw = Stopwatch.StartNew();
-            }
+            sw = Stopwatch.StartNew();
 
             LoggerInstance.Msg("Creating folders in UserData");
 
