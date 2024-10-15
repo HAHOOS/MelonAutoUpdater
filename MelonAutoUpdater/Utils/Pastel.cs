@@ -6,10 +6,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
-namespace MelonAutoUpdater
+namespace MelonAutoUpdater.Utils
 {
     /// <summary>
-    /// Controls colored console output by <see cref="Pastel"/>.
+    /// Controls colored console output by <see langword="Pastel"/>.
     /// </summary>
     public static class ConsoleExtensions
     {
@@ -100,25 +100,15 @@ namespace MelonAutoUpdater
             })
         });
 
-        private static bool IsUnix
-        {
-            get
-            {
-                int p = (int)Environment.OSVersion.Platform;
-                return p == 4 || p == 6 || p == 128;
-            }
-        }
-
         static ConsoleExtensions()
         {
-            if (IsUnix)
+            if (Platform.IsUnix)
             {
                 Enable();
                 return;
             }
             var iStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-            var enable = GetConsoleMode(iStdOut, out var outConsoleMode)
+            _ = GetConsoleMode(iStdOut, out var outConsoleMode)
                          && SetConsoleMode(iStdOut, outConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
             if (Environment.GetEnvironmentVariable("NO_COLOR") == null)

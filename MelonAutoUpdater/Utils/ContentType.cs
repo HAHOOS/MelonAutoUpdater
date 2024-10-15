@@ -1,12 +1,17 @@
-﻿using MelonAutoUpdater.JSONObjects;
-using MelonLoader.TinyJSON;
+﻿extern alias ml065;
+
+using MelonAutoUpdater.JSONObjects;
+using ml065.MelonLoader.TinyJSON;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using System.Net.Http;
 
-namespace MelonAutoUpdater
+namespace MelonAutoUpdater.Utils
 {
+    /// <summary>
+    /// Content Type that can be retrieved from Mime Type or File Extension
+    /// </summary>
     public class ContentType
     {
         /// <summary>
@@ -20,7 +25,7 @@ namespace MelonAutoUpdater
         public string MimeType { get; private set; }
 
         /// <summary>
-        /// Extension associated with the Mime Type, <see cref="null"/> if no extension was found to be associated with the Mime Type
+        /// Extension associated with the Mime Type, <see langword="null"/> if no extension was found to be associated with the Mime Type
         /// </summary>
         public string Extension { get; private set; }
 
@@ -31,17 +36,33 @@ namespace MelonAutoUpdater
         }
 
         /// <summary>
-        /// Loads all Mime Types saved in <c>mime-types.json</c>
+        /// Loads all Mime Types from a CDN
         /// </summary>
         internal static void Load()
         {
-            Core.logger.Msg("Loading saved Mime-Types");
-            System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var stream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Embedded.mime-types.json");
-            StreamReader streamReader = new StreamReader(stream);
-            string text_json = streamReader.ReadToEnd();
-            _db = new MimeTypeDB() { mimeTypes = JSON.Load(text_json).Make<Dictionary<string, MimeType>>() };
-            Core.logger.Msg($"Successfully loaded {_db.mimeTypes.Count} Mime-Types with {_db.mimeTypes.Where(x => x.Value.extensions != null).Count()} of them having a file extension associated!");
+            MelonAutoUpdater.logger.Msg("Getting all known Mime-Types from the internet");
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", MelonAutoUpdater.UserAgent);
+            var res = client.GetAsync("https://cdn.jsdelivr.net/gh/jshttp/mime-db@master/db.json");
+            res.Wait();
+            if (res.Result.IsSuccessStatusCode)
+            {
+                var body = res.Result.Content.ReadAsStringAsync();
+                body.Wait();
+                if (body.Result != null)
+                {
+                    _db = new MimeTypeDB() { mimeTypes = JSON.Load(body.Result).Make<Dictionary<string, MimeType>>() };
+                    MelonAutoUpdater.logger.Msg($"Successfully loaded all {_db.mimeTypes.Count} mime-types!");
+                }
+                else
+                {
+                    MelonAutoUpdater.logger.Error("No data returned when checking mime-types");
+                }
+            }
+            else
+            {
+                MelonAutoUpdater.logger.Error($"The CDN returned status code {res.Result.StatusCode} with reason: {res.Result.ReasonPhrase}");
+            }
         }
 
         /// <summary>
@@ -51,10 +72,10 @@ namespace MelonAutoUpdater
         /// <param name="value">The value to parse</param>
         /// <returns><see cref="ContentType"/> of provided mime-type/file extension</returns>
         /// <exception cref="KeyNotFoundException">Mime Type was not found</exception>
-        /// <exception cref="InvalidOperationException">An unknown <see cref="ContentType_Parse"/> enum was found</exception>
-        public static ContentType Parse(ContentType_Parse type, string value)
+        /// <exception cref="InvalidOperationException">An unknown <see cref="ParseType"/> enum was found</exception>
+        public static ContentType Parse(ParseType type, string value)
         {
-            if (type == ContentType_Parse.MimeType)
+            if (type == ParseType.MimeType)
             {
                 if (_db.mimeTypes.ContainsKey(value))
                 {
@@ -73,7 +94,7 @@ namespace MelonAutoUpdater
                     throw new KeyNotFoundException("There is no mime type found using provided information");
                 }
             }
-            else if (type == ContentType_Parse.Extension)
+            else if (type == ParseType.Extension)
             {
                 var mimes = _db.mimeTypes.Where(x => x.Value.extensions != null && x.Value.extensions.Contains(value));
                 if (mimes.Any())
@@ -86,7 +107,7 @@ namespace MelonAutoUpdater
                     throw new KeyNotFoundException("There is no mime type found using provided information");
                 }
             }
-            throw new InvalidOperationException("Provided unrecognized ContentType_Parse Type");
+            throw new InvalidOperationException("Provided unrecognized Parse Type");
         }
 
         /// <summary>
@@ -94,11 +115,11 @@ namespace MelonAutoUpdater
         /// </summary>
         /// <param name="type">Way of parsing, either by Mime Type or File Extension</param>
         /// <param name="value">The value to parse</param>
-        /// <param name="contentType">The parsed <see cref="ContentType"/>, if not found, returns <see cref="null"/></param>
-        /// <returns><see cref="true"/>, if found, otherwise <see cref="false"/></returns>
+        /// <param name="contentType">The parsed <see cref="ContentType"/>, if not found, returns <see langword="null"/></param>
+        /// <returns><see langword="true"/>, if found, otherwise <see langword="false"/></returns>
         /// <exception cref="KeyNotFoundException">Mime Type was not found</exception>
-        /// <exception cref="InvalidOperationException">An unknown <see cref="ContentType_Parse"/> enum was found</exception>
-        public static bool TryParse(ContentType_Parse type, string value, out ContentType contentType)
+        /// <exception cref="InvalidOperationException">An unknown <see cref="ParseType"/> enum was found</exception>
+        public static bool TryParse(ParseType type, string value, out ContentType contentType)
         {
             try
             {
@@ -108,45 +129,26 @@ namespace MelonAutoUpdater
             }
             catch (Exception e)
             {
-                Core.logger.Error(e);
+                MelonAutoUpdater.logger.Error(e);
                 contentType = null;
                 return false;
             }
         }
     }
 
-    public enum ContentType_Parse
+    /// <summary>
+    /// Type of value that should be parsed
+    /// </summary>
+    public enum ParseType
     {
+        /// <summary>
+        /// <see cref="ContentType"/> will be found from provided Mime Type
+        /// </summary>
         MimeType,
+
+        /// <summary>
+        /// <see cref="ContentType"/> will be found from provided file extension
+        /// </summary>
         Extension
-    }
-}
-
-namespace MelonAutoUpdater.JSONObjects
-{
-    public class MimeType
-    {
-#pragma warning disable IDE1006 // Naming Styles
-
-        [Include]
-        public string source { get; internal set; }
-
-        [Include]
-        public string charset { get; internal set; }
-
-        [Include]
-        public string[] extensions { get; internal set; }
-
-        [Include]
-        public bool compressible { get; internal set; }
-
-#pragma warning restore IDE1006 // Naming Styles
-    }
-
-    public class MimeTypeDB
-    {
-#pragma warning disable IDE1006 // Naming Styles
-        public Dictionary<string, MimeType> mimeTypes { get; internal set; }
-#pragma warning restore IDE1006 // Naming Styles
     }
 }
