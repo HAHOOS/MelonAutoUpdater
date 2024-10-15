@@ -20,7 +20,7 @@ namespace MelonAutoUpdater.Utils
             {
                 assembly = _defaultResolver.Resolve(name);
             }
-            catch (AssemblyResolutionException ex)
+            catch (AssemblyResolutionException)
             {
                 var _assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 var assemblies = _assemblies.Where(x => x.GetName().Name == name.Name);

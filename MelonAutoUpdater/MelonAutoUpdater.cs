@@ -134,8 +134,7 @@ namespace MelonAutoUpdater
         /// </summary>
         private void SetupPreferences()
         {
-            Stopwatch sw = null;
-            sw = Stopwatch.StartNew();
+            Stopwatch sw = Stopwatch.StartNew();
             // Main Category
 
             LoggerInstance.DebugMsg("Setting up config.cfg");
