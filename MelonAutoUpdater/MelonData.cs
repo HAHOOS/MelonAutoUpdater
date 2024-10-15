@@ -27,6 +27,24 @@ namespace MelonAutoUpdater
         /// </summary>
         public Uri DownloadLink { get; internal set; }
 
+        /// <inheritdoc cref="MelonInstallSettings"/>
+        public MelonInstallSettings InstallSettings { get; internal set; }
+
+        /// <summary>
+        /// Creates new instance of <see cref="MelonData" />
+        /// </summary>
+        /// <param name="latestVersion"><inheritdoc cref="LatestVersion"/></param>
+        /// <param name="downloadFiles"><inheritdoc cref="DownloadFiles"/></param>
+        /// <param name="downloadLink"><inheritdoc cref="DownloadLink"/></param>
+        /// <param name="installSettings"><inheritdoc cref="InstallSettings"/></param>
+        public MelonData(SemVersion latestVersion, List<FileData> downloadFiles, Uri downloadLink, MelonInstallSettings installSettings)
+        {
+            this.LatestVersion = latestVersion;
+            this.DownloadFiles = downloadFiles;
+            this.DownloadLink = downloadLink;
+            this.InstallSettings = installSettings;
+        }
+
         /// <summary>
         /// Creates new instance of <see cref="MelonData" />
         /// </summary>
@@ -66,6 +84,17 @@ namespace MelonAutoUpdater
         public MelonData()
         {
         }
+    }
+
+    /// <summary>
+    /// Settings for installing files from updated melons
+    /// </summary>
+    public class MelonInstallSettings
+    {
+        /// <summary>
+        /// List of all file names to be ignored
+        /// </summary>
+        public string[] IgnoreFiles { get; set; }
     }
 
     /// <summary>
