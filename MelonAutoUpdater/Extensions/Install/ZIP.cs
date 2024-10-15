@@ -196,10 +196,16 @@ namespace MelonAutoUpdater.Extensions.Install
             Logger.Msg($"Found {extractedFiles.Count} files and {extracedDirectories.Count} directories");
             foreach (string extPath in allContent)
             {
-                if (Directory.Exists(extPath))
+                if (File.Exists(extPath) && MelonData.InstallSettings != null && MelonData.InstallSettings.IgnoreFiles != null && MelonData.InstallSettings.IgnoreFiles.Contains(Path.GetFileName(extPath)))
                 {
-                    string dirName = GetDirName(extPath);
-                    List<string> SubDirCheck = new List<string>
+                    Logger.Msg($"{Path.GetFileName(extPath).Pastel(Theme.Instance.FileNameColor)} is configured by the extension to be ignored");
+                }
+                else
+                {
+                    if (Directory.Exists(extPath))
+                    {
+                        string dirName = GetDirName(extPath);
+                        List<string> SubDirCheck = new List<string>
                                                                 {
                                                                     "Mods",
                                                                     "Plugins",
@@ -207,34 +213,50 @@ namespace MelonAutoUpdater.Extensions.Install
                                                                     "UserData",
                                                                     "UserLibs"
                                                                 };
-                    int checkedDirs = 0;
-                    foreach (var subdir in SubDirCheck)
-                    {
-                        if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
+                        int checkedDirs = 0;
+                        foreach (var subdir in SubDirCheck)
                         {
-                            var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Files.GetDirectoryInBaseDir(subdir).FullName, string.Empty, MelonData.LatestVersion, MelonConfig);
-                            checkedDirs++;
+                            if (Directory.GetDirectories(extPath).Contains(Path.Combine(extPath, subdir)))
+                            {
+                                var res1 = MoveAllFiles(Path.Combine(extPath, subdir), Files.GetDirectoryInBaseDir(subdir).FullName, string.Empty, MelonData.LatestVersion, MelonConfig);
+                                checkedDirs++;
+                                success += res1.success;
+                                failed += res1.failed;
+                            }
+                        }
+                        if (checkedDirs <= Directory.GetDirectories(extPath).Length)
+                        {
+                            Logger.Msg($"Found {dirName}, installing all content from it...");
+                            var res1 = MoveAllFiles(extPath, Files.GetDirectoryInBaseDir(dirName).FullName, string.Empty, MelonData.LatestVersion, MelonConfig);
                             success += res1.success;
                             failed += res1.failed;
                         }
                     }
-                    if (checkedDirs <= Directory.GetDirectories(extPath).Length)
+                    else if (Path.GetExtension(extPath) == ".dll")
                     {
-                        Logger.Msg($"Found {dirName}, installing all content from it...");
-                        var res1 = MoveAllFiles(extPath, Files.GetDirectoryInBaseDir(dirName).FullName, string.Empty, MelonData.LatestVersion, MelonConfig);
-                        success += res1.success;
-                        failed += res1.failed;
+                        var (isMelon, threwError) = InstallPackage(extPath, MelonData.LatestVersion);
+                        if (isMelon)
+                        {
+                            if (threwError) failed += 1;
+                            else success += 1;
+                        }
+                        else
+                        {
+                            string fileName = Path.GetFileName(extPath);
+                            string _path = Path.Combine(Files.BaseDirectory, fileName);
+                            if (!File.Exists(_path)) File.Move(extPath, _path);
+                            else File.Replace(extPath, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(extPath)}"));
+                            Logger.Msg($"Moved {fileName.Pastel(Theme.Instance.FileNameColor)} to base directory");
+                        }
                     }
-                }
-                else if (Path.GetExtension(extPath) == ".dll")
-                {
-                    var (isMelon, threwError) = InstallPackage(extPath, MelonData.LatestVersion);
-                    if (threwError) failed += 1;
-                    else success += 1;
-                }
-                else
-                {
-                    Logger.Warning($"Not moving {Path.GetFileName(extPath)}, as it seems useless, sorry in advance");
+                    else
+                    {
+                        string fileName = Path.GetFileName(extPath);
+                        string _path = Path.Combine(Files.BaseDirectory, fileName);
+                        if (!File.Exists(_path)) File.Move(extPath, _path);
+                        else File.Replace(extPath, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(extPath)}"));
+                        Logger.Msg($"Moved {fileName.Pastel(Theme.Instance.FileNameColor)} to base directory");
+                    }
                 }
             }
             Directory.Delete(extractPath, true);
