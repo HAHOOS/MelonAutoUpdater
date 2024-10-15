@@ -501,7 +501,7 @@ namespace MelonAutoUpdater
                     if (melonAssemblyInfo != null)
                     {
                         if (CheckCompatibility(mainAssembly).Length > 0) { InstallExtension.NeedUpdate = true; } else { InstallExtension.NeedUpdate = false; }
-                        SemVersion currentVersion = melonAssemblyInfo.SemanticVersion;
+                        SemVersion currentVersion = SemVersion.Parse(melonAssemblyInfo.Version);
                         var data = GetMelonData(melonAssemblyInfo.DownloadLink, currentVersion, config);
                         if (data == null || string.IsNullOrEmpty(melonAssemblyInfo.DownloadLink))
                         {
