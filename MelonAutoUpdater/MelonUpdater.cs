@@ -496,7 +496,7 @@ namespace MelonAutoUpdater
                 }
                 if (melonAssemblyInfo != null)
                 {
-                    Logger.Msg($"{melonAssemblyInfo.Name.Pastel(Theme.Instance.FileNameColor)} " + $"v{melonAssemblyInfo.Version}".Pastel(Theme.Instance.OldVersionColor));
+                    Logger.Msg($"{melonAssemblyInfo.Name.Pastel(Theme.Instance.FileNameColor)} " + $"v{melonAssemblyInfo.Version}".Pastel(Theme.Instance.CurrentVersionColor));
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
                     if (melonAssemblyInfo != null)
                     {
@@ -520,7 +520,7 @@ namespace MelonAutoUpdater
                                 {
                                     if (automatic)
                                     {
-                                        Logger.MsgPastel($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ", updating");
+                                        Logger.MsgPastel($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.CurrentVersionColor) + ", updating");
                                         Logger.Msg("Downloading file(s)");
                                         int success = 0;
                                         int failed = 0;
@@ -679,7 +679,7 @@ namespace MelonAutoUpdater
                                     }
                                     else
                                     {
-                                        Logger.MsgPastel($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.OldVersionColor) + ". We recommend that you update, go to this site to download: " + data.DownloadLink.ToString().Pastel(theme.LinkColor).Underline().Blink());
+                                        Logger.MsgPastel($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.CurrentVersionColor) + ". We recommend that you update, go to this site to download: " + data.DownloadLink.ToString().Pastel(theme.LinkColor).Underline().Blink());
                                         manualUpdate.Add((assemblyName, currentVersion, data.LatestVersion, data.DownloadLink));
                                     }
                                 }
