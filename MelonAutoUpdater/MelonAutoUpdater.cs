@@ -203,6 +203,10 @@ namespace MelonAutoUpdater
 
             ThemesCategory = MelonPreferences.CreateCategory<Theme>("Theme", "Theme");
             ThemesCategory.SetFilePath(Path.Combine(Files.MainDirectory, "theme.cfg"));
+
+            theme = ThemesCategory.GetValue<Theme>();
+            theme.Setup();
+
             ThemesCategory.SaveToFile(false);
 
             LoggerInstance.DebugMsg("Set up theme.cfg");
@@ -381,8 +385,6 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg("Setup Melon Preferences");
 
             SetupPreferences();
-
-            theme = ThemesCategory.GetValue<Theme>();
 
             if (!GetEntryValue<bool>(Entry_usePastel)) ConsoleExtensions.Disable();
 

@@ -16,47 +16,103 @@ namespace MelonAutoUpdater
         /// The color of the line dividing the messages
         /// </summary>
         [TomlInlineComment("The color of the line dividing the messages")]
-        public string LineColor { get; set; } = "#FF1E90FF";
+        public string LineColor { get; set; }
 
         /// <summary>
         /// The color of the file names
         /// </summary>
         [TomlInlineComment("The color of the file names")]
-        public string FileNameColor { get; set; } = "#FFB22222";
+        public string FileNameColor { get; set; }
 
         /// <summary>
         /// The color of an old version of a Melon
         /// </summary>
         [TomlInlineComment("The color of an old version of a Melon")]
-        public string OldVersionColor { get; set; } = "#FFFF0000";
+        public string OldVersionColor { get; set; }
 
         /// <summary>
         /// The color of a new version of a Melon
         /// </summary>
         [TomlInlineComment("The color of a new version of a Melon")]
-        public string NewVersionColor { get; set; } = "#FF00FA9A";
+        public string NewVersionColor { get; set; }
+
+        /// <summary>
+        /// The color of the current version of a Melon
+        /// </summary>
+        [TomlInlineComment("The color of the current version of a Melon")]
+        public string CurrentVersionColor { get; set; }
 
         /// <summary>
         /// The color of the message saying that the version is up to date / newer than in the API
         /// </summary>
         [TomlInlineComment("The color of the message saying that the version is up to date / newer than in the API")]
-        public string UpToDateVersionColor { get; set; } = "#FF90EE90";
+        public string UpToDateVersionColor { get; set; }
 
         /// <summary>
         /// The color of the text indicating how many Melons got installed
         /// </summary>
         [TomlInlineComment("The color of the text indicating how many Melons got installed")]
-        public string DownloadCountColor { get; set; } = "#FF008000";
+        public string DownloadCountColor { get; set; }
 
         /// <summary>
         /// The color of the extension name
         /// </summary>
         [TomlInlineComment("The color of the extension name")]
-        public string ExtensionNameDefaultColor { get; set; } = "#FF00FFFF";
+        public string ExtensionNameDefaultColor { get; set; }
 
         /// <summary>
         /// The color of links
         /// </summary>
-        public string LinkColor { get; set; } = "#00FFFF";
+        [TomlInlineComment("The color of links")]
+        public string LinkColor { get; set; }
+
+        public void Setup()
+        {
+            Instance = this;
+            if (string.IsNullOrEmpty(LinkColor))
+            {
+                LinkColor = "#00FFFF";
+            }
+
+            if (string.IsNullOrEmpty(ExtensionNameDefaultColor))
+            {
+                ExtensionNameDefaultColor = "#FF00FFFF";
+            }
+
+            if (string.IsNullOrEmpty(DownloadCountColor))
+            {
+                DownloadCountColor = "#FF008000";
+            }
+
+            if (string.IsNullOrEmpty(UpToDateVersionColor))
+            {
+                UpToDateVersionColor = "#FF90EE90";
+            }
+
+            if (string.IsNullOrEmpty(CurrentVersionColor))
+            {
+                CurrentVersionColor = "#0DC681";
+            }
+
+            if (string.IsNullOrEmpty(NewVersionColor))
+            {
+                NewVersionColor = "#FF00FA9A";
+            }
+
+            if (string.IsNullOrEmpty(OldVersionColor))
+            {
+                OldVersionColor = "#FFFF0000";
+            }
+
+            if (string.IsNullOrEmpty(FileNameColor))
+            {
+                FileNameColor = "#FFB22222";
+            }
+
+            if (string.IsNullOrEmpty(LineColor))
+            {
+                LineColor = "#FF1E90FF";
+            }
+        }
     }
 }
