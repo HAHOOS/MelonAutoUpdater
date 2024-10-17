@@ -1,6 +1,3 @@
-extern alias ml065;
-extern alias ml057;
-
 using MelonAutoUpdater.Helper;
 using System.Collections.Generic;
 using System.Reflection;
