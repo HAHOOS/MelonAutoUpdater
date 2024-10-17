@@ -1,3 +1,9 @@
+extern alias ml065;
+extern alias ml057;
+
+using MelonAutoUpdater.Helper;
+using System.Collections.Generic;
+using System.Reflection;
 using Tomlet.Attributes;
 
 namespace MelonAutoUpdater
@@ -11,6 +17,22 @@ namespace MelonAutoUpdater
         /// Instance of Theme that can be used by any code
         /// </summary>
         public static Theme Instance { get; private set; } = new Theme();
+
+        /// <summary>
+        /// Default values of properties
+        /// </summary>
+        public static readonly Dictionary<string, string> Defaults = new Dictionary<string, string>()
+        {
+            { "LinkColor",  "#00FFFF"},
+            { "ExtensionNameDefaultColor", "#FF00FFFF" },
+            { "DownloadCountColor","#FF008000" },
+            { "UpToDateVersionColor","#FF90EE90" },
+            { "CurrentVersionColor" ,"#0DC681" },
+            {"NewVersionColor", "#FF00FA9A" },
+            {"OldVersionColor","#FFFF0000" },
+            {"FileNameColor","#FFB22222" },
+            {"LineColor","#FF1E90FF" }
+        };
 
         /// <summary>
         /// The color of the line dividing the messages
@@ -66,52 +88,22 @@ namespace MelonAutoUpdater
         [TomlInlineComment("The color of links")]
         public string LinkColor { get; set; }
 
+        /// <summary>
+        /// Setup the theme, this sets the defaults if needed
+        /// </summary>
         public void Setup()
         {
             Instance = this;
-            if (string.IsNullOrEmpty(LinkColor))
+            var properties = this.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.GetProperty);
+            foreach (var property in properties)
             {
-                LinkColor = "#00FFFF";
-            }
-
-            if (string.IsNullOrEmpty(ExtensionNameDefaultColor))
-            {
-                ExtensionNameDefaultColor = "#FF00FFFF";
-            }
-
-            if (string.IsNullOrEmpty(DownloadCountColor))
-            {
-                DownloadCountColor = "#FF008000";
-            }
-
-            if (string.IsNullOrEmpty(UpToDateVersionColor))
-            {
-                UpToDateVersionColor = "#FF90EE90";
-            }
-
-            if (string.IsNullOrEmpty(CurrentVersionColor))
-            {
-                CurrentVersionColor = "#0DC681";
-            }
-
-            if (string.IsNullOrEmpty(NewVersionColor))
-            {
-                NewVersionColor = "#FF00FA9A";
-            }
-
-            if (string.IsNullOrEmpty(OldVersionColor))
-            {
-                OldVersionColor = "#FFFF0000";
-            }
-
-            if (string.IsNullOrEmpty(FileNameColor))
-            {
-                FileNameColor = "#FFB22222";
-            }
-
-            if (string.IsNullOrEmpty(LineColor))
-            {
-                LineColor = "#FF1E90FF";
+                string val = (string)property.GetValue(this, null);
+                MelonAutoUpdater.logger.DebugMsg($"{property.Name}: {(string.IsNullOrEmpty(val) ? "empty" : val)}");
+                if (string.IsNullOrEmpty(val) && Defaults.ContainsKey(property.Name))
+                {
+                    MelonAutoUpdater.logger.DebugWarning("Property is empty, setting default");
+                    property.SetValue(this, Defaults[property.Name], null);
+                }
             }
         }
     }
