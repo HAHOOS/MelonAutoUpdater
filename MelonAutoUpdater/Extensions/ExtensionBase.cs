@@ -74,6 +74,11 @@ namespace MelonAutoUpdater.Extensions
         { }
 
         /// <summary>
+        /// If set to <see langword="true"/> this extension was unloaded (wow, impossible!)
+        /// </summary>
+        public bool IsUnloaded { get; private set; }
+
+        /// <summary>
         /// Configure necessary things in extension
         /// </summary>
         internal virtual void Setup()
@@ -90,10 +95,12 @@ namespace MelonAutoUpdater.Extensions
         /// </summary>
         public void Unload(bool printmsg = true)
         {
+            if (IsUnloaded) return;
             if (string.IsNullOrEmpty(ID)) LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author);
             else LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author && x.ID == ID);
             RottenExtensions.Add(new RottenExtension(this, "The extension has been unloaded by another extension or a melon"));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded by another extension or a melon");
+            IsUnloaded = true;
         }
 
         /// <summary>
@@ -102,22 +109,26 @@ namespace MelonAutoUpdater.Extensions
         /// </summary>
         public void Unload(string message, bool printmsg = true)
         {
+            if (IsUnloaded) return;
             if (string.IsNullOrEmpty(ID)) LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author);
             else LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author && x.ID == ID);
             RottenExtensions.Add(new RottenExtension(this, $"The extension has been unloaded by another extension or a melon, reason provided: {message}"));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded by another extension or a melon with the following message: {message}");
+            IsUnloaded = true;
         }
 
         /// <summary>
         /// Unloads the specified <see cref="ExtensionBase"/>, which will cause it to not be used in checking
         /// <para>Note that this <b>does not</b> unload the <see cref="Assembly"/></para>
         /// </summary>
-        public static void Unload(SearchExtension extension, bool printmsg = true)
+        public static void Unload(ExtensionBase extension, bool printmsg = true)
         {
+            if (extension.IsUnloaded) return;
             if (string.IsNullOrEmpty(extension.ID)) LoadedExtensions.RemoveAll(x => x.Name == extension.Name && x.Author == x.Author);
             else LoadedExtensions.RemoveAll(x => x.Name == extension.Name && x.Author == x.Author && x.ID == extension.ID);
             RottenExtensions.Add(new RottenExtension(extension, "The extension has been unloaded by another extension or a melon"));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {extension.Name.Pastel(extension.NameColor)} has been unloaded by another extension or a melon");
+            extension.IsUnloaded = true;
         }
 
         /// <summary>
@@ -126,10 +137,12 @@ namespace MelonAutoUpdater.Extensions
         /// </summary>
         public static void Unload(SearchExtension extension, string message, bool printmsg = true)
         {
+            if (extension.IsUnloaded) return;
             if (string.IsNullOrEmpty(extension.ID)) LoadedExtensions.RemoveAll(x => x.Name == extension.Name && x.Author == x.Author);
             else LoadedExtensions.RemoveAll(x => x.Name == extension.Name && x.Author == x.Author && x.ID == extension.ID);
             RottenExtensions.Add(new RottenExtension(extension, "The extension has been unloaded by another extension or a melon"));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {extension.Name.Pastel(extension.NameColor)} has been unloaded by another extension or a melon with the following message: {message}");
+            extension.IsUnloaded = true;
         }
 
         /// <summary>
@@ -138,10 +151,12 @@ namespace MelonAutoUpdater.Extensions
         /// </summary>
         internal void InternalUnload(Exception exception, bool printmsg = true)
         {
+            if (IsUnloaded) return;
             if (string.IsNullOrEmpty(ID)) LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author);
             else LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author && x.ID == ID);
             RottenExtensions.Add(new RottenExtension(this, exception));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded");
+            IsUnloaded = true;
         }
 
         /// <summary>
@@ -150,10 +165,12 @@ namespace MelonAutoUpdater.Extensions
         /// </summary>
         internal void InternalUnload(Exception exception, string message, bool printmsg = true)
         {
+            if (IsUnloaded) return;
             if (string.IsNullOrEmpty(ID)) LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author);
             else LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author && x.ID == ID);
             RottenExtensions.Add(new RottenExtension(this, exception, message));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded");
+            IsUnloaded = true;
         }
 
         /// <summary>
@@ -162,10 +179,12 @@ namespace MelonAutoUpdater.Extensions
         /// </summary>
         internal void InternalUnload(string message, bool printmsg = true)
         {
+            if (IsUnloaded) return;
             if (string.IsNullOrEmpty(ID)) LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author);
             else LoadedExtensions.RemoveAll(x => x.Name == Name && x.Author == x.Author && x.ID == ID);
             RottenExtensions.Add(new RottenExtension(this, message));
             if (printmsg) MelonAutoUpdater.logger._MsgPastel($"Extension {Name.Pastel(NameColor)} has been unloaded");
+            IsUnloaded = true;
         }
 
         #endregion Unload
@@ -392,12 +411,13 @@ System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         /// <summary>
         /// Checks if assembly is an extension
         /// </summary>
+        /// <param name="type">Type, such as InstallExtension or SearchExtension</param>
         /// <param name="assembly"><see cref="Assembly"/> to check if is an extension</param>
         /// <returns>If <see langword="true"/>, it is an extension, otherwise, <see langword="false"/></returns>
-        public static bool IsExtension(Assembly assembly)
+        public static bool IsExtension(Type type, Assembly assembly)
         {
             return assembly.GetTypes()
-                .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(SearchExtension))).Any();
+                .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(type)).Any();
         }
 
         #endregion Static Methods
