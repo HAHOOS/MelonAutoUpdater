@@ -1,74 +1,258 @@
-﻿using MelonAutoUpdater.Helper;
-using MelonAutoUpdater.Utils;
+﻿using MelonAutoUpdater.Utils;
 using System;
 using System.Drawing;
+using static MelonAutoUpdater.Logger;
 
 namespace MelonAutoUpdater
 {
     /// <summary>
     /// Class used for Updater, to provide ease to use MelonUpdater in the PluginUpdater project
     /// </summary>
-    internal class Logger
+    public class Logger
     {
+        /// <summary>
+        /// Triggers when NuGet tries to make a log
+        /// </summary>
+        public event EventHandler<LogEventArgs> Log;
+
         internal static readonly Color DefaultTextColor = Color.LightGray;
 
-        internal static void Msg(object obj) => InternalMsg(DefaultTextColor, obj.ToString());
+        internal void Msg(object obj) => InternalMsg(DefaultTextColor, obj.ToString());
 
-        internal static void Msg(string txt) => InternalMsg(DefaultTextColor, txt);
+        internal void Msg(string txt) => InternalMsg(DefaultTextColor, txt);
 
-        internal static void Msg(string txt, params object[] args) => InternalMsg(DefaultTextColor, string.Format(txt, args));
+        internal void Msg(string txt, params object[] args) => InternalMsg(DefaultTextColor, string.Format(txt, args));
 
-        internal static void Msg(Color txt_color, object obj) => InternalMsg(txt_color, obj.ToString());
+        internal void Msg(Color txt_color, object obj) => InternalMsg(txt_color, obj.ToString());
 
-        internal static void Msg(Color txt_color, string txt) => InternalMsg(txt_color, txt);
+        internal void Msg(Color txt_color, string txt) => InternalMsg(txt_color, txt);
 
-        internal static void Msg(Color txt_color, string txt, params object[] args) => InternalMsg(txt_color, string.Format(txt, args));
+        internal void Msg(Color txt_color, string txt, params object[] args) => InternalMsg(txt_color, string.Format(txt, args));
 
-        internal static void MsgPastel(object obj) => InternalMsgPastel(DefaultTextColor, obj.ToString());
+        internal void Warning(object obj) => InternalWarning(obj.ToString());
 
-        internal static void MsgPastel(string txt) => InternalMsgPastel(DefaultTextColor, txt);
+        internal void Warning(string txt) => InternalWarning(txt);
 
-        internal static void MsgPastel(string txt, params object[] args) => InternalMsgPastel(DefaultTextColor, string.Format(txt, args));
+        internal void Warning(string txt, params object[] args) => InternalWarning(string.Format(txt, args));
 
-        internal static void MsgPastel(Color txt_color, object obj) => InternalMsgPastel(txt_color, obj.ToString());
+        internal void Error(object obj) => InternalError(obj.ToString());
 
-        internal static void MsgPastel(Color txt_color, string txt) => InternalMsgPastel(txt_color, txt);
+        internal void Error(string txt) => InternalError(txt);
 
-        internal static void MsgPastel(Color txt_color, string txt, params object[] args) => InternalMsgPastel(txt_color, string.Format(txt, args));
+        internal void Error(string txt, params object[] args) => InternalError(string.Format(txt, args));
 
-        internal static void Warning(object obj) => InternalWarning(obj.ToString());
+        internal void Error(string txt, Exception ex) => InternalError($"{txt}\n{ex}");
 
-        internal static void Warning(string txt) => InternalWarning(txt);
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
 
-        internal static void Warning(string txt, params object[] args) => InternalWarning(string.Format(txt, args));
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsg(object obj) => Internal_DebugMsg(DefaultTextColor, obj.ToString());
 
-        internal static void Error(object obj) => InternalError(obj.ToString());
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
 
-        internal static void Error(string txt) => InternalError(txt);
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsg(string txt) => Internal_DebugMsg(DefaultTextColor, txt);
 
-        internal static void Error(string txt, params object[] args) => InternalError(string.Format(txt, args));
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
 
-        internal static void Error(string txt, Exception ex) => InternalError($"{txt}\n{ex}");
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsg(string txt, params object[] args) => Internal_DebugMsg(DefaultTextColor, string.Format(txt, args));
 
-        internal static void InternalMsg(Color txt_color, string txt)
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsg(ConsoleColor txt_color, object obj) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), obj.ToString());
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsg(ConsoleColor txt_color, string txt) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), txt);
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsg(ConsoleColor txt_color, string txt, params object[] args) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), string.Format(txt, args));
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugMsg(Color txt_color, object obj) => Internal_DebugMsg(txt_color, obj.ToString());
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugMsg(Color txt_color, string txt) => Internal_DebugMsg(txt_color, txt);
+
+        /// <summary>
+        /// Sends a log if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt_color">Color of the message</param>
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugMsg(Color txt_color, string txt, params object[] args) => Internal_DebugMsg(txt_color, string.Format(txt, args));
+
+        /// <summary>
+        /// Sends a warning in logs from if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="obj">Object that will be converted to string and sent</param>
+        public void DebugWarning(object obj) => Internal_DebugWarning(obj.ToString());
+
+        /// <summary>
+        /// Sends a warning in logs from if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        public void DebugWarning(string txt) => Internal_DebugWarning(txt);
+
+        /// <summary>
+        /// Sends a warning in logs if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="args">Arguments for the text</param>
+        public void DebugWarning(string txt, params object[] args) => Internal_DebugWarning(string.Format(txt, args));
+
+        public void DebugError(object obj) => Internal_DebugError(obj.ToString());
+
+        public void DebugError(string txt) => Internal_DebugError(txt);
+
+        public void DebugError(string txt, params object[] args) => Internal_DebugError(string.Format(txt, args));
+
+        /// <summary>
+        /// Sends an error in logs if DEBUG mode is enabled
+        /// </summary>
+
+        /// <param name="txt">Text that will be sent</param>
+        /// <param name="ex">Exception to be associated with the message</param>
+        public void DebugError(string txt, Exception ex) => Internal_DebugError($"{txt}\n{ex}");
+
+        internal void InternalMsg(Color txt_color, string txt)
         {
-            if (txt_color == DefaultTextColor) MelonAutoUpdater.logger.Msg(txt);
-            else MelonAutoUpdater.logger.Msg(txt.Pastel(txt_color));
+            if (txt_color == DefaultTextColor) OnLog(LogSeverity.MESSAGE, txt);
+            else OnLog(LogSeverity.MESSAGE, txt.Pastel(txt_color));
         }
 
-        internal static void InternalMsgPastel(Color txt_color, string txt)
+        internal void InternalWarning(string txt)
         {
-            MelonAutoUpdater.logger._MsgPastel(txt_color, txt);
+            OnLog(LogSeverity.WARNING, txt);
         }
 
-        internal static void InternalWarning(string txt)
+        internal void InternalError(string txt)
         {
-            MelonAutoUpdater.logger.Warning(txt);
+            OnLog(LogSeverity.ERROR, txt);
         }
 
-        internal static void InternalError(string txt)
+        internal void Internal_DebugMsg(Color textColor, string text)
         {
-            MelonAutoUpdater.logger.Warning(txt);
+            if (textColor == DefaultTextColor) OnLog(LogSeverity.DEBUG, text);
+            else OnLog(LogSeverity.DEBUG, text.Pastel(textColor));
+        }
+
+        internal void Internal_DebugWarning(string text)
+        {
+            OnLog(LogSeverity.DEBUG_WARNING, text);
+        }
+
+        internal void Internal_DebugError(string text)
+        {
+            OnLog(LogSeverity.DEBUG_ERROR, text);
+        }
+
+        /// <summary>
+        /// Triggers the <see cref="Log"/> event
+        /// </summary>
+
+        protected virtual void OnLog(LogSeverity severity, string message)
+        {
+            Log?.Invoke(this, new LogEventArgs(message, severity));
+        }
+
+        /// <summary>
+        /// <see langword="enum"/> used to describe the severity of the log
+        /// </summary>
+        public enum LogSeverity
+        {
+            /// <summary>
+            /// The log will be sent as a message
+            /// </summary>
+            MESSAGE,
+
+            /// <summary>
+            /// The log will be sent as a warning
+            /// </summary>
+            WARNING,
+
+            /// <summary>
+            /// The log will be sent as a error
+            /// </summary>
+            ERROR,
+
+            /// <summary>
+            /// The log will be sent as a debug message, which means only when the plugin is in DEBUG mode it will be displayed
+            /// </summary>
+            DEBUG,
+
+            /// <summary>
+            /// The log will be sent as a debug warning, which means only when the plugin is in DEBUG mode it will be displayed
+            /// </summary>
+            DEBUG_WARNING,
+
+            /// <summary>
+            /// The log will be sent as a debug error, which means only when the plugin is in DEBUG mode it will be displayed
+            /// </summary>
+            DEBUG_ERROR,
+        }
+    }
+
+    /// <summary>
+    /// Event arguments for the event Log in <see cref="NuGet"/>
+    /// </summary>
+    public class LogEventArgs : EventArgs
+    {
+        /// <summary>
+        /// Message in the log
+        /// </summary>
+        public string Message { get; set; }
+
+        /// <summary>
+        /// Severity of the log
+        /// </summary>
+        public LogSeverity Severity { get; set; }
+
+        /// <summary>
+        /// Creates new instance of <see cref="LogEventArgs"/>
+        /// </summary>
+        /// <param name="message"><inheritdoc cref="Message"/></param>
+        /// <param name="severity"><inheritdoc cref="Severity"/></param>
+        public LogEventArgs(string message, LogSeverity severity)
+        {
+            Message = message;
+            Severity = severity;
         }
     }
 }

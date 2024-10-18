@@ -45,12 +45,15 @@ namespace MelonAutoUpdater
         /// </summary>
         internal bool bruteCheck = false;
 
-        internal MelonUpdater(string userAgent, Theme _theme, List<string> ignoreMelons, bool bruteCheck = false)
+        internal static Logger logger;
+
+        internal MelonUpdater(string userAgent, Theme _theme, List<string> ignoreMelons, Logger _logger, bool bruteCheck = false)
         {
             UserAgent = userAgent;
             theme = _theme;
             this.ignoreMelons = ignoreMelons;
             this.bruteCheck = bruteCheck;
+            logger = _logger;
         }
 
         /// <summary>
@@ -70,7 +73,7 @@ namespace MelonAutoUpdater
                 }
                 catch (InvalidCastException)
                 {
-                    Logger.Error($"Preference '{entry.DisplayName}' is of incorrect type");
+                    logger.Error($"Preference '{entry.DisplayName}' is of incorrect type");
                     return default;
                 }
             }
@@ -108,7 +111,7 @@ namespace MelonAutoUpdater
         {
             if (string.IsNullOrEmpty(downloadLink) || downloadLink == "UNKNOWN")
             {
-                Logger.Msg("No download link was provided with the melon");
+                logger.Msg("No download link was provided with the melon");
                 return null;
             }
             List<SearchExtension> extensions = new List<SearchExtension>();
@@ -125,22 +128,22 @@ namespace MelonAutoUpdater
             {
                 if (CanSearch(ext, melonConfig))
                 {
-                    Logger.MsgPastel($"Checking with {ext.Name.Pastel(ext.NameColor)}");
+                    logger.Msg($"Checking with {ext.Name.Pastel(ext.NameColor)}");
                     MelonData func() => ext.Search(downloadLink, currentVersion);
                     var result = Safe.SafeFunction<MelonData>(func);
                     if (result == null)
                     {
-                        Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                        logger.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                     }
                     else
                     {
-                        Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                        logger.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
                         return result;
                     }
                 }
                 else
                 {
-                    Logger.MsgPastel($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
+                    logger.Msg($"Unable to search with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                 }
             }
             return null;
@@ -156,7 +159,7 @@ namespace MelonAutoUpdater
         {
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author) || author == "UNKNOWN")
             {
-                Logger.Msg("Name/Author was not provided with the melon");
+                logger.Msg("Name/Author was not provided with the melon");
                 return null;
             }
             List<SearchExtension> extensions = new List<SearchExtension>();
@@ -175,27 +178,27 @@ namespace MelonAutoUpdater
                 {
                     if (CanSearch(ext, melonConfig))
                     {
-                        Logger.MsgPastel($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
+                        logger.Msg($"Brute checking with {ext.Name.Pastel(ext.NameColor)}");
                         MelonData func() => ext.BruteCheck(name, author, currentVersion);
                         var result = Safe.SafeFunction<MelonData>(func);
                         if (result == null)
                         {
-                            Logger.MsgPastel($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
+                            logger.Msg($"Nothing found with {ext.Name.Pastel(ext.NameColor)}");
                         }
                         else
                         {
-                            Logger.MsgPastel($"Found data with {ext.Name.Pastel(ext.NameColor)}");
+                            logger.Msg($"Found data with {ext.Name.Pastel(ext.NameColor)}");
                             return result;
                         }
                     }
                     else
                     {
-                        Logger.MsgPastel($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
+                        logger.Msg($"Unable to brute check with {ext.Name.Pastel(ext.NameColor)} as it has been configured to not be used");
                     }
                 }
                 else
                 {
-                    Logger.MsgPastel($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
+                    logger.Msg($"Brute checking disabled in {ext.Name.Pastel(ext.NameColor)}");
                 }
             }
 
@@ -236,7 +239,7 @@ namespace MelonAutoUpdater
                     }
                     catch (Exception e)
                     {
-                        Logger.Error($"An unexpected error was thrown while getting mau.json\n{e}");
+                        logger.Error($"An unexpected error was thrown while getting mau.json\n{e}");
                     }
                 }
             }
@@ -284,16 +287,16 @@ namespace MelonAutoUpdater
                 var build = MelonAttribute.GetVerifyLoaderBuildAttribute(assembly);
                 if (!(loaderVer == null || MelonAttribute.IsCompatible(loaderVer, MelonAutoUpdater.MLVersion)))
                 {
-                    if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current version of MelonLoader : v{MelonAutoUpdater.MLVersion}");
-                    if (printmsg) Logger.Warning($"Compatible Versions:");
-                    if (printmsg) Logger.Warning($"    - v{loaderVer.SemVer} {(loaderVer.IsMinimum ? "or higher" : "")}");
+                    if (printmsg) logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current version of MelonLoader : v{MelonAutoUpdater.MLVersion}");
+                    if (printmsg) logger.Warning($"Compatible Versions:");
+                    if (printmsg) logger.Warning($"    - v{loaderVer.SemVer} {(loaderVer.IsMinimum ? "or higher" : "")}");
                     result.Add(Incompatibility.MLVersion);
                 }
                 else if (!(build == null || MelonAttribute.IsCompatible(build, MelonUtils.HashCode)))
                 {
-                    if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current build hash code of MelonLoader : {MelonUtils.HashCode}");
-                    if (printmsg) Logger.Warning($"Compatible Build Hash Codes:");
-                    if (printmsg) Logger.Warning($"    - v{build.HashCode}");
+                    if (printmsg) logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current build hash code of MelonLoader : {MelonUtils.HashCode}");
+                    if (printmsg) logger.Warning($"Compatible Build Hash Codes:");
+                    if (printmsg) logger.Warning($"    - v{build.HashCode}");
                     result.Add(Incompatibility.MLBuild);
                 }
                 bool net6 = Environment.Version.Major >= 6;
@@ -302,7 +305,7 @@ namespace MelonAutoUpdater
                     bool isFramework = assembly.MainModule.AssemblyReferences.Where(x => x.Name == "mscorlib") != null;
                     if (!isFramework)
                     {
-                        if (printmsg) Logger.Error($"{modInfo.Name} {modInfo.Version} is not compatible with .NET Framework");
+                        if (printmsg) logger.Error($"{modInfo.Name} {modInfo.Version} is not compatible with .NET Framework");
                         result.Add(Incompatibility.NETVersion);
                     }
                 }
@@ -313,11 +316,11 @@ namespace MelonAutoUpdater
 #pragma warning restore CS0618 // Type or member is obsolete
                 if (!(game.Length == 0 || game.Any(x => x.IsCompatible(gameDev, gameName))))
                 {
-                    if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running game: {gameName} (by {gameDev})");
-                    if (printmsg) Logger.Warning($"Compatible Games:");
+                    if (printmsg) logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running game: {gameName} (by {gameDev})");
+                    if (printmsg) logger.Warning($"Compatible Games:");
                     foreach (var g in game)
                     {
-                        if (printmsg) Logger.Warning($"=  - {g.Name} by {g.Developer}");
+                        if (printmsg) logger.Warning($"=  - {g.Name} by {g.Developer}");
                     }
                     result.Add(Incompatibility.Game);
                 }
@@ -325,41 +328,41 @@ namespace MelonAutoUpdater
                 {
                     if (!(gameVers.Length == 0 || gameVers.Any(x => x.Version == gameVer)))
                     {
-                        if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the version of the running game: {gameVer}");
-                        if (printmsg) Logger.Warning($"Compatible Game Versions:");
+                        if (printmsg) logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the version of the running game: {gameVer}");
+                        if (printmsg) logger.Warning($"Compatible Game Versions:");
                         foreach (var g in gameVers)
                         {
-                            if (printmsg) Logger.Warning($"   - {g.Version}");
+                            if (printmsg) logger.Warning($"   - {g.Version}");
                         }
                         result.Add(Incompatibility.GameVersion);
                     }
                     var processName = Process.GetCurrentProcess().ProcessName;
                     if (!(process.Length == 0 || process.Any(x => MelonAttribute.IsCompatible(x, processName))))
                     {
-                        if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running process: {processName}");
-                        if (printmsg) Logger.Warning($"Compatible Processes:");
+                        if (printmsg) logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running process: {processName}");
+                        if (printmsg) logger.Warning($"Compatible Processes:");
                         foreach (var g in process)
                         {
-                            if (printmsg) Logger.Warning($"   - {g.EXE_Name}");
+                            if (printmsg) logger.Warning($"   - {g.EXE_Name}");
                         }
                         result.Add(Incompatibility.ProcessName);
                     }
 
                     if (!(platform == null || MelonAttribute.IsCompatible(platform, CurrentPlatform)))
                     {
-                        if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentPlatform}");
-                        if (printmsg) Logger.Warning($"Compatible Platforms:");
+                        if (printmsg) logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentPlatform}");
+                        if (printmsg) logger.Warning($"Compatible Platforms:");
                         foreach (var p in platform.Platforms)
                         {
-                            if (printmsg) Logger.Warning($"   - {p}");
+                            if (printmsg) logger.Warning($"   - {p}");
                         }
                         result.Add(Incompatibility.Platform);
                     }
                     if (!(domain == null || MelonAttribute.IsCompatible(domain, CurrentDomain)))
                     {
-                        if (printmsg) Logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentDomain}");
-                        if (printmsg) Logger.Warning($"Compatible Domain:");
-                        if (printmsg) Logger.Warning($"   - {domain.Domain}");
+                        if (printmsg) logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the current platform: {CurrentDomain}");
+                        if (printmsg) logger.Warning($"Compatible Domain:");
+                        if (printmsg) logger.Warning($"   - {domain.Domain}");
                         result.Add(Incompatibility.Domain);
                     }
                 }
@@ -453,13 +456,13 @@ namespace MelonAutoUpdater
                     string fileName = Path.GetFileNameWithoutExtension(x);
                     if (ignore.Contains(fileName))
                     {
-                        Logger.Msg($"{fileName} is in ignore list, removing from update list");
+                        logger.Msg($"{fileName} is in ignore list, removing from update list");
                         fileNameIgnore.Add(x);
                     }
                 }
             });
             files.RemoveAll(x => fileNameIgnore.Contains(x));
-            Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
+            logger.Msg("------------------------------".Pastel(theme.LineColor));
             Stopwatch sw2 = null;
             string previousFileName = string.Empty;
             bool _bruteCheck = false;
@@ -483,20 +486,20 @@ namespace MelonAutoUpdater
                 var config = GetMelonConfig(mainAssembly);
                 if (config != null)
                 {
-                    Logger.Msg("Found MAU config associated with Melon");
+                    logger.Msg("Found MAU config associated with Melon");
                 }
                 bool _ignore = config != null && config.Disable;
                 var melonAssemblyInfo = mainAssembly.GetMelonInfo();
                 if (_ignore)
                 {
-                    Logger.MsgPastel($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
-                    Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
+                    logger.Msg($"Ignoring {fileName.Pastel(theme.FileNameColor)}, because it is configured to be ignored");
+                    logger.Msg("------------------------------".Pastel(theme.LineColor));
                     mainAssembly.Dispose();
                     continue;
                 }
                 if (melonAssemblyInfo != null)
                 {
-                    Logger.Msg($"{melonAssemblyInfo.Name.Pastel(Theme.Instance.FileNameColor)} " + $"v{melonAssemblyInfo.Version}".Pastel(Theme.Instance.CurrentVersionColor));
+                    logger.Msg($"{melonAssemblyInfo.Name.Pastel(Theme.Instance.FileNameColor)} " + $"v{melonAssemblyInfo.Version}".Pastel(Theme.Instance.CurrentVersionColor));
                     string assemblyName = (string)melonAssemblyInfo.Name.Clone();
                     if (melonAssemblyInfo != null)
                     {
@@ -507,7 +510,7 @@ namespace MelonAutoUpdater
                         {
                             if (bruteCheck)
                             {
-                                Logger.MsgPastel("Running " + "brute check..".Pastel(Color.Red));
+                                logger.Msg("Running " + "brute check..".Pastel(Color.Red));
                                 _bruteCheck = true;
                                 data = GetMelonDataFromInfo(melonAssemblyInfo.Name, melonAssemblyInfo.Author, currentVersion, config);
                             }
@@ -520,8 +523,8 @@ namespace MelonAutoUpdater
                                 {
                                     if (automatic)
                                     {
-                                        Logger.MsgPastel($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.CurrentVersionColor) + ", updating");
-                                        Logger.Msg("Downloading file(s)");
+                                        logger.Msg($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.CurrentVersionColor) + ", updating");
+                                        logger.Msg("Downloading file(s)");
                                         int success = 0;
                                         int failed = 0;
                                         bool threwError = false;
@@ -556,14 +559,14 @@ namespace MelonAutoUpdater
                                                         }
                                                         else
                                                         {
-                                                            Logger.Warning("Content-Type is not associated with any file type, continuing without downloading & installing file");
+                                                            logger.Warning("Content-Type is not associated with any file type, continuing without downloading & installing file");
                                                             httpClient.Dispose();
                                                             continue;
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        Logger.Warning("Could not determine Content-Type, continuing without downloading & installing file");
+                                                        logger.Warning("Could not determine Content-Type, continuing without downloading & installing file");
                                                         httpClient.Dispose();
                                                         continue;
                                                     }
@@ -580,21 +583,21 @@ namespace MelonAutoUpdater
                                                         }
                                                         else
                                                         {
-                                                            Logger.Warning("Content-Type is not associated with any file type, continuing without downloading file");
+                                                            logger.Warning("Content-Type is not associated with any file type, continuing without downloading file");
                                                             httpClient.Dispose();
                                                             continue;
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        Logger.Warning("Could not determine Content-Type, continuing without downloading file");
+                                                        logger.Warning("Could not determine Content-Type, continuing without downloading file");
                                                         httpClient.Dispose();
                                                         continue;
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    Logger.Warning("No Content Type was provided, continuing without downloading file");
+                                                    logger.Warning("No Content Type was provided, continuing without downloading file");
                                                     httpClient.Dispose();
                                                     continue;
                                                 }
@@ -605,7 +608,7 @@ namespace MelonAutoUpdater
                                                     {
                                                         if (!config.AllowedFileDownloads.Contains(_fileName))
                                                         {
-                                                            Logger.Msg($"{_fileName} was configured to not be downloaded & installed, aborting download");
+                                                            logger.Msg($"{_fileName} was configured to not be downloaded & installed, aborting download");
                                                             continue;
                                                         }
                                                     }
@@ -617,13 +620,13 @@ namespace MelonAutoUpdater
                                                 fs.Flush();
                                                 downloadedFile = fs;
                                                 ms.Dispose();
-                                                Logger.Msg($"Download successful");
+                                                logger.Msg($"Download successful");
                                                 downloadedFile.Dispose();
                                                 downloadedFiles.Add(pathToSave);
                                             }
                                             catch (Exception ex)
                                             {
-                                                Logger.Error($"Failed to download file through link, exception:\n{ex}");
+                                                logger.Error($"Failed to download file through link, exception:\n{ex}");
                                                 downloadedFile.Dispose();
                                                 downloadedFile = null;
                                             }
@@ -660,10 +663,10 @@ namespace MelonAutoUpdater
                                             }
                                             else
                                             {
-                                                Logger.Error("Downloaded file is empty, unable to update melon");
+                                                logger.Error("Downloaded file is empty, unable to update melon");
                                             }
                                         }
-                                        Logger.MsgPastel(
+                                        logger.Msg(
                                             failed > 0
                                                 ? $"Failed to update {assemblyName}".Pastel(Color.Red)
                                                 : success + failed > 0
@@ -679,7 +682,7 @@ namespace MelonAutoUpdater
                                     }
                                     else
                                     {
-                                        Logger.MsgPastel($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.CurrentVersionColor) + ". We recommend that you update, go to this site to download: " + data.DownloadLink.ToString().Pastel(theme.LinkColor).Underline().Blink());
+                                        logger.Msg($"A new version " + $"v{data.LatestVersion}".Pastel(theme.NewVersionColor) + $" is available, meanwhile the current version is " + $"v{currentVersion}".Pastel(theme.CurrentVersionColor) + ". We recommend that you update, go to this site to download: " + data.DownloadLink.ToString().Pastel(theme.LinkColor).Underline().Blink());
                                         manualUpdate.Add((assemblyName, currentVersion, data.LatestVersion, data.DownloadLink));
                                     }
                                 }
@@ -687,37 +690,37 @@ namespace MelonAutoUpdater
                                 {
                                     if (data.LatestVersion == currentVersion)
                                     {
-                                        Logger.MsgPastel("Version is up-to-date!".Pastel(theme.UpToDateVersionColor));
+                                        logger.Msg("Version is up-to-date!".Pastel(theme.UpToDateVersionColor));
                                     }
                                     else if (data.LatestVersion < currentVersion)
                                     {
-                                        Logger.MsgPastel("Current version is newer than in the API".Pastel(theme.UpToDateVersionColor));
+                                        logger.Msg("Current version is newer than in the API".Pastel(theme.UpToDateVersionColor));
                                     }
                                 }
                             }
                         }
                         if (needUpdate && GetEntryValue<bool>(MelonAutoUpdater.Entry_removeIncompatible))
                         {
-                            Logger.Msg($"Removing {fileName.Pastel(theme.FileNameColor)}, due to it being incompatible and not being updated");
+                            logger.Msg($"Removing {fileName.Pastel(theme.FileNameColor)}, due to it being incompatible and not being updated");
                             if (MelonAttribute.GetFileType(melonAssemblyInfo) == FileType.MelonMod)
                             {
                                 File.Delete(path);
                             }
                             else
                             {
-                                Logger.Warning("Cannot remove due to it being a plugin, meaning its already loaded by MelonLoader");
+                                logger.Warning("Cannot remove due to it being a plugin, meaning its already loaded by MelonLoader");
                             }
                         }
                     }
                 }
                 else
                 {
-                    Logger.Warning($"{fileName} does not seem to be a Melon");
+                    logger.Warning($"{fileName} does not seem to be a Melon");
                 }
                 mainAssembly.Dispose();
-                Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
+                logger.Msg("------------------------------".Pastel(theme.LineColor));
             }
-            Logger.Msg($"Results " + (automatic ? $"({result.updates.Count} updates)" : $"({manualUpdate.Count} need to be updated)") + ":");
+            logger.Msg($"Results " + (automatic ? $"({result.updates.Count} updates)" : $"({manualUpdate.Count} need to be updated)") + ":");
             if (result.updates.Count > 0 || manualUpdate.Count > 0)
             {
                 foreach (var (name, oldVersion, newVersion, threwError, success, failed) in result.updates)
@@ -726,28 +729,28 @@ namespace MelonAutoUpdater
                     {
                         if (success + failed > 0)
                         {
-                            Logger.MsgPastel($"{"[V]".Pastel(Color.LawnGreen)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
+                            logger.Msg($"{"[V]".Pastel(Color.LawnGreen)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
                         }
                         else
                         {
-                            Logger.MsgPastel($"{"[?]".Pastel(Color.Yellow)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
+                            logger.Msg($"{"[?]".Pastel(Color.Yellow)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
                         }
                     }
                     else
                     {
-                        Logger.MsgPastel($"{"[X]".Pastel(Color.Red)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
+                        logger.Msg($"{"[X]".Pastel(Color.Red)} {name.Pastel(theme.FileNameColor)} {$"v{oldVersion}".Pastel(theme.OldVersionColor)} ---> {$"v{newVersion}".Pastel(theme.NewVersionColor)} ({$"{success}/{success + failed}".Pastel(theme.DownloadCountColor)} melons installed successfully)");
                     }
                 }
                 foreach (var (name, oldVer, newVer, downloadLink) in manualUpdate)
                 {
-                    Logger.MsgPastel($"{"[!]".Pastel(Color.Red)} New version available for {name.Pastel(theme.FileNameColor)} {$"v{oldVer}".Pastel(theme.OldVersionColor)} ---> {$"v{newVer}".Pastel(theme.NewVersionColor)}. Go to {downloadLink.ToString().Pastel(Color.Aqua).Underline().Blink()} to download the new version");
+                    logger.Msg($"{"[!]".Pastel(Color.Red)} New version available for {name.Pastel(theme.FileNameColor)} {$"v{oldVer}".Pastel(theme.OldVersionColor)} ---> {$"v{newVer}".Pastel(theme.NewVersionColor)}. Go to {downloadLink.ToString().Pastel(Color.Aqua).Underline().Blink()} to download the new version");
                 }
             }
             else
             {
-                Logger.MsgPastel("All melons are up to date!".Pastel(theme.UpToDateVersionColor));
+                logger.Msg("All melons are up to date!".Pastel(theme.UpToDateVersionColor));
             }
-            Logger.MsgPastel("------------------------------".Pastel(theme.LineColor));
+            logger.Msg("------------------------------".Pastel(theme.LineColor));
             if (MelonAutoUpdater.Debug)
             {
                 sw.Stop();

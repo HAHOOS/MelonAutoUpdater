@@ -41,7 +41,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Instance of <see cref="MelonLogger"/>
         /// </summary>
-        internal static MelonLogger.Instance logger;
+        internal static Logger logger;
 
         /// <summary>
         /// If <see langword="true"/>, mods will only be checked the versions and not updated, even when available
@@ -330,6 +330,9 @@ namespace MelonAutoUpdater
         /// </summary>
         public override void OnPreInitialization()
         {
+            logger = new Logger();
+            logger.Log += Log;
+
             MLAssembly = AppDomain.CurrentDomain.GetAssemblies().Where(x => x.GetName().Name == "MelonLoader").FirstOrDefault();
             Version MelonLoaderVersion = MLAssembly.GetName().Version;
             MLVersion = new SemVersion(MelonLoaderVersion.Major, MelonLoaderVersion.Minor, MelonLoaderVersion.Build);
@@ -378,7 +381,6 @@ namespace MelonAutoUpdater
                 return;
             }
 
-            logger = LoggerInstance;
             UserAgent = $"{this.Info.Name}/{Version} Auto-Updater for ML mods";
             SearchExtension.UserAgent = UserAgent;
 
@@ -401,7 +403,7 @@ namespace MelonAutoUpdater
             LoggerInstance.Msg("Setting up search extensions");
             SearchExtension.LoadExtensions(AppDomain.CurrentDomain.GetAssemblies());
 
-            var updater = new MelonUpdater(UserAgent, theme, GetEntryValue<List<string>>(Entry_ignore), GetEntryValue<bool>(Entry_bruteCheck));
+            var updater = new MelonUpdater(UserAgent, theme, GetEntryValue<List<string>>(Entry_ignore), logger, GetEntryValue<bool>(Entry_bruteCheck));
 
             LoggerInstance.Msg("Checking plugins...");
             updater.CheckDirectory(Files.PluginsDirectory, false);
@@ -422,6 +424,36 @@ namespace MelonAutoUpdater
                 {
                     LoggerInstance.DebugMsg($"{diagnostics.Key}: {diagnostics.Value} ms");
                 }
+            }
+        }
+
+        private void Log(object sender, LogEventArgs e)
+        {
+            switch (e.Severity)
+            {
+                case Logger.LogSeverity.MESSAGE:
+                    LoggerInstance._MsgPastel(e.Message);
+                    break;
+
+                case Logger.LogSeverity.WARNING:
+                    LoggerInstance.Warning(e.Message);
+                    break;
+
+                case Logger.LogSeverity.ERROR:
+                    LoggerInstance.Error(e.Message);
+                    break;
+
+                case Logger.LogSeverity.DEBUG:
+                    LoggerInstance.DebugMsgPastel(e.Message);
+                    break;
+
+                case Logger.LogSeverity.DEBUG_WARNING:
+                    LoggerInstance.DebugWarning(e.Message);
+                    break;
+
+                case Logger.LogSeverity.DEBUG_ERROR:
+                    LoggerInstance.DebugError(e.Message);
+                    break;
             }
         }
     }
