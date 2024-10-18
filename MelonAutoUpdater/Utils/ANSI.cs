@@ -17,35 +17,6 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         public static readonly string Reset = "\u001b[0m";
 
-        /// <summary>
-        /// Inserts provided ANSI escape characters into the text
-        /// </summary>
-        /// <param name="text">The text u want to insert the ANSI escape characters to</param>
-        /// <param name="codes">The ANSI escape characters</param>
-        /// <returns>String with ANSI escape characters inserted</returns>
-        public static string InsertANSI(this string text, params int[] codes)
-        {
-            if (codes == null || codes.Length == 0 || string.IsNullOrEmpty(text)) return text;
-            string code = string.Empty;
-            if (codes.Length > 1) codes.ToList().ForEach(x => { if (string.IsNullOrEmpty(code)) code = x.ToString(); else code = $"{code};{x}"; });
-            else code = codes.First().ToString();
-            string ansi = text.ContainsANSI();
-            if (string.IsNullOrEmpty(ansi)) return string.Format(_formatStringFull, code, text);
-            else
-            {
-                if (text.StartsWith(ansi) && text.EndsWith("\u001b[0m"))
-                {
-                    string newAnsi = ansi.Remove(ansi.Length - 1);
-                    newAnsi = $"{newAnsi};{code}m";
-                    return text.Replace(ansi, newAnsi);
-                }
-                else
-                {
-                    return string.Format(_formatStringFull, code, text);
-                }
-            }
-        }
-
         #region Decorations
 
         /// <summary>
@@ -232,6 +203,35 @@ namespace MelonAutoUpdater.Utils
         {
             var _txt = Regex.Match(text, @"(\x1B|\e|\033)\[(.*?)m");
             return (_txt.Success && _txt.Groups.Count >= 3) ? _txt.Groups[0].Value : null;
+        }
+
+        /// <summary>
+        /// Inserts provided ANSI escape characters into the text
+        /// </summary>
+        /// <param name="text">The text u want to insert the ANSI escape characters to</param>
+        /// <param name="codes">The ANSI escape characters</param>
+        /// <returns>String with ANSI escape characters inserted</returns>
+        public static string InsertANSI(this string text, params int[] codes)
+        {
+            if (codes == null || codes.Length == 0 || string.IsNullOrEmpty(text)) return text;
+            string code = string.Empty;
+            if (codes.Length > 1) codes.ToList().ForEach(x => { if (string.IsNullOrEmpty(code)) code = x.ToString(); else code = $"{code};{x}"; });
+            else code = codes.First().ToString();
+            string ansi = text.ContainsANSI();
+            if (string.IsNullOrEmpty(ansi)) return string.Format(_formatStringFull, code, text);
+            else
+            {
+                if (text.StartsWith(ansi) && text.EndsWith("\u001b[0m"))
+                {
+                    string newAnsi = ansi.Remove(ansi.Length - 1);
+                    newAnsi = $"{newAnsi};{code}m";
+                    return text.Replace(ansi, newAnsi);
+                }
+                else
+                {
+                    return string.Format(_formatStringFull, code, text);
+                }
+            }
         }
 
         #endregion Utilities
