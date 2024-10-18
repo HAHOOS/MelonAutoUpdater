@@ -111,7 +111,8 @@ namespace MelonAutoUpdater.Extensions
                     foreach (var ext in installExtensions)
                     {
                         MelonAutoUpdater.logger.Msg($"Handling with {ext.Name.Pastel(ext.NameColor)}");
-                        var ret = ext.Install(path);
+                        (bool handled, int success, int failed) func() => ext.Install(path);
+                        var ret = Safe.SafeFunction(func);
                         if (ret.handled == true) return ret;
                         else MelonAutoUpdater.logger.Msg($"{ext.Name.Pastel(ext.NameColor)} could not handle the file");
                     }
