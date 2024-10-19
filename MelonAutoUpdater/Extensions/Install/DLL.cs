@@ -18,8 +18,8 @@ namespace MelonAutoUpdater.Extensions.Install
         {
             Logger.Msg("Downloaded file is a DLL file, installing content...");
             var (_, error) = InstallPackage(path, MelonData.LatestVersion);
-            if (error) return (false, 1, 0);
-            else return (true, 0, 1);
+            if (error) return (false, 0, 1);
+            else return (true, 1, 0);
         }
     }
 }
