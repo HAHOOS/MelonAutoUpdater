@@ -10,9 +10,6 @@ namespace MelonAutoUpdater
     /// </summary>
     public class Logger
     {
-        /// <summary>
-        /// Triggers when NuGet tries to make a log
-        /// </summary>
         public event EventHandler<LogEventArgs> Log;
 
         internal static readonly Color DefaultTextColor = Color.LightGray;
@@ -43,113 +40,37 @@ namespace MelonAutoUpdater
 
         internal void Error(string txt, Exception ex) => InternalError($"{txt}\n{ex}");
 
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
+        internal void DebugMsg(object obj) => Internal_DebugMsg(DefaultTextColor, obj.ToString());
 
-        /// <param name="obj">Object that will be converted to string and sent</param>
-        public void DebugMsg(object obj) => Internal_DebugMsg(DefaultTextColor, obj.ToString());
+        internal void DebugMsg(string txt) => Internal_DebugMsg(DefaultTextColor, txt);
 
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
+        internal void DebugMsg(string txt, params object[] args) => Internal_DebugMsg(DefaultTextColor, string.Format(txt, args));
 
-        /// <param name="txt">Text that will be sent</param>
-        public void DebugMsg(string txt) => Internal_DebugMsg(DefaultTextColor, txt);
+        internal void DebugMsg(ConsoleColor txt_color, object obj) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), obj.ToString());
 
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
+        internal void DebugMsg(ConsoleColor txt_color, string txt) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), txt);
 
-        /// <param name="txt">Text that will be sent</param>
-        /// <param name="args">Arguments for the text</param>
-        public void DebugMsg(string txt, params object[] args) => Internal_DebugMsg(DefaultTextColor, string.Format(txt, args));
+        internal void DebugMsg(ConsoleColor txt_color, string txt, params object[] args) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), string.Format(txt, args));
 
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
+        internal void DebugMsg(Color txt_color, object obj) => Internal_DebugMsg(txt_color, obj.ToString());
 
-        /// <param name="txt_color">Color of the message</param>
-        /// <param name="obj">Object that will be converted to string and sent</param>
-        public void DebugMsg(ConsoleColor txt_color, object obj) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), obj.ToString());
+        internal void DebugMsg(Color txt_color, string txt) => Internal_DebugMsg(txt_color, txt);
 
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
+        internal void DebugMsg(Color txt_color, string txt, params object[] args) => Internal_DebugMsg(txt_color, string.Format(txt, args));
 
-        /// <param name="txt_color">Color of the message</param>
-        /// <param name="txt">Text that will be sent</param>
-        public void DebugMsg(ConsoleColor txt_color, string txt) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), txt);
+        internal void DebugWarning(object obj) => Internal_DebugWarning(obj.ToString());
 
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
+        internal void DebugWarning(string txt) => Internal_DebugWarning(txt);
 
-        /// <param name="txt_color">Color of the message</param>
-        /// <param name="txt">Text that will be sent</param>
-        /// <param name="args">Arguments for the text</param>
-        public void DebugMsg(ConsoleColor txt_color, string txt, params object[] args) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), string.Format(txt, args));
+        internal void DebugWarning(string txt, params object[] args) => Internal_DebugWarning(string.Format(txt, args));
 
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
+        internal void DebugError(object obj) => Internal_DebugError(obj.ToString());
 
-        /// <param name="txt_color">Color of the message</param>
-        /// <param name="obj">Object that will be converted to string and sent</param>
-        public void DebugMsg(Color txt_color, object obj) => Internal_DebugMsg(txt_color, obj.ToString());
+        internal void DebugError(string txt) => Internal_DebugError(txt);
 
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
+        internal void DebugError(string txt, params object[] args) => Internal_DebugError(string.Format(txt, args));
 
-        /// <param name="txt_color">Color of the message</param>
-        /// <param name="txt">Text that will be sent</param>
-        public void DebugMsg(Color txt_color, string txt) => Internal_DebugMsg(txt_color, txt);
-
-        /// <summary>
-        /// Sends a log if DEBUG mode is enabled
-        /// </summary>
-
-        /// <param name="txt_color">Color of the message</param>
-        /// <param name="txt">Text that will be sent</param>
-        /// <param name="args">Arguments for the text</param>
-        public void DebugMsg(Color txt_color, string txt, params object[] args) => Internal_DebugMsg(txt_color, string.Format(txt, args));
-
-        /// <summary>
-        /// Sends a warning in logs from if DEBUG mode is enabled
-        /// </summary>
-
-        /// <param name="obj">Object that will be converted to string and sent</param>
-        public void DebugWarning(object obj) => Internal_DebugWarning(obj.ToString());
-
-        /// <summary>
-        /// Sends a warning in logs from if DEBUG mode is enabled
-        /// </summary>
-
-        /// <param name="txt">Text that will be sent</param>
-        public void DebugWarning(string txt) => Internal_DebugWarning(txt);
-
-        /// <summary>
-        /// Sends a warning in logs if DEBUG mode is enabled
-        /// </summary>
-
-        /// <param name="txt">Text that will be sent</param>
-        /// <param name="args">Arguments for the text</param>
-        public void DebugWarning(string txt, params object[] args) => Internal_DebugWarning(string.Format(txt, args));
-
-        public void DebugError(object obj) => Internal_DebugError(obj.ToString());
-
-        public void DebugError(string txt) => Internal_DebugError(txt);
-
-        public void DebugError(string txt, params object[] args) => Internal_DebugError(string.Format(txt, args));
-
-        /// <summary>
-        /// Sends an error in logs if DEBUG mode is enabled
-        /// </summary>
-
-        /// <param name="txt">Text that will be sent</param>
-        /// <param name="ex">Exception to be associated with the message</param>
-        public void DebugError(string txt, Exception ex) => Internal_DebugError($"{txt}\n{ex}");
+        internal void DebugError(string txt, Exception ex) => Internal_DebugError($"{txt}\n{ex}");
 
         internal void InternalMsg(Color txt_color, string txt)
         {
