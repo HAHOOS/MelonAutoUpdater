@@ -545,63 +545,70 @@ namespace MelonAutoUpdater
                                             try
                                             {
                                                 response.Result.EnsureSuccessStatusCode();
-                                                string resContentType = response.Result.Content.Headers.ContentType.MediaType;
-                                                ContentType contentType;
-                                                if (!string.IsNullOrEmpty(retFile.ContentType))
+                                                if (string.IsNullOrEmpty(Path.GetExtension(retFile.FileName)))
                                                 {
-                                                    bool parseSuccess = ContentType.TryParse(ParseType.MimeType, retFile.ContentType, out ContentType _contentType);
-                                                    if (parseSuccess)
+                                                    string resContentType = response.Result.Content.Headers.ContentType.MediaType;
+                                                    ContentType contentType;
+                                                    if (!string.IsNullOrEmpty(retFile.ContentType))
                                                     {
-                                                        contentType = _contentType;
-                                                        if (!string.IsNullOrEmpty(_contentType.Extension))
+                                                        bool parseSuccess = ContentType.TryParse(ParseType.MimeType, retFile.ContentType, out ContentType _contentType);
+                                                        if (parseSuccess)
                                                         {
-                                                            pathToSave = Path.Combine(Files.TemporaryMelonsDirectory, $"{name.Replace(" ", "")}.{_contentType.Extension}");
+                                                            contentType = _contentType;
+                                                            if (!string.IsNullOrEmpty(_contentType.Extension))
+                                                            {
+                                                                pathToSave = Path.Combine(Files.TemporaryMelonsDirectory, $"{name.Replace(" ", "")}.{_contentType.Extension}");
+                                                            }
+                                                            else
+                                                            {
+                                                                logger.Warning("Content-Type is not associated with any file type, continuing without downloading & installing file");
+                                                                httpClient.Dispose();
+                                                                continue;
+                                                            }
                                                         }
                                                         else
                                                         {
-                                                            logger.Warning("Content-Type is not associated with any file type, continuing without downloading & installing file");
+                                                            logger.Warning("Could not determine Content-Type, continuing without downloading & installing file");
+                                                            httpClient.Dispose();
+                                                            continue;
+                                                        }
+                                                    }
+                                                    else if (resContentType != null)
+                                                    {
+                                                        bool parseSuccess = ContentType.TryParse(ParseType.MimeType, resContentType, out ContentType _contentType);
+                                                        if (parseSuccess)
+                                                        {
+                                                            contentType = _contentType;
+                                                            if (!string.IsNullOrEmpty(_contentType.Extension))
+                                                            {
+                                                                pathToSave = Path.Combine(Files.TemporaryMelonsDirectory, $"{name.Replace(" ", "")}.{_contentType.Extension}");
+                                                            }
+                                                            else
+                                                            {
+                                                                logger.Warning("Content-Type is not associated with any file type, continuing without downloading file");
+                                                                httpClient.Dispose();
+                                                                continue;
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            logger.Warning("Could not determine Content-Type, continuing without downloading file");
                                                             httpClient.Dispose();
                                                             continue;
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        logger.Warning("Could not determine Content-Type, continuing without downloading & installing file");
-                                                        httpClient.Dispose();
-                                                        continue;
-                                                    }
-                                                }
-                                                else if (resContentType != null)
-                                                {
-                                                    bool parseSuccess = ContentType.TryParse(ParseType.MimeType, resContentType, out ContentType _contentType);
-                                                    if (parseSuccess)
-                                                    {
-                                                        contentType = _contentType;
-                                                        if (!string.IsNullOrEmpty(_contentType.Extension))
-                                                        {
-                                                            pathToSave = Path.Combine(Files.TemporaryMelonsDirectory, $"{name.Replace(" ", "")}.{_contentType.Extension}");
-                                                        }
-                                                        else
-                                                        {
-                                                            logger.Warning("Content-Type is not associated with any file type, continuing without downloading file");
-                                                            httpClient.Dispose();
-                                                            continue;
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        logger.Warning("Could not determine Content-Type, continuing without downloading file");
+                                                        logger.Warning("No Content Type was provided, continuing without downloading file");
                                                         httpClient.Dispose();
                                                         continue;
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    logger.Warning("No Content Type was provided, continuing without downloading file");
-                                                    httpClient.Dispose();
-                                                    continue;
+                                                    pathToSave = pathToSave = Path.Combine(Files.TemporaryMelonsDirectory, retFile.FileName);
                                                 }
-                                                if (config != null && config.AllowedFileDownloads != null && contentType != null && !string.IsNullOrEmpty(retFile.FileName))
+                                                if (config != null && config.AllowedFileDownloads != null && !string.IsNullOrEmpty(retFile.FileName))
                                                 {
                                                     string _fileName = Path.GetFileName(pathToSave);
                                                     if (!string.IsNullOrEmpty(_fileName) && config.AllowedFileDownloads != null && config.AllowedFileDownloads.Any())
@@ -644,6 +651,7 @@ namespace MelonAutoUpdater
                                         InstallExtension.MelonData = data;
                                         foreach (var downloadPath in downloadedFiles)
                                         {
+                                            logger.DebugMsg($"File Name: {Path.GetFileName(downloadPath)}");
                                             InstallExtension.FileName = Path.GetFileNameWithoutExtension(downloadPath);
 
                                             var downloadedFile = new FileInfo(downloadPath).OpenRead();
