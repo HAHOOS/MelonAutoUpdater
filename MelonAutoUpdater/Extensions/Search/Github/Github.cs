@@ -425,7 +425,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                         {
                             downloadURLs.Add
                                 (new FileData((string)file["browser_download_url"],
-                                Path.GetFileNameWithoutExtension((string)file["browser_download_url"]),
+                                Path.GetFileName((string)file["browser_download_url"]),
                                 (string)file["content_type"]));
                         }
 
