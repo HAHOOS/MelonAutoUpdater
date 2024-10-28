@@ -9,6 +9,9 @@
 <a href="https://github.com/LavaGang/MelonLoader/releases"><img src="https://img.shields.io/badge/ML_Support-v0.5.3_or_later-blue?style=for-the-badge&labelColor=gray&color=blue"></a>
 </p>
 
+<h2 align="center"><b>This plugin is currently under development and is released as an alpha version, which means it is very likely that things wont go as expected or the plugin will simply break / crash the game. If you happen to encounter a bug, please make sure to <a href="https://github.com/HAHOOS/MelonAutoUpdater/issues">create an issue</a> so I can resolve it ASAP</b></h2>
+
+
 Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!<br/>
 If a mod has included a download link in the assembly, the updater will pick that up and use that to get the newest version and if needed, install it.<br/>
 Currently supported links (this list will be expanded in the near future):<br/>
@@ -18,9 +21,6 @@ Currently supported links (this list will be expanded in the near future):<br/>
 Tested Games & Versions:
 - BONELAB (ML v0.6.4 & v0.6.5)
 - BONEWORKS (ML v0.5.4 & v0.5.3)
-
-
-**This plugin is currently in an alpha release, currently it is only available on Github for testing purposes, as it is not ready for release yet. It would be really appreciated if you would help me find any bugs by creating an issue in the repository if you find one** 
 
 <h2 align="center">Installation</h2>
 To install the plugin, you obviously need to have MelonLoader installed in your game.<br/>
