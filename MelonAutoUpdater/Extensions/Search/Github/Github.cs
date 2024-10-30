@@ -360,6 +360,10 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
 
         public override void OnInitialization()
         {
+            /*
+             *
+             * The issue seems to be related only to my device, possibly Firewall or something else
+             *
             if (MelonAutoUpdater.MLVersion == new SemVersion(0, 5, 5) || MelonAutoUpdater.MLVersion == new SemVersion(0, 5, 7))
             {
                 if (!MelonAutoUpdater.Debug)
@@ -370,6 +374,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     return;
                 }
             }
+            */
 
             category = CreateCategory();
             entry_useDeviceFlow = category.CreateEntry("UseDeviceFlow", true, "Use Device Flow",
