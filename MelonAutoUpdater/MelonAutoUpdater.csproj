@@ -58,7 +58,7 @@ This package exists to easily reference the plugin for developers</Description>
 	
 	<ItemGroup>
 		<PackageReference Include="Mono.Cecil" Version="0.10.4" />
-		<PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
+		<PackageReference Include="Samboy063.Tomlet" Version="6.0.0" />
 		<PackageReference Include="ValueTupleBridge" Version="0.1.5" />
 	</ItemGroup>
 	
