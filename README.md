@@ -11,6 +11,8 @@
 
 <h2 align="center"><b>This plugin is currently under development and is released as an alpha version, which means it is very likely that things wont go as expected or the plugin will simply break / crash the game. If you happen to encounter a bug, please make sure to <a href="https://github.com/HAHOOS/MelonAutoUpdater/issues">create an issue</a> so I can resolve it ASAP</b></h2>
 
+> [!IMPORTANT]
+> MelonAutoUpdater is not supported on versions MelonLoader v0.7.0 and upwards. A fix might be implemented in the future if I decide to continue working on this plugin
 
 Melon Auto Updater is a plugin for MelonLoader that automatically updates all of your mods!<br/>
 If a mod has included a download link in the assembly, the updater will pick that up and use that to get the newest version and if needed, install it.<br/>
