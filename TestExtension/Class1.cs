@@ -1,34 +1,30 @@
 ﻿using MelonAutoUpdater;
-using MelonAutoUpdater.Search;
-using MelonAutoUpdater.Attributes;
+using MelonAutoUpdater.Extensions;
 using Semver;
-using System.Threading.Tasks;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
-using System;
-using MelonAutoUpdater.Helper;
 using MelonAutoUpdater.Utils;
-
-// Determines whether or not this is a MAU Search extension, set to true if you want it to be treated like that
-[assembly: IsMAUSearchExtension(true)]
+using System.Runtime.CompilerServices;
 
 namespace TestExtension
 {
-    // You need to derive from MAUSearch, otherwise the extension will not load
-    public class Class1 : MAUSearch
+    // You need to derive from SearchExtension, otherwise the extension will not load
+    public class SearchExample : SearchExtension
     {
         public override string Name => "Test"; // Name of extension that will be displayed in console
 
-        public override SemVersion Version => new SemVersion(1, 0, 0); // Version of extension that will be displayed in console
+        public override SemVersion Version => new(1, 0, 0); // Version of extension that will be displayed in console
 
         public override string Author => "HAHOOS"; // Author of extension that will be displayed in console
-
-        public override string Link => "https://www.hahoos.pl/"; // Link to website that it will perform search on, right now does not do anything
 
         public override Color NameColor => Color.Red; // Color that will be used when displaying the name of extension
 
         public override Color AuthorColor => Color.Green; // Color that will be used when displaying the author of extension
+
+        public override string ID => "test-extension"; // The ID of the extension, can be set to use multiple extensions of the same name at once
+
+        public override string Link => "https://hahoos.pl"; // Link to the website which will be searched for an update
 
         public override bool BruteCheckEnabled => true; // If true, brute check will be used. You will need to configure the BruteCheck method
 
@@ -45,7 +41,7 @@ namespace TestExtension
             Logger.Msg($"Current MAU Version: {GetMAUVersion()}"); // Get's the current version of MelonAutoUpdater, example: 0.3.0
             Logger.Msg($"Current DoYouLikeMe value: {GetEntryValue<bool>(entry)}"); // Get's value of entry with provided type
 
-            if (ContentType.TryParse(ContentType_Parse.MimeType, "application/zip", out ContentType contentType)) // You can use this in case you want to know what extension does a Mime-Type use
+            if (ContentType.TryParse(ParseType.MimeType, "application/zip", out ContentType contentType)) // You can use this in case you want to know what extension does a Mime-Type use
             {
                 if (contentType != null)
                 {
@@ -60,7 +56,7 @@ namespace TestExtension
                 }
             }
 
-            if (ContentType.TryParse(ContentType_Parse.Extension, "txt", out ContentType contentType1)) // You can use this in case you want to know what mime-type does an extension use
+            if (ContentType.TryParse(ParseType.Extension, "txt", out ContentType contentType1)) // You can use this in case you want to know what mime-type does an extension use
             {
                 if (contentType1 != null)
                 {
@@ -75,7 +71,7 @@ namespace TestExtension
                 }
             }
 
-            Logger.Msg($"My file name is {MelonAutoUpdater.Utils.ConsoleExtensions.Pastel(Path.GetFileName(Assembly.GetExecutingAssembly().Location), Theme.Instance.FileNameColor)}");
+            Logger.Msg($"My file name is {Path.GetFileName(Assembly.GetExecutingAssembly().Location).Pastel(Theme.Instance.FileNameColor)}");
             // ^^ The example above uses two things
             // 1. Pastel method, which is available only since MelonLoader v0.6.0, but is in MAU regardless of ML version. The method adds ANSI colors to text
             // 2. Theme object, which holds data regarding used theme. Themes in MAU let you customize colors of things like the Dividing line, File name etc.
@@ -83,27 +79,36 @@ namespace TestExtension
 
             Logger.Msg(MelonAutoUpdater.Utils.ConsoleExtensions.PastelBg("My background is read!", Color.Red));
             // Sets the text background to red using ANSI
-
-            Logger.Msg($"Current Unix timestamp in seconds is {DateTimeOffset.Now.ToUnixTimeSeconds()}");
-            // The above uses a class called DateTimeOffsetHelper, you might or might not think that Im dumb doing that because it already exists, but net35 doesnt have it
-            // This converts DateTimeOffset to a Unix timestamp in seconds
-
-            Logger.Msg($"Unix timestamp in seconds 946681201 was in {DateTimeOffsetHelper.FromUnixTimeSeconds(946681201).ToString("G")}");
-            // Converts Unix timestamp in seconds to DateTimeOffset
         }
 
         // Triggered when plugin is performing a search with your extension
-        public override Task<MelonData> Search(string url, SemVersion latestVersion)
+        public override MelonData Search(string url, SemVersion latestVersion)
         {
             Logger.Msg(Color.Red, "I don't like you >:(");
-            return Empty(); // Returns a task with an empty ModData object, use this instead of null
+            return null; // When null is returned, it means that nothing was found
         }
 
         // Triggered when plugin is performing a brute check with your extension
-        public override Task<MelonData> BruteCheck(string name, string author, SemVersion currentVersion)
+        public override MelonData BruteCheck(string name, string author, SemVersion currentVersion)
         {
             Logger.Msg(Color.Red, "I don't really know what you're talking about");
-            return Empty();
+            return null;
+        }
+    }
+
+    public class InstallExample : InstallExtension
+    {
+        public override string[] FileExtensions => throw new System.NotImplementedException();
+
+        public override string Name => throw new System.NotImplementedException();
+
+        public override SemVersion Version => throw new System.NotImplementedException();
+
+        public override string Author => throw new System.NotImplementedException();
+
+        public override (bool handled, int success, int failed) Install(string path)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

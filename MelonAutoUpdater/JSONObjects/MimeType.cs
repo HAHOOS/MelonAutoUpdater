@@ -1,6 +1,9 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
-using ml065.MelonLoader.TinyJSON;
+using ml070.MelonLoader.TinyJSON;
+
+using Newtonsoft.Json;
+
 using System.Collections.Generic;
 
 namespace MelonAutoUpdater.JSONObjects
@@ -30,25 +33,25 @@ namespace MelonAutoUpdater.JSONObjects
         /// <summary>
         /// Source from where the mime-type was defined
         /// </summary>
-        [Include]
+        [JsonProperty]
         public string source { get; internal set; }
 
         /// <summary>
         /// The default charset associated with this type, if any
         /// </summary>
-        [Include]
+        [JsonProperty]
         public string charset { get; internal set; }
 
         /// <summary>
         /// Known file extensions associated with this mime type.
         /// </summary>
-        [Include]
+        [JsonProperty]
         public string[] extensions { get; internal set; }
 
         /// <summary>
         /// Whether a file of this type can be gzipped
         /// </summary>
-        [Include]
+        [JsonProperty]
         public bool compressible { get; internal set; }
 
 #pragma warning restore IDE1006 // Naming Styles

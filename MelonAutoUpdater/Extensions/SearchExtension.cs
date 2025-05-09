@@ -1,7 +1,7 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
-using ml065.Semver;
-using ml065.MelonLoader;
+using ml070.Semver;
+using ml070.MelonLoader;
 using MelonAutoUpdater.Helper;
 using System;
 

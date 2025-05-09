@@ -1,10 +1,7 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
-using ml065.MelonLoader.ICSharpCode.SharpZipLib.Core;
-using ml065.MelonLoader.ICSharpCode.SharpZipLib.Zip;
-using ml065.MelonLoader.TinyJSON;
 using Mono.Cecil;
-using ml065.Semver;
+using ml070.Semver;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +9,9 @@ using System.Linq;
 using System.Net;
 
 using static MelonAutoUpdater.Utils.NuGet;
+
+using ZipInputStream = ICSharpCode.SharpZipLib.Zip.ZipInputStream;
+using Newtonsoft.Json.Linq;
 
 namespace MelonAutoUpdater.Utils
 {
@@ -59,7 +59,7 @@ namespace MelonAutoUpdater.Utils
                 zipStream.Seek(0, SeekOrigin.Begin);
                 using (var zipInputStream = new ZipInputStream(zipStream))
                 {
-                    while (zipInputStream.GetNextEntry() is ZipEntry zipEntry)
+                    while (zipInputStream.GetNextEntry() is ICSharpCode.SharpZipLib.Zip.ZipEntry zipEntry)
                     {
                         var entryFileName = zipEntry.Name;
 
@@ -85,7 +85,7 @@ namespace MelonAutoUpdater.Utils
                         }
                         using (FileStream streamWriter = File.Create(fullZipToPath))
                         {
-                            StreamUtils.Copy(zipInputStream, streamWriter, buffer);
+                            ICSharpCode.SharpZipLib.Core.StreamUtils.Copy(zipInputStream, streamWriter, buffer);
                         }
                     }
                 }
@@ -101,16 +101,16 @@ namespace MelonAutoUpdater.Utils
 
         private SemVersion ProcessLatestVerBody(string body, bool includePreRelease)
         {
-            var res = JSON.Load(body);
+            var res = JToken.Parse(body);
             int count = (int)res["count"];
             if (count > 0)
             {
                 int packages_count = (int)res["items"][0]["count"];
                 if (packages_count > 0)
                 {
-                    var versions = (ProxyArray)res["items"][0]["items"];
+                    var versions = res["items"][0]["items"];
                     var list = versions.ToList();
-                    list.Sort(delegate (Variant x, Variant y)
+                    list.Sort((JToken x, JToken y) =>
                     {
                         var x_parse = SemVersion.TryParse(x["catalogEntry"]["version"].ToString(), out SemVersion x_ver);
                         var y_parse = SemVersion.TryParse(y["catalogEntry"]["version"].ToString(), out SemVersion y_ver);
@@ -124,7 +124,7 @@ namespace MelonAutoUpdater.Utils
                         else if (!string.IsNullOrEmpty(y_ver.Prerelease) && !includePreRelease) return -1;
                         else return y_ver.CompareTo(x_ver);
                     });
-                    var latest = list.First();
+                    var latest = list[0];
                     var latest_ver = SemVersion.Parse(latest["catalogEntry"]["version"].ToString());
                     return latest_ver.ToString();
                 }
@@ -157,7 +157,7 @@ namespace MelonAutoUpdater.Utils
                 }
                 else
                 {
-                    OnLog($"Failed to retrieve latest version: \nBody is empty", LogSeverity.ERROR);
+                    OnLog("Failed to retrieve latest version: \nBody is empty", LogSeverity.ERROR);
                     return null;
                 }
             }
@@ -187,7 +187,7 @@ namespace MelonAutoUpdater.Utils
             OnLog($"Installing {name.Pastel(Theme.Instance.FileNameColor)}", LogSeverity.MESSAGE);
             var (DLLFile, AllFiles) = DownloadPackage(name, version, includePreRelease);
             var userLibs = Files.UserLibsDirectory;
-            if (DLLFile != null && AllFiles != null && AllFiles.Count > 0)
+            if (DLLFile != null && AllFiles?.Count > 0)
             {
                 var files = new List<FileInfo>();
                 foreach (var file in AllFiles)
@@ -309,7 +309,7 @@ namespace MelonAutoUpdater.Utils
                         else
                         {
                             OnLog("Looking for corresponding net version in libraries", LogSeverity.DEBUG);
-                            string netVer = "net35";
+                            const string netVer = "net35";
                             var _netDir = Directory.GetDirectories(libDir.FullName).Where(x => GetDirName(x).ToLower().StartsWith(netVer));
                             if (_netDir.Any())
                             {
@@ -347,7 +347,7 @@ namespace MelonAutoUpdater.Utils
                     OnLog("Download failed", LogSeverity.DEBUG_ERROR);
                 }
                 File.Delete(zip_Path);
-            };
+            }
 
             return result;
         }
@@ -368,7 +368,7 @@ namespace MelonAutoUpdater.Utils
         /// </returns>
         public (bool isLoaded, string dllFile) IsLoaded(string name, bool advancedCheck, string version = "", bool includePreRelease = false)
         {
-            OnLog($"Checking for {name.Pastel(Theme.Instance.FileNameColor)}{(!string.IsNullOrEmpty(version) ? $" v{version}".Pastel(Theme.Instance.NewVersionColor) : "".Pastel(Theme.Instance.NewVersionColor))}", LogSeverity.MESSAGE);
+            OnLog($"Checking for {name.Pastel(Theme.Instance.FileNameColor)}{(!string.IsNullOrEmpty(version) ? $" v{version}".Pastel(Theme.Instance.NewVersionColor) : "")}", LogSeverity.MESSAGE);
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
             string assName = name; // This is meant as assembly name, not ass name, didn't have any other ideas, although the name could be horrible

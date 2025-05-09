@@ -1,17 +1,23 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
-using MelonAutoUpdater.JSONObjects;
-using MelonAutoUpdater.Utils;
-using ml065::MelonLoader.ICSharpCode.SharpZipLib.Core;
-using ml065::MelonLoader.ICSharpCode.SharpZipLib.Zip;
-using ml065::MelonLoader;
-using ml065::Semver;
+using ml070::MelonLoader.ICSharpCode.SharpZipLib.Core;
+using ml070::MelonLoader.ICSharpCode.SharpZipLib.Zip;
+using ml070::MelonLoader;
+using ml070::Semver;
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+
+using MelonAutoUpdater.Config;
+using MelonAutoUpdater.Utils;
+
+using ICSharpCode.SharpZipLib.Zip;
+using ZipInputStream = ICSharpCode.SharpZipLib.Zip.ZipInputStream;
+using ZipEntry = ICSharpCode.SharpZipLib.Zip.ZipEntry;
 
 namespace MelonAutoUpdater.Extensions.Install
 {
@@ -72,15 +78,23 @@ namespace MelonAutoUpdater.Extensions.Install
                     }
                     using (FileStream streamWriter = File.Create(fullZipToPath))
                     {
-                        StreamUtils.Copy(zipInputStream, streamWriter, buffer);
+                        ICSharpCode.SharpZipLib.Core.StreamUtils.Copy(zipInputStream, streamWriter, buffer);
                     }
                 }
             }
             if (MelonAutoUpdater.Debug)
             {
                 sw.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"Unzip-{MelonUtils.RandomString(5)}", sw.ElapsedMilliseconds);
+                MelonAutoUpdater.ElapsedTime.Add($"Unzip-{RandomString(5)}", sw.ElapsedMilliseconds);
             }
+        }
+
+        private static string RandomString(int length)
+        {
+            var random = new Random();
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         /// <summary>
@@ -101,10 +115,10 @@ namespace MelonAutoUpdater.Extensions.Install
             }
             int success = 0;
             int failed = 0;
-            string prefix = (string.IsNullOrEmpty(mainDirectoryName) != true ? $"{mainDirectoryName}/{GetDirName(directory)}" : GetDirName(directory)).Pastel(Color.Cyan);
+            string prefix = (!string.IsNullOrEmpty(mainDirectoryName) ? $"{mainDirectoryName}/{GetDirName(directory)}" : GetDirName(directory)).Pastel(Color.Cyan);
             foreach (string file in Directory.GetFiles(path))
             {
-                if (config != null && !config.CanInclude(file))
+                if (config?.CanInclude(file) == false)
                 {
                     Logger.MsgPastel($"[{prefix}] {Path.GetFileName(file).Pastel(Theme.Instance.FileNameColor)} will not be loaded due to the Melon being configured this way");
                     continue;
@@ -116,14 +130,14 @@ namespace MelonAutoUpdater.Extensions.Install
                     if (Path.GetExtension(file) == ".dll")
                     {
                         var (isMelon, threwError) = InstallPackage(file, latestVersion);
-                        if (!threwError || isMelon) success += 1;
-                        else if (threwError) failed += 1;
+                        if (!threwError || isMelon) success++;
+                        else if (threwError) failed++;
                         if (!isMelon)
                         {
                             if (!File.Exists(_path)) File.Move(file, _path);
                             else File.Replace(file, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
                             Logger.MsgPastel($"[{prefix}] Successfully copied {Path.GetFileName(file).Pastel(Theme.Instance.FileNameColor)}");
-                            success += 1;
+                            success++;
                         }
                     }
                     else
@@ -131,7 +145,7 @@ namespace MelonAutoUpdater.Extensions.Install
                         if (!File.Exists(_path)) File.Move(file, _path);
                         else File.Replace(file, _path, Path.Combine(Files.BackupDirectory, $"{Path.GetFileName(path)}-{DateTimeOffset.Now.ToUnixTimeSeconds()}.{Path.GetExtension(file)}"));
                         Logger.MsgPastel($"[{prefix}] Successfully copied {Path.GetFileName(file).Pastel(Theme.Instance.FileNameColor)}");
-                        success += 1;
+                        success++;
                     }
                 }
                 catch (Exception ex)
@@ -142,7 +156,7 @@ namespace MelonAutoUpdater.Extensions.Install
             }
             foreach (string dir in Directory.GetDirectories(path))
             {
-                if (config != null && !config.CanInclude(dir))
+                if (config?.CanInclude(dir) == false)
                 {
                     Logger.MsgPastel($"[{prefix}] {GetDirName(dir).Pastel(Theme.Instance.FileNameColor)} will not be loaded due to the Melon being configured this way");
                     continue;
@@ -183,7 +197,7 @@ namespace MelonAutoUpdater.Extensions.Install
             }
             catch (Exception ex)
             {
-                failed += 1;
+                failed++;
                 Logger.Error($"An exception occurred while extracting files from a ZIP file{ex}");
                 Files.Clear(TempDirectory.Melons);
                 return (false, 0, 1);
@@ -196,7 +210,7 @@ namespace MelonAutoUpdater.Extensions.Install
             Logger.Msg($"Found {extractedFiles.Count} files and {extracedDirectories.Count} directories");
             foreach (string extPath in allContent)
             {
-                if (File.Exists(extPath) && MelonData.InstallSettings != null && MelonData.InstallSettings.IgnoreFiles != null && MelonData.InstallSettings.IgnoreFiles.Contains(Path.GetFileName(extPath)))
+                if (File.Exists(extPath) && MelonData.InstallSettings != null && MelonData.InstallSettings.IgnoreFiles?.Contains(Path.GetFileName(extPath)) == true)
                 {
                     Logger.Msg($"{Path.GetFileName(extPath).Pastel(Theme.Instance.FileNameColor)} is configured by the extension to be ignored");
                 }
@@ -237,8 +251,8 @@ namespace MelonAutoUpdater.Extensions.Install
                         var (isMelon, threwError) = InstallPackage(extPath, MelonData.LatestVersion);
                         if (isMelon)
                         {
-                            if (threwError) failed += 1;
-                            else success += 1;
+                            if (threwError) failed++;
+                            else success++;
                         }
                         else
                         {

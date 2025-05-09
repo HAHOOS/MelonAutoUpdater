@@ -1,28 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net35;net6</TargetFrameworks>
-	<LangVersion>7.3</LangVersion>
-	<GameDirectory>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab</GameDirectory>
+    <TargetFrameworks>net472</TargetFrameworks>
+	<LangVersion>latest</LangVersion>
+	<GameDirectory>C:\Oculus\Software\stress-level-zero-inc-bonelab</GameDirectory>
   </PropertyGroup>
 
   <ItemGroup Label="NoSpecificNETVersion_Dependencies">
     <PackageReference Include="LavaGang.MelonLoader" Version="0.6.5" />
   </ItemGroup>
-	
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net35' " Label="NET35_Dependencies">
-	<PackageReference Include="Net35.Http" Version="1.0.0" />
-	<PackageReference Include="Rackspace.Threading" Version="2.0.0-alpha001" />
-	<PackageReference Include="TaskParallelLibrary" Version="1.0.2856" />
-  </ItemGroup>
-	
+
   <ItemGroup>
-    <Reference Include="MelonAutoUpdater" Condition=" '$(TargetFramework)' == 'net6' ">
-      <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins\MelonAutoUpdater.dll</HintPath>
+    <Reference Include="MelonAutoUpdater">
+      <HintPath>$(GameDirectory)\Plugins\MelonAutoUpdater.dll</HintPath>
     </Reference>
-	  <Reference Include="MelonAutoUpdater" Condition=" '$(TargetFramework)' == 'net35' ">
-		  <HintPath>G:\OculusLibrary\Software\stress-level-zero-inc-bonelab\Plugins\net35\MelonAutoUpdater.dll</HintPath>
-	  </Reference>
   </ItemGroup>
 
 

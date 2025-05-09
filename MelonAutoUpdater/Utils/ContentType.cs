@@ -1,7 +1,11 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
 using MelonAutoUpdater.JSONObjects;
-using ml065.MelonLoader.TinyJSON;
+
+using ml070.MelonLoader.TinyJSON;
+
+using Newtonsoft.Json.Linq;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +16,7 @@ namespace MelonAutoUpdater.Utils
     /// <summary>
     /// Content Type that can be retrieved from Mime Type or File Extension
     /// </summary>
-    public class ContentType
+    public sealed class ContentType
     {
         /// <summary>
         /// Database of all recognized Mime Types
@@ -22,12 +26,12 @@ namespace MelonAutoUpdater.Utils
         /// <summary>
         /// A Mime Type, for example: <c>application/zip</c>
         /// </summary>
-        public string MimeType { get; private set; }
+        public string MimeType { get; }
 
         /// <summary>
         /// Extension associated with the Mime Type, <see langword="null"/> if no extension was found to be associated with the Mime Type
         /// </summary>
-        public string Extension { get; private set; }
+        public string Extension { get; }
 
         private ContentType(string mimeType, string extension)
         {
@@ -51,7 +55,7 @@ namespace MelonAutoUpdater.Utils
                 body.Wait();
                 if (body.Result != null)
                 {
-                    _db = new MimeTypeDB() { mimeTypes = JSON.Load(body.Result).Make<Dictionary<string, MimeType>>() };
+                    _db = new MimeTypeDB() { mimeTypes = JToken.Parse(body.Result).ToObject<Dictionary<string, MimeType>>() };
                     MelonAutoUpdater.logger.Msg($"Successfully loaded all {_db.mimeTypes.Count} mime-types!");
                 }
                 else
@@ -82,7 +86,7 @@ namespace MelonAutoUpdater.Utils
                     var mime = _db.mimeTypes[value];
                     if (mime.extensions != null || mime.extensions.Length > 0)
                     {
-                        return new ContentType(value, mime.extensions.First());
+                        return new ContentType(value, mime.extensions[0]);
                     }
                     else
                     {
@@ -96,7 +100,7 @@ namespace MelonAutoUpdater.Utils
             }
             else if (type == ParseType.Extension)
             {
-                var mimes = _db.mimeTypes.Where(x => x.Value.extensions != null && x.Value.extensions.Contains(value));
+                var mimes = _db.mimeTypes.Where(x => x.Value.extensions?.Contains(value) == true);
                 if (mimes.Any())
                 {
                     var mime = mimes.First();

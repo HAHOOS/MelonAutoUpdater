@@ -1,7 +1,7 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
-using ml065::MelonLoader;
-using ml065::Semver;
+using ml070::MelonLoader;
+using ml070::Semver;
 using MelonAutoUpdater.Utils;
 using Mono.Cecil;
 using System;
@@ -10,7 +10,9 @@ using System.IO;
 using System.Linq;
 using static MelonAutoUpdater.MelonUpdater;
 using System.Collections.Generic;
-using MelonAutoUpdater.JSONObjects;
+using System.Runtime.Versioning;
+using static ml070::MelonLoader.MelonPlatformDomainAttribute;
+using MelonAutoUpdater.Config;
 
 namespace MelonAutoUpdater.Extensions
 {
@@ -35,7 +37,7 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// List of files that currently need install due to a melon update
         /// </summary>
-        public static string[] InstallList { get; internal set; }
+        public static Dictionary<string, bool> InstallList { get; internal set; }
 
         /// <summary>
         /// If <see langword="true"/>, this indicates that if not updated and RemoveIncompatible in config is enabled, the Melon will be deleted (if its a mod)
@@ -113,7 +115,7 @@ namespace MelonAutoUpdater.Extensions
                         MelonAutoUpdater.logger.Msg($"Handling with {ext.Name.Pastel(ext.NameColor)}");
                         (bool handled, int success, int failed) func() => ext.Install(path);
                         var ret = Safe.SafeFunction(func);
-                        if (ret.handled == true) return ret;
+                        if (ret.handled) return ret;
                         else MelonAutoUpdater.logger.Msg($"{ext.Name.Pastel(ext.NameColor)} could not handle the file");
                     }
                 }
@@ -164,13 +166,13 @@ namespace MelonAutoUpdater.Extensions
                     Logger.Msg("Checking if mod version is valid");
                     var fileStream = File.Open(_path, FileMode.Open, FileAccess.ReadWrite);
                     _assembly = AssemblyDefinition.ReadAssembly(fileStream, new ReaderParameters() { AssemblyResolver = new CustomCecilResolver() });
-                    var melonInfo = MelonAttribute.GetMelonInfo(_assembly);
+                    var melonInfo = _assembly.GetMelonInfo();
                     if (melonInfo.Version < latestVersion)
                     {
                         Logger.Warning("Mod has incorrect version which can lead to repeated unnecessary updates, fixing");
                         var module = _assembly.MainModule;
 #pragma warning disable CS0618 // Type or member is obsolete
-                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonModInfoAttribute));
+                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == "MelonModInfoAttribute");
 #pragma warning restore CS0618 // Type or member is obsolete
                         if (attr.Any())
                         {
@@ -196,7 +198,7 @@ namespace MelonAutoUpdater.Extensions
                         Logger.Warning("Mod has no download link provided, to improve future checking, one will be added");
                         var module = _assembly.MainModule;
 #pragma warning disable CS0618 // Type or member is obsolete
-                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonModInfoAttribute));
+                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == "MelonModInfoAttribute");
 #pragma warning restore CS0618 // Type or member is obsolete
                         if (attr.Any())
                         {
@@ -246,7 +248,7 @@ namespace MelonAutoUpdater.Extensions
                         Logger.Warning("Plugin has incorrect version which can lead to repeated unnecessary updates, fixing");
                         var module = _assembly.MainModule;
 #pragma warning disable CS0618 // Type or member is obsolete
-                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonPluginInfoAttribute));
+                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == "MelonModInfoAttribute");
 #pragma warning restore CS0618 // Type or member is obsolete
                         if (attr.Any())
                         {
@@ -272,7 +274,7 @@ namespace MelonAutoUpdater.Extensions
                         Logger.Warning("Plugin has no download link provided, to improve future checking, one will be added");
                         var module = _assembly.MainModule;
 #pragma warning disable CS0618 // Type or member is obsolete
-                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == nameof(MelonPluginInfoAttribute));
+                        var attr = _assembly.CustomAttributes.Where(x => x.AttributeType.Name == nameof(MelonInfoAttribute) || x.AttributeType.Name == "MelonModInfoAttribute");
 #pragma warning restore CS0618 // Type or member is obsolete
                         if (attr.Any())
                         {
@@ -315,6 +317,156 @@ namespace MelonAutoUpdater.Extensions
             }
             if (!threwError && MelonFileName == fileName) NeedUpdate = false;
             return (isMelon, threwError);
+        }
+
+        /// <summary>
+        /// Finds the best package across an array of files (packages)
+        /// <para>Use this when there are multiple packages with same Name and Author and you have to choose only one</para>
+        /// </summary>
+        /// <param name="paths">Paths to files</param>
+        /// <returns></returns>
+        public string FindMostOptimalPackage(string[] paths)
+        {
+            if (paths == null || paths.Length == 0) throw new ArgumentNullException(nameof(paths));
+            if (paths.Length == 1) return paths[0];
+
+            List<string> list = new List<string>();
+            list = paths.ToList();
+            list.Sort((x, y) =>
+            {
+                int xPoints = 0;
+                int yPoints = 0;
+
+                // Check if file is DLL
+
+                if (Path.GetExtension(x) != ".dll") return -1;
+                if (Path.GetExtension(y) != ".dll") return 1;
+
+                // Variable stuff
+
+                var xAss = AssemblyDefinition.ReadAssembly(x);
+                var yAss = AssemblyDefinition.ReadAssembly(y);
+
+                var xInfo = xAss.GetMelonInfo();
+                var yInfo = yAss.GetMelonInfo();
+
+                // Check if info exists
+
+                if (xInfo == null && yInfo == null) return 0;
+                if (xInfo == null) return -1;
+                if (yInfo == null) return 1;
+
+                // Check if assembly is compatible
+
+                if (MelonUpdater.CheckCompatibility(xAss, false).Length > 0) return -1;
+                if (MelonUpdater.CheckCompatibility(xAss, false).Length > 0) return 1;
+
+                // Check runtime version
+
+                var xRuntimeVer = xAss.GetAttributes<TargetFrameworkAttribute>().FirstOrDefault();
+                var yRuntimeVer = yAss.GetAttributes<TargetFrameworkAttribute>().FirstOrDefault();
+
+                // If TargetFrameworkAttribute is not found, it is likely the Melon is for Mono
+
+                CompatibleDomains CurrentDomain = MelonUtils.IsGameIl2Cpp() ? CompatibleDomains.IL2CPP : CompatibleDomains.MONO;
+
+                if (xRuntimeVer == null) { if (CurrentDomain == CompatibleDomains.IL2CPP) yPoints++; }
+                else if (yRuntimeVer == null)
+                {
+                    if (CurrentDomain == CompatibleDomains.IL2CPP) xPoints++;
+                }
+                else
+                {
+                    var xRVSemVer = SemVersion.Parse(xRuntimeVer.FrameworkName.Split("Version=v".ToCharArray())[1]);
+                    var yRVSemVer = SemVersion.Parse(xRuntimeVer.FrameworkName.Split("Version=v".ToCharArray())[1]);
+
+                    if (xRVSemVer != yRVSemVer)
+                    {
+                        if (xRVSemVer.CompareTo(yRVSemVer) > 0)
+                        {
+                            xPoints++;
+                        }
+                        else if (xRVSemVer.CompareTo(yRVSemVer) < 0)
+                        {
+                            yPoints++;
+                        }
+                    }
+                }
+
+                // Check MelonLoader version built with
+
+                var xMLs = xAss.MainModule.AssemblyReferences.Where(_x => _x.Name == "MelonLoader").ToList();
+                var yMLs = yAss.MainModule.AssemblyReferences.Where(_x => _x.Name == "MelonLoader").ToList();
+
+                xMLs.Sort((_x, _y) =>
+                {
+                    if (_x.Version == null && _y.Version == null) return 0;
+                    if (_x.Version == null) return -1;
+                    if (_y.Version == null) return 1;
+                    return _x.Version.CompareTo(_y.Version);
+                });
+
+                yMLs.Sort((_x, _y) =>
+                {
+                    if (_x.Version == null && _y.Version == null) return 0;
+                    if (_x.Version == null) return -1;
+                    if (_y.Version == null) return 1;
+                    return _x.Version.CompareTo(_y.Version);
+                });
+
+                var xMLVer = xMLs.FirstOrDefault();
+                var yMLVer = yMLs.FirstOrDefault();
+                if (xMLVer.Version != yMLVer.Version)
+                {
+                    if (xMLVer.Version.CompareTo(yMLVer.Version) > 0)
+                    {
+                        xPoints++;
+                    }
+                    else if (xMLVer.Version.CompareTo(yMLVer.Version) < 0)
+                    {
+                        yPoints++;
+                    }
+                }
+
+                return xPoints > yPoints ? 1 : -1;
+            });
+            return list[0];
+        }
+
+        /// <summary>
+        /// Disallows a file from being installed
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        /// <returns>If <see langword="true"/>, the file was made to not be installed</returns>
+        public static bool DisallowInstall(string path)
+        {
+            foreach (var install in InstallList)
+            {
+                if (install.Key == path)
+                {
+                    InstallList[install.Key] = false;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Allows a file to be installed
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        /// <returns>If <see langword="true"/>, the file was made to be installed (returns <see langword="true"/> even if the file was already made to be installed)</returns>
+        public static bool AllowInstall(string path)
+        {
+            foreach (var install in InstallList)
+            {
+                if (install.Key == path)
+                {
+                    InstallList[install.Key] = true;
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

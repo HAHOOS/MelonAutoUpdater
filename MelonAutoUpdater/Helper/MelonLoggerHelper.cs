@@ -1,8 +1,10 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
 using MelonAutoUpdater.Utils;
-using ml065.MelonLoader;
-using ml065.Semver;
+
+using ml070.MelonLoader;
+using ml070.Semver;
+
 using System;
 using System.Drawing;
 
@@ -24,11 +26,11 @@ namespace MelonAutoUpdater.Helper
         {
             if (textColor == DefaultTextColor)
             {
-                logger.MsgPastel(text);
+                logger.Msg(text);
             }
             else
             {
-                logger.MsgPastel(text.Pastel(textColor));
+                logger.Msg(text.Pastel(textColor));
             }
         }
 

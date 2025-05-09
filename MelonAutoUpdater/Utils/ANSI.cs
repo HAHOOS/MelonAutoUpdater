@@ -216,9 +216,12 @@ namespace MelonAutoUpdater.Utils
             if (codes == null || codes.Length == 0 || string.IsNullOrEmpty(text)) return text;
             string code = string.Empty;
             if (codes.Length > 1) codes.ToList().ForEach(x => { if (string.IsNullOrEmpty(code)) code = x.ToString(); else code = $"{code};{x}"; });
-            else code = codes.First().ToString();
+            else code = codes[0].ToString();
             string ansi = text.ContainsANSI();
-            if (string.IsNullOrEmpty(ansi)) return string.Format(_formatStringFull, code, text);
+            if (string.IsNullOrEmpty(ansi))
+            {
+                return string.Format(_formatStringFull, code, text);
+            }
             else
             {
                 if (text.StartsWith(ansi) && text.EndsWith("\u001b[0m"))

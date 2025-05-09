@@ -107,7 +107,6 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Triggers the <see cref="Log"/> event
         /// </summary>
-
         protected virtual void OnLog(LogSeverity severity, string message)
         {
             Log?.Invoke(this, new LogEventArgs(message, severity));

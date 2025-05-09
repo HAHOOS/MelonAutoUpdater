@@ -1,20 +1,21 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
 using MelonAutoUpdater.Helper;
-using ml065.MelonLoader.TinyJSON;
-using ml065.Semver;
+using ml070.MelonLoader.TinyJSON;
+using ml070.Semver;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using ml065.MelonLoader;
+using ml070.MelonLoader;
 using System.Drawing;
 using MelonAutoUpdater.Utils;
 using System.Net;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace MelonAutoUpdater.Extensions.Search.Github
 {
@@ -35,7 +36,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
         /// </summary>
         private long GithubResetDate;
 
-        private readonly string ClientID = "Iv23lii0ysyknh3Vf51t";
+        private const string ClientID = "Iv23lii0ysyknh3Vf51t";
 
         internal string AccessToken;
 
@@ -59,14 +60,14 @@ namespace MelonAutoUpdater.Extensions.Search.Github
             client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
             var res = client.GetAsync("https://api.github.com/rate_limit");
             res.Wait();
-            Variant json = null;
+            JToken json = null;
             if (res.Result.IsSuccessStatusCode)
             {
                 Task<string> _body = res.Result.Content.ReadAsStringAsync();
                 _body.Wait();
                 if (_body.Result != null)
                 {
-                    json = JSON.Load(_body.Result);
+                    json = JToken.Parse(_body.Result);
                 }
                 else
                 {
@@ -79,7 +80,10 @@ namespace MelonAutoUpdater.Extensions.Search.Github
             }
             else
             {
-                if (res.Result.StatusCode != HttpStatusCode.Unauthorized) Logger.Error($"Unable to check current rate limit, Github API returned {res.Result.StatusCode} status code with following message:\n{res.Result.ReasonPhrase}");
+                if (res.Result.StatusCode != HttpStatusCode.Unauthorized)
+                {
+                    Logger.Error($"Unable to check current rate limit, Github API returned {res.Result.StatusCode} status code with following message:\n{res.Result.ReasonPhrase}");
+                }
                 else
                 {
                     client.DefaultRequestHeaders.Remove("Authorization");
@@ -91,7 +95,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
                         _body.Wait();
                         if (_body.Result != null)
                         {
-                            json = JSON.Load(_body.Result);
+                            json = JToken.Parse(_body.Result);
                         }
                         else
                         {
@@ -171,7 +175,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
                         body2.Wait();
                         if (body2.Result != null)
                         {
-                            var data = JSON.Load(body2.Result).Make<Dictionary<string, string>>();
+                            var data = JToken.Parse(body2.Result).ToObject<Dictionary<string, string>>();
                             Logger.Msg($"Successfully validated access token, belongs to {data["name"]} ({data["followers"]} Followers)");
                             if (MelonAutoUpdater.Debug)
                             {
@@ -223,7 +227,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
                 }
                 Logger.Msg("Requesting Device Flow");
                 HttpClient client = new HttpClient();
-                string scopes = "read:user";
+                const string scopes = "read:user";
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
                 var response = client.PostAsync($"https://github.com/login/device/code?client_id={ClientID}&scope={scopes}", null);
@@ -238,7 +242,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
                         Logger.DebugMsg("Body is not empty");
                         if (!ShouldNotUseWriter())
                         {
-                            var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
+                            var data = JToken.Parse(body.Result).ToObject<Dictionary<string, string>>();
                             if (!data.ContainsKeys("verification_uri", "user_code", "expires_in", "device_code"))
                             {
                                 Logger.Warning("Insufficient data provided by the API, unable to continue");
@@ -246,7 +250,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
                             }
                             Logger.MsgPastel($@"To use Github in the plugin, it is recommended that you make authenticated requests, to do that:
 
-Go {data["verification_uri"].ToString().Pastel(Theme.Instance.LinkColor).Underline().Blink()} and enter {data["user_code"].ToString().Pastel(Color.Aqua)}, when you do that press any key
+Go {data["verification_uri"].Pastel(Theme.Instance.LinkColor).Underline().Blink()} and enter {data["user_code"].Pastel(Color.Aqua)}, when you do that press any key
 You have {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes to enter the code before it expires!
 Press any key to continue, press N to continue without using authenticated requests (You will be limited to 60 requests / hour, instead of 5000 requests / hour)
 
@@ -261,7 +265,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                 }
                                 else
                                 {
-                                    if (key.KeyChar.ToString().ToLower() == "N".ToLower())
+                                    if (string.Equals(key.KeyChar.ToString(), "N", StringComparison.OrdinalIgnoreCase))
                                     {
                                         Logger.Msg("Aborting Device Flow request");
                                         client.Dispose();
@@ -279,7 +283,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                             _body.Wait();
                                             if (_body.Result != null)
                                             {
-                                                var _data = JSON.Load(_body.Result).Make<Dictionary<string, string>>();
+                                                var _data = JToken.Parse(_body.Result).ToObject<Dictionary<string, string>>();
                                                 if (_data != null)
                                                 {
                                                     if (_data.ContainsKey("error"))
@@ -296,8 +300,8 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                                     }
                                                     else if (_data.ContainsKey("access_token"))
                                                     {
-                                                        entry_accessToken.BoxedValue = _data["access_token"].ToString();
-                                                        AccessToken = _data["access_token"].ToString();
+                                                        entry_accessToken.BoxedValue = _data["access_token"];
+                                                        AccessToken = _data["access_token"];
                                                         category.SaveToFile();
                                                         Logger.MsgPastel("Successfully retrieved access token".Pastel(Color.LawnGreen));
 
@@ -336,7 +340,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                         }
                         else
                         {
-                            var data = JSON.Load(body.Result).Make<Dictionary<string, string>>();
+                            var data = JToken.Parse(body.Result).ToObject<Dictionary<string, string>>();
                             Logger.MsgPastel(
                                 $"Due to the fact that the console cannot be used, you will have to manually do the process, which should be described in the Wiki on the Github page. Your code is {data["user_code"]} and it expires within {Math.Round((decimal)(int.Parse(data["expires_in"]) / 60))} minutes. If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig and open Github.json, in there set 'UseDeviceFlow' to false. This should make the plugin run faster, but authorized requests wont be used (you will be limited to 60 requests / hour, rather than 5000 requests / hour).");
                         }
@@ -422,11 +426,11 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     body.Wait();
                     if (body.Result != null)
                     {
-                        var data = JSON.Load(body.Result);
+                        var data = JToken.Parse(body.Result);
                         string version = (string)data["tag_name"];
                         List<FileData> downloadURLs = new List<FileData>();
 
-                        foreach (var file in data["assets"] as ProxyArray)
+                        foreach (var file in data["assets"])
                         {
                             downloadURLs.Add
                                 (new FileData((string)file["browser_download_url"],
@@ -442,7 +446,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                         bool isSemVerSuccess = SemVersion.TryParse(version, out SemVersion semver);
                         if (!isSemVerSuccess)
                         {
-                            Logger.Error($"Failed to parse version");
+                            Logger.Error("Failed to parse version");
                             return null;
                         }
                         return new MelonData(semver, downloadURLs, new Uri($"https://github.com/{author}/{repo}"));
@@ -506,6 +510,14 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             return null;
         }
 
+        private static string RandomString(int length)
+        {
+            var random = new Random();
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
         public override MelonData Search(string url, SemVersion currentVersion)
         {
             Stopwatch stopwatch = null;
@@ -520,14 +532,14 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                 if (MelonAutoUpdater.Debug)
                 {
                     stopwatch.Stop();
-                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{authorName}/{repoName}-{MelonUtils.RandomString(10)}", stopwatch.ElapsedMilliseconds);
+                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{authorName}/{repoName}-{RandomString(10)}", stopwatch.ElapsedMilliseconds);
                 }
                 return check;
             }
             if (MelonAutoUpdater.Debug)
             {
                 stopwatch.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{MelonUtils.RandomString(10)}", stopwatch.ElapsedMilliseconds);
+                MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{RandomString(10)}", stopwatch.ElapsedMilliseconds);
             }
             return null;
         }
@@ -536,13 +548,13 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
         {
             Stopwatch stopwatch = null;
             if (MelonAutoUpdater.Debug) stopwatch = Stopwatch.StartNew();
-            if (name.ToCharArray().Where(x => disallowedChars.Contains(x)).Any() || author.ToCharArray().Where(x => disallowedChars.Contains(x)).Any())
+            if (name.ToCharArray().Any(x => disallowedChars.Contains(x)) || author.ToCharArray().Any(x => disallowedChars.Contains(x)))
             {
                 Logger.Warning("Disallowed characters found in Name or Author, cannot brute check");
                 if (MelonAutoUpdater.Debug)
                 {
                     stopwatch.Stop();
-                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name}-failed-{MelonUtils.RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                    MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name}-failed-{RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
                 }
                 return null;
             }
@@ -550,7 +562,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
             if (MelonAutoUpdater.Debug)
             {
                 stopwatch.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name}-{MelonUtils.RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                MelonAutoUpdater.ElapsedTime.Add($"GithubCheck-{author}/{name}-{RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
             }
             return check;
         }

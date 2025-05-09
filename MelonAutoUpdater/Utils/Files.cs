@@ -1,6 +1,7 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
-using ml065.MelonLoader;
+using ml070.MelonLoader;
+
 using System;
 using System.IO;
 
@@ -100,7 +101,7 @@ namespace MelonAutoUpdater.Utils
         internal static void Setup()
         {
 #pragma warning disable CS0618 // Type or member is obsolete
-            BaseDirectory = MelonUtils.BaseDirectory;
+            BaseDirectory = ml070.MelonLoader.Utils.MelonEnvironment.MelonBaseDirectory;
 #pragma warning restore CS0618 // Type or member is obsolete
             ModsDirectory = GetDirectoryInBaseDir("Mods").FullName;
             PluginsDirectory = GetDirectoryInBaseDir("Plugins").FullName;

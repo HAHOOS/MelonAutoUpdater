@@ -1,8 +1,11 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
-using ml065.MelonLoader;
-using ml065.MelonLoader.TinyJSON;
-using ml065.Semver;
+using ml070.MelonLoader;
+using ml070.MelonLoader.TinyJSON;
+using ml070.Semver;
+
+using Newtonsoft.Json.Linq;
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -46,7 +49,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                     body.Wait();
                     if (body.Result != null)
                     {
-                        var _data = JSON.Load(body.Result);
+                        var _data = JToken.Parse(body.Result);
 
                         request.Dispose();
                         response.Dispose();
@@ -65,11 +68,11 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                         bool isSemVerSuccess = SemVersion.TryParse((string)_data["latest"]["version_number"], out SemVersion semver);
                         if (!isSemVerSuccess)
                         {
-                            Logger.Error($"Failed to parse version");
+                            Logger.Error("Failed to parse version");
                             return null;
                         }
-                        var communityListings = _data["community_listings"] as ProxyArray;
-                        string community = communityListings.First()["community"];
+                        var communityListings = _data["community_listings"];
+                        string community = communityListings.First()["community"].ToObject<string>();
                         return new MelonData(semver, files, new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}"), new MelonInstallSettings() { IgnoreFiles = new string[] { "icon.png", "README.md", "CHANGELOG.md", "manifest.json" } });
                     }
                     else
@@ -126,23 +129,31 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                 if (MelonAutoUpdater.Debug)
                 {
                     stopwatch.Stop();
-                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{namespaceName}/{packageName}-{MelonUtils.RandomString(10)}", stopwatch.ElapsedMilliseconds);
+                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{namespaceName}/{packageName}-{RandomString(10)}", stopwatch.ElapsedMilliseconds);
                 }
                 return check;
             }
             if (MelonAutoUpdater.Debug)
             {
                 stopwatch.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{MelonUtils.RandomString(10)}", stopwatch.ElapsedMilliseconds);
+                MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{RandomString(10)}", stopwatch.ElapsedMilliseconds);
             }
             return null;
+        }
+
+        private static string RandomString(int length)
+        {
+            var random = new Random();
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         private bool IsValid(string nameOrAuthor)
         {
             if (nameOrAuthor.StartsWith("_")) return false;
             else if (nameOrAuthor.EndsWith("_")) return false;
-            else if (nameOrAuthor.ToCharArray().Where(x => disallowedChars.Contains(x)).Any()) return false;
+            else if (nameOrAuthor.ToCharArray().Any(x => disallowedChars.Contains(x))) return false;
             else return true;
         }
 
@@ -156,7 +167,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                 if (MelonAutoUpdater.Debug)
                 {
                     stopwatch.Stop();
-                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name}-failed-{MelonUtils.RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                    MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name}-failed-{RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
                 }
                 return null;
             }
@@ -166,7 +177,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
             if (MelonAutoUpdater.Debug)
             {
                 stopwatch.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name}-{MelonUtils.RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
+                MelonAutoUpdater.ElapsedTime.Add($"ThunderstoreCheck-{author}/{name}-{RandomString(10)} (with Brute Check)", stopwatch.ElapsedMilliseconds);
             }
             return check;
         }

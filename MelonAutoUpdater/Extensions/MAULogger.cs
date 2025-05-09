@@ -1,6 +1,6 @@
-extern alias ml065;
+extern alias ml070;
 
-using ml065.MelonLoader;
+using ml070.MelonLoader;
 using System.Drawing;
 using System;
 using MelonAutoUpdater.Utils;
@@ -222,21 +222,18 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="obj">Object that will be converted to string and sent</param>
         public void DebugMsg(object obj) => Internal_DebugMsg(DefaultTextColor, obj.ToString());
 
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         public void DebugMsg(string txt) => Internal_DebugMsg(DefaultTextColor, txt);
 
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         /// <param name="args">Arguments for the text</param>
         public void DebugMsg(string txt, params object[] args) => Internal_DebugMsg(DefaultTextColor, string.Format(txt, args));
@@ -244,7 +241,6 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="obj">Object that will be converted to string and sent</param>
         public void DebugMsg(ConsoleColor txt_color, object obj) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), obj.ToString());
@@ -252,7 +248,6 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="txt">Text that will be sent</param>
         public void DebugMsg(ConsoleColor txt_color, string txt) => Internal_DebugMsg(LoggerUtils.ConsoleColorToDrawingColor(txt_color), txt);
@@ -260,7 +255,6 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="txt">Text that will be sent</param>
         /// <param name="args">Arguments for the text</param>
@@ -269,7 +263,6 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="obj">Object that will be converted to string and sent</param>
         public void DebugMsg(Color txt_color, object obj) => Internal_DebugMsg(txt_color, obj.ToString());
@@ -277,7 +270,6 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="txt">Text that will be sent</param>
         public void DebugMsg(Color txt_color, string txt) => Internal_DebugMsg(txt_color, txt);
@@ -285,7 +277,6 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends a log if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="txt">Text that will be sent</param>
         /// <param name="args">Arguments for the text</param>
@@ -297,7 +288,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="obj">Object that will be converted to string and sent</param>
         public void DebugMsgPastel(object obj) => Internal_DebugMsgPastel(DefaultTextColor, obj.ToString());
 
@@ -307,7 +297,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         public void DebugMsgPastel(string txt) => Internal_DebugMsgPastel(DefaultTextColor, txt);
 
@@ -317,7 +306,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         /// <param name="args">Arguments for the text</param>
         public void DebugMsgPastel(string txt, params object[] args) => Internal_DebugMsgPastel(DefaultTextColor, string.Format(txt, args));
@@ -328,7 +316,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="obj">Object that will be converted to string and sent</param>
         public void DebugMsgPastel(ConsoleColor txt_color, object obj) => Internal_DebugMsgPastel(LoggerUtils.ConsoleColorToDrawingColor(txt_color), obj.ToString());
@@ -339,7 +326,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="txt">Text that will be sent</param>
         public void DebugMsgPastel(ConsoleColor txt_color, string txt) => Internal_DebugMsgPastel(LoggerUtils.ConsoleColorToDrawingColor(txt_color), txt);
@@ -350,7 +336,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="txt">Text that will be sent</param>
         /// <param name="args">Arguments for the text</param>
@@ -362,7 +347,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="obj">Object that will be converted to string and sent</param>
         public void DebugMsgPastel(Color txt_color, object obj) => Internal_DebugMsgPastel(txt_color, obj.ToString());
@@ -373,7 +357,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="txt">Text that will be sent</param>
         public void DebugMsgPastel(Color txt_color, string txt) => Internal_DebugMsgPastel(txt_color, txt);
@@ -384,7 +367,6 @@ namespace MelonAutoUpdater.Extensions
         /// Note: This is only available on MelonLoader v0.6.5 or later
         /// </para>
         /// </summary>
-
         /// <param name="txt_color">Color of the message</param>
         /// <param name="txt">Text that will be sent</param>
         /// <param name="args">Arguments for the text</param>
@@ -393,21 +375,18 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends a warning in logs from if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="obj">Object that will be converted to string and sent</param>
         public void DebugWarning(object obj) => Internal_DebugWarning(obj.ToString());
 
         /// <summary>
         /// Sends a warning in logs from if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         public void DebugWarning(string txt) => Internal_DebugWarning(txt);
 
         /// <summary>
         /// Sends a warning in logs if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         /// <param name="args">Arguments for the text</param>
         public void DebugWarning(string txt, params object[] args) => Internal_DebugWarning(string.Format(txt, args));
@@ -415,21 +394,18 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends an error in logs if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="obj">Object that will be converted to string and sent</param>
         public void DebugError(object obj) => Internal_DebugError(obj.ToString());
 
         /// <summary>
         /// Sends an error in logs if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         public void DebugError(string txt) => Internal_DebugError(txt);
 
         /// <summary>
         /// Sends an error in logs if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         /// <param name="args">Arguments for the text</param>
         public void DebugError(string txt, params object[] args) => Internal_DebugError(string.Format(txt, args));
@@ -437,7 +413,6 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// Sends an error in logs if DEBUG mode is enabled
         /// </summary>
-
         /// <param name="txt">Text that will be sent</param>
         /// <param name="ex">Exception to be associated with the message</param>
         public void DebugError(string txt, Exception ex) => Internal_DebugError($"{txt}\n{ex}");

@@ -1,14 +1,14 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
 using MelonAutoUpdater.Helper;
 using MelonAutoUpdater.Utils;
-using ml065::Semver;
+using ml070::Semver;
 using System.Collections.Generic;
 using System;
 using System.Drawing;
 using System.Reflection;
 using System.Linq;
-using ml065::MelonLoader;
+using ml070::MelonLoader;
 using System.IO;
 
 namespace MelonAutoUpdater.Extensions
@@ -273,26 +273,7 @@ namespace MelonAutoUpdater.Extensions
         internal static MelonInfoAttribute GetInfoFromAssembly(Assembly assembly)
         {
             var info = assembly.GetCustomAttribute<MelonInfoAttribute>();
-            if (info == null)
-            {
-#pragma warning disable CS0618 // Type or member is obsolete
-                var pluginInfo = assembly.GetCustomAttribute<MelonPluginInfoAttribute>();
-#pragma warning restore CS0618 // Type or member is obsolete
-                if (pluginInfo == null)
-                {
-                    return null;
-                }
-                else
-                {
-#pragma warning disable CS0618 // Type or member is obsolete
-                    return new MelonInfoAttribute(pluginInfo.SystemType, pluginInfo.Name, pluginInfo.Version, pluginInfo.Author, pluginInfo.DownloadLink);
-#pragma warning restore CS0618 // Type or member is obsolete
-                }
-            }
-            else
-            {
-                return info;
-            }
+            return info;
         }
 
         internal static MelonIDAttribute GetIDFromAssembly(Assembly assembly)
@@ -307,11 +288,11 @@ System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         {
             if (!string.IsNullOrEmpty(ID))
             {
-                return MelonBase.RegisteredMelons.Where(x => x.Info.Name == Name && x.Info.Author == Author && x.ID == ID).Any();
+                return MelonBase.RegisteredMelons.Any(x => x.Info.Name == Name && x.Info.Author == Author && x.ID == ID);
             }
             else
             {
-                return MelonBase.RegisteredMelons.Where(x => x.Info.Name == Name && x.Info.Author == Author).Any();
+                return MelonBase.RegisteredMelons.Any(x => x.Info.Name == Name && x.Info.Author == Author);
             }
         }
 
@@ -417,7 +398,7 @@ System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public static bool IsExtension(Type type, Assembly assembly)
         {
             return assembly.GetTypes()
-                .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(type)).Any();
+                .Any(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(type));
         }
 
         #endregion Static Methods

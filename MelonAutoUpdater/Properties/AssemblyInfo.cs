@@ -1,6 +1,7 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
-using ml065.MelonLoader;
+using ml070.MelonLoader;
+
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -10,7 +11,7 @@ using System.Runtime.InteropServices;
 [assembly: MelonInfo(typeof(MelonAutoUpdater.MelonAutoUpdater), "MelonAutoUpdater", MelonAutoUpdater.MelonAutoUpdater.Version, "HAHOOS", "https://github.com/HAHOOS/MelonAutoUpdater")]
 #pragma warning disable CS0618 // Type or member is obsolete
 // Using ConsoleColor for backwards compatibility
-[assembly: MelonColor(ConsoleColor.Green)]
+[assembly: MelonColor(0, 0, 255, 0)]
 #pragma warning restore CS0618 // Type or member is obsolete
 #if !DEBUG
 [assembly: VerifyLoaderVersion("0.5.3", true)]

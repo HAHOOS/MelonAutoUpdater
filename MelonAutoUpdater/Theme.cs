@@ -1,6 +1,6 @@
-using MelonAutoUpdater.Helper;
 using System.Collections.Generic;
 using System.Reflection;
+
 using Tomlet.Attributes;
 
 namespace MelonAutoUpdater
@@ -21,14 +21,14 @@ namespace MelonAutoUpdater
         public static readonly Dictionary<string, string> Defaults = new Dictionary<string, string>()
         {
             { "LinkColor",  "#00FFFF"},
-            { "ExtensionNameDefaultColor", "#FF00FFFF" },
-            { "DownloadCountColor","#FF008000" },
-            { "UpToDateVersionColor","#FF90EE90" },
+            { "ExtensionNameDefaultColor", "#FF00FF" },
+            { "DownloadCountColor","#FF0080" },
+            { "UpToDateVersionColor","#90EE90" },
             { "CurrentVersionColor" ,"#0DC681" },
-            {"NewVersionColor", "#FF00FA9A" },
-            {"OldVersionColor","#FFFF0000" },
-            {"FileNameColor","#FFB22222" },
-            {"LineColor","#FF1E90FF" }
+            { "NewVersionColor", "#00FA9A" },
+            { "OldVersionColor","#FF0000" },
+            { "FileNameColor","#B22222" },
+            { "LineColor","#1E90FF" }
         };
 
         /// <summary>

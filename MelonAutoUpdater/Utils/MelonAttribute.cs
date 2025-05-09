@@ -1,14 +1,17 @@
-﻿extern alias ml065;
+﻿extern alias ml070;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using ml065::MelonLoader;
-using ml065::Semver;
+
+using ml070::MelonLoader;
+using ml070::Semver;
+
 using Mono.Cecil;
-using static ml065::MelonLoader.MelonPlatformAttribute;
-using static ml065::MelonLoader.MelonPlatformDomainAttribute;
+
+using static ml070::MelonLoader.MelonPlatformAttribute;
+using static ml070::MelonLoader.MelonPlatformDomainAttribute;
 
 namespace MelonAutoUpdater.Utils
 {
@@ -26,8 +29,51 @@ namespace MelonAutoUpdater.Utils
         /// <returns>A value from the Custom Attribute with provided <see cref="Type"/></returns>
         internal static T Get<T>(this CustomAttribute customAttribute, int index)
         {
-            if (customAttribute == null || !customAttribute.HasConstructorArguments || customAttribute.ConstructorArguments.Count <= 0) return default;
+            if (customAttribute?.HasConstructorArguments != true || customAttribute.ConstructorArguments.Count == 0) return default;
             return (T)customAttribute.ConstructorArguments[index].Value;
+        }
+
+        /// <summary>
+        /// Get attribute from <see cref="AssemblyDefinition"/>
+        /// <para><b>WARNING: This does not work all the time and may throw errors, especially when there are Types</b></para>
+        /// </summary>
+        /// <typeparam name="T">The attribute to get</typeparam>
+        /// <param name="assembly">Assembly to get the attribute from</param>
+        /// <returns>The requested Attribute if found</returns>
+        internal static T[] GetAttributes<T>(this AssemblyDefinition assembly)
+        {
+            MelonAutoUpdater.logger.DebugMsg($"Attribute name: {typeof(T).Name}");
+            var attributes = assembly.CustomAttributes.Where(x => x.AttributeType.Name == typeof(T).Name);
+            if (attributes.Any())
+            {
+                MelonAutoUpdater.logger.DebugMsg("Found attribute(s)");
+                List<T> result = new List<T>();
+                foreach (var attr in attributes)
+                {
+                    MelonAutoUpdater.logger.DebugMsg("Adding attribute to list");
+                    object[] args = new object[attr.ConstructorArguments.Count];
+                    foreach (var item in attr.ConstructorArguments)
+                    {
+                        MelonAutoUpdater.logger.DebugMsg($"Constructor Argument: ({item.Type.Name}) {item.Value}");
+                        item.Type.Resolve();
+                        args.Append(item.Value);
+                    }
+                    try
+                    {
+                        var val = (T)Activator.CreateInstance(typeof(T), args);
+                        result.Add(val);
+                    }
+                    catch (MissingMethodException ex)
+                    {
+                        MelonAutoUpdater.logger.DebugError($"Cannot find constructor for {typeof(T).Name}, exception:\n{ex}");
+                    }
+                }
+                return result.ToArray();
+            }
+            else
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -35,15 +81,14 @@ namespace MelonAutoUpdater.Utils
         /// </summary>
         /// <param name="assembly"><see cref="AssemblyDefinition"/> of the file</param>
         /// <returns>If present, returns a <see cref="MelonInfoAttribute"/></returns>
-
         internal static MelonInfoAttribute GetMelonInfo(this AssemblyDefinition assembly)
         {
             foreach (var attr in assembly.CustomAttributes)
             {
 #pragma warning disable CS0618 // Type or member is obsolete
                 if (attr.AttributeType.Name == nameof(MelonInfoAttribute)
-                    || attr.AttributeType.Name == nameof(MelonModInfoAttribute)
-                    || attr.AttributeType.Name == nameof(MelonPluginInfoAttribute))
+                    || attr.AttributeType.Name == "MelonModInfoAttribute"
+                    || attr.AttributeType.Name == "MelonPluginInfoAttribute")
                 {
                     var _type = Get<TypeDefinition>(attr, 0);
                     Type type = _type.BaseType.Name == "MelonMod" ? typeof(MelonMod) : _type.BaseType.Name == "MelonPlugin" ? typeof(MelonPlugin) : null;
@@ -78,15 +123,34 @@ namespace MelonAutoUpdater.Utils
                         int major = Get<int>(attr, 0);
                         int minor = Get<int>(attr, 1);
                         int patch = Get<int>(attr, 2);
-                        bool isMinimum = Get<bool>(attr, 3);
-                        return new VerifyLoaderVersionAttribute(major, minor, patch, isMinimum);
+                        string prerelease = Get<string>(attr, 3);
+                        bool isMinimum = Get<bool>(attr, 4);
+                        return new VerifyLoaderVersionAttribute(new SemVersion(major, minor, patch, prerelease), isMinimum);
                     }
                     catch (Exception)
                     {
-                        string version = Get<string>(attr, 0);
-                        bool isMinimum = Get<bool>(attr, 1);
-                        assembly.Dispose();
-                        return new VerifyLoaderVersionAttribute(version, isMinimum);
+                        try
+                        {
+                            int major = Get<int>(attr, 0);
+                            int minor = Get<int>(attr, 1);
+                            int patch = Get<int>(attr, 2);
+                            bool isMinimum = Get<bool>(attr, 3);
+                            return new VerifyLoaderVersionAttribute(new SemVersion(major, minor, patch), isMinimum);
+                        }
+                        catch (Exception)
+                        {
+                            try
+                            {
+                                string version = Get<string>(attr, 0);
+                                bool isMinimum = Get<bool>(attr, 1);
+                                return new VerifyLoaderVersionAttribute(version, isMinimum);
+                            }
+                            catch (Exception)
+                            {
+                                string version = Get<string>(attr, 0);
+                                return new VerifyLoaderVersionAttribute(version);
+                            }
+                        }
                     }
                 }
             }
@@ -106,8 +170,8 @@ namespace MelonAutoUpdater.Utils
             {
 #pragma warning disable CS0618 // Type or member is obsolete
                 if (attr.AttributeType.Name == nameof(MelonGameAttribute)
-                    || attr.AttributeType.Name == nameof(MelonModGameAttribute)
-                    || attr.AttributeType.Name == nameof(MelonPluginGameAttribute))
+                    || attr.AttributeType.Name == "MelonModGameAttribute"
+                    || attr.AttributeType.Name == "MelonPluginGameAttribute")
                 {
                     string developer = Get<string>(attr, 0);
                     string name = Get<string>(attr, 1);
