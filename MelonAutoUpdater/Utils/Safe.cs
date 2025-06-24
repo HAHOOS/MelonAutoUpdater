@@ -1,5 +1,6 @@
-﻿using MelonAutoUpdater.Extensions;
-using System;
+﻿using System;
+
+using MelonAutoUpdater.Extensions;
 
 namespace MelonAutoUpdater.Utils
 {

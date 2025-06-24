@@ -1,6 +1,7 @@
-﻿using Mono.Cecil;
-using System;
+﻿using System;
 using System.Linq;
+
+using Mono.Cecil;
 
 namespace MelonAutoUpdater.Utils
 {

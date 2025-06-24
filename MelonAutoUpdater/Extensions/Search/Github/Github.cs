@@ -1,20 +1,22 @@
 ﻿extern alias ml070;
 
-using MelonAutoUpdater.Helper;
-using ml070.MelonLoader.TinyJSON;
-using ml070.Semver;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
-using ml070.MelonLoader;
-using System.Drawing;
-using MelonAutoUpdater.Utils;
 using System.Net;
-using System.Diagnostics;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+
+using MelonAutoUpdater.Helper;
+using MelonAutoUpdater.Utils;
+
+using ml070.MelonLoader;
+using ml070.Semver;
+
 using Newtonsoft.Json.Linq;
 
 namespace MelonAutoUpdater.Extensions.Search.Github
@@ -23,7 +25,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
     {
         public override string Name => "Github";
 
-        public override SemVersion Version => new SemVersion(1, 1, 0);
+        public override SemVersion Version => new(1, 1, 0);
 
         public override string Author => "HAHOOS";
 
@@ -41,7 +43,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
         internal string AccessToken;
 
         private readonly char[] disallowedChars =
-            { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '+', '=', '[', '{', '}', ']', ':', ';', '\'', '\"', '|', '\\', '<', ',', '>', '/', '?', '~', '`', ' ' };
+            ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '+', '=', '[', '{', '}', ']', ':', ';', '\'', '\"', '|', '\\', '<', ',', '>', '/', '?', '~', '`', ' '];
 
         // Melon Preferences
 
@@ -54,7 +56,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
         internal void CheckRateLimit()
         {
             Logger.Msg("Checking rate limit");
-            HttpClient client = new HttpClient();
+            HttpClient client = new();
             client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
             client.DefaultRequestHeaders.Add("Authorization", "Bearer " + GetEntryValue<string>(entry_accessToken));
             client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
@@ -161,7 +163,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
                 if (!string.IsNullOrEmpty(accessToken))
                 {
                     Logger.Msg("Access token found, validating");
-                    HttpClient client2 = new HttpClient();
+                    HttpClient client2 = new();
                     client2.DefaultRequestHeaders.Add("Accept", "application/json");
                     client2.DefaultRequestHeaders.Add("User-Agent", UserAgent);
                     client2.DefaultRequestHeaders.Add("Authorization", "Bearer " + accessToken);
@@ -226,7 +228,7 @@ namespace MelonAutoUpdater.Extensions.Search.Github
                     }
                 }
                 Logger.Msg("Requesting Device Flow");
-                HttpClient client = new HttpClient();
+                HttpClient client = new();
                 const string scopes = "read:user";
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
@@ -325,7 +327,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                                         }
                                     }
                                     canUse = false;
-                                    System.Timers.Timer timer = new System.Timers.Timer
+                                    System.Timers.Timer timer = new()
                                     {
                                         Interval = int.Parse(data["interval"]) * 1000
                                     };
@@ -398,7 +400,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
 
         internal MelonData Check(string author, string repo)
         {
-            HttpClient client = new HttpClient();
+            HttpClient client = new();
             client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
             client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
             if (!string.IsNullOrEmpty(AccessToken)) client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
@@ -428,7 +430,7 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
                     {
                         var data = JToken.Parse(body.Result);
                         string version = (string)data["tag_name"];
-                        List<FileData> downloadURLs = new List<FileData>();
+                        List<FileData> downloadURLs = [];
 
                         foreach (var file in data["assets"])
                         {
@@ -514,15 +516,14 @@ If you do not want to do this, go to UserData/MelonAutoUpdater/ExtensionsConfig 
         {
             var random = new Random();
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
+            return new string([.. Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)])]);
         }
 
         public override MelonData Search(string url, SemVersion currentVersion)
         {
             Stopwatch stopwatch = null;
             if (MelonAutoUpdater.Debug) stopwatch = Stopwatch.StartNew();
-            Regex regex = new Regex(@"github\.com\/([\w.-]+)\/([\w.-]+)");
+            Regex regex = new(@"github\.com\/([\w.-]+)\/([\w.-]+)");
             var match = regex.Match(url);
             if (match.Success && match.Length >= 1 && match.Groups.Count == 3)
             {

@@ -1,7 +1,5 @@
 ﻿extern alias ml070;
 
-using ml070.MelonLoader;
-
 using System;
 using System.IO;
 

@@ -1,15 +1,16 @@
 ﻿extern alias ml070;
 
-using MelonAutoUpdater.Helper;
-using MelonAutoUpdater.Utils;
-using ml070::Semver;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
-using System.Reflection;
-using System.Linq;
-using ml070::MelonLoader;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+
+using MelonAutoUpdater.Utils;
+
+using ml070::MelonLoader;
+using ml070::Semver;
 
 namespace MelonAutoUpdater.Extensions
 {
@@ -263,12 +264,12 @@ namespace MelonAutoUpdater.Extensions
         /// <summary>
         /// All loaded extensions
         /// </summary>
-        public static List<ExtensionBase> LoadedExtensions { get; internal set; } = new List<ExtensionBase>();
+        public static List<ExtensionBase> LoadedExtensions { get; internal set; } = [];
 
         /// <summary>
         /// All extensions that were unloaded due to an exception
         /// </summary>
-        public static List<RottenExtension> RottenExtensions { get; internal set; } = new List<RottenExtension>();
+        public static List<RottenExtension> RottenExtensions { get; internal set; } = [];
 
         internal static MelonInfoAttribute GetInfoFromAssembly(Assembly assembly)
         {
@@ -302,7 +303,7 @@ System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         /// <returns>A list of <see cref="ExtensionBase"/> objects</returns>
         internal static void LoadExtensions(Assembly[] loadedAssemblies)
         {
-            LoadedExtensions = new List<ExtensionBase>();
+            LoadedExtensions = [];
             foreach (Assembly assembly in loadedAssemblies)
             {
                 foreach (Type type in

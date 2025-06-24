@@ -1,11 +1,12 @@
-﻿using MelonAutoUpdater;
-using MelonAutoUpdater.Extensions;
-using Semver;
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using System.Reflection;
+
+using MelonAutoUpdater;
+using MelonAutoUpdater.Extensions;
 using MelonAutoUpdater.Utils;
-using System.Runtime.CompilerServices;
+
+using Semver;
 
 namespace TestExtension
 {

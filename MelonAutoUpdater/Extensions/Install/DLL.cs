@@ -1,5 +1,8 @@
 ﻿extern alias ml070;
 
+using System.IO;
+using System.Linq;
+
 using MelonAutoUpdater.Helper;
 using MelonAutoUpdater.Utils;
 
@@ -7,18 +10,15 @@ using ml070::Semver;
 
 using Mono.Cecil;
 
-using System.IO;
-using System.Linq;
-
 namespace MelonAutoUpdater.Extensions.Install
 {
     internal class DLL : InstallExtension
     {
-        public override string[] FileExtensions => new string[] { ".dll" };
+        public override string[] FileExtensions => [".dll"];
 
         public override string Name => "DLL";
 
-        public override SemVersion Version => new SemVersion(1, 0, 0);
+        public override SemVersion Version => new(1, 0, 0);
 
         public override string Author => "HAHOOS";
 
@@ -74,7 +74,7 @@ namespace MelonAutoUpdater.Extensions.Install
                     else
                     {
                         Logger.Msg("There are no more conflicting packages");
-                        var package = FindMostOptimalPackage(new string[] { path, conflictingMelon.Key });
+                        var package = FindMostOptimalPackage([path, conflictingMelon.Key]);
                         if (package != null)
                         {
                             var list = installs.ToList();

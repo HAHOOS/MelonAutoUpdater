@@ -1,12 +1,12 @@
 ﻿extern alias ml070;
 
+using System;
+using System.Drawing;
+
 using MelonAutoUpdater.Utils;
 
 using ml070.MelonLoader;
 using ml070.Semver;
-
-using System;
-using System.Drawing;
 
 namespace MelonAutoUpdater.Helper
 {

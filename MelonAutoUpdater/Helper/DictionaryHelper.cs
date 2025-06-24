@@ -33,12 +33,12 @@ namespace MelonAutoUpdater.Helper
         /// <returns>Keys from the list of KeyValuePairs</returns>
         public static TKey[] GetKeys<TKey, TValue>(this List<KeyValuePair<TKey, TValue>> keyValuePair)
         {
-            List<TKey> keys = new List<TKey>();
+            List<TKey> keys = [];
             foreach (var val in keyValuePair)
             {
                 keys.Add(val.Key);
             }
-            return keys.ToArray();
+            return [.. keys];
         }
 
         /// <summary>
@@ -50,12 +50,12 @@ namespace MelonAutoUpdater.Helper
         /// <returns>Keys from the IEnumerable of KeyValuePairs</returns>
         public static TKey[] GetKeys<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> keyValuePair)
         {
-            List<TKey> keys = new List<TKey>();
+            List<TKey> keys = [];
             foreach (var val in keyValuePair)
             {
                 keys.Add(val.Key);
             }
-            return keys.ToArray();
+            return [.. keys];
         }
 
         /// <summary>
@@ -67,12 +67,12 @@ namespace MelonAutoUpdater.Helper
         /// <returns>Keys from the array of KeyValuePairs</returns>
         public static TKey[] GetKeys<TKey, TValue>(this KeyValuePair<TKey, TValue>[] keyValuePair)
         {
-            List<TKey> keys = new List<TKey>();
+            List<TKey> keys = [];
             foreach (var val in keyValuePair)
             {
                 keys.Add(val.Key);
             }
-            return keys.ToArray();
+            return [.. keys];
         }
 
         #endregion Get Keys
@@ -88,12 +88,12 @@ namespace MelonAutoUpdater.Helper
         /// <returns>Values from the list of KeyValuePairs</returns>
         public static TValue[] GetValues<TKey, TValue>(this List<KeyValuePair<TKey, TValue>> keyValuePair)
         {
-            List<TValue> vals = new List<TValue>();
+            List<TValue> vals = [];
             foreach (var val in keyValuePair)
             {
                 vals.Add(val.Value);
             }
-            return vals.ToArray();
+            return [.. vals];
         }
 
         /// <summary>
@@ -105,12 +105,12 @@ namespace MelonAutoUpdater.Helper
         /// <returns>Values from the IEnumerable of KeyValuePairs</returns>
         public static TValue[] GetValues<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> keyValuePair)
         {
-            List<TValue> vals = new List<TValue>();
+            List<TValue> vals = [];
             foreach (var val in keyValuePair)
             {
                 vals.Add(val.Value);
             }
-            return vals.ToArray();
+            return [.. vals];
         }
 
         /// <summary>
@@ -122,12 +122,12 @@ namespace MelonAutoUpdater.Helper
         /// <returns>Values from the array of KeyValuePairs</returns>
         public static TValue[] GetValues<TKey, TValue>(this KeyValuePair<TKey, TValue>[] keyValuePair)
         {
-            List<TValue> vals = new List<TValue>();
+            List<TValue> vals = [];
             foreach (var val in keyValuePair)
             {
                 vals.Add(val.Value);
             }
-            return vals.ToArray();
+            return [.. vals];
         }
 
         #endregion Get Values

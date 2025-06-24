@@ -9,7 +9,7 @@ namespace MelonAutoUpdater.Utils
     /// </summary>
     public static class LoggerUtils
     {
-        internal static Dictionary<ConsoleColor, Color> ConsoleColorDict = new Dictionary<ConsoleColor, Color>
+        internal static Dictionary<ConsoleColor, Color> ConsoleColorDict = new()
         {
             { ConsoleColor.Black, Color.Black },
             { ConsoleColor.DarkBlue, Color.DarkBlue },
@@ -29,7 +29,7 @@ namespace MelonAutoUpdater.Utils
             { ConsoleColor.White, Color.White },
         };
 
-        internal static Dictionary<Color, ConsoleColor> DrawingColorDict = new Dictionary<Color, ConsoleColor>
+        internal static Dictionary<Color, ConsoleColor> DrawingColorDict = new()
         {
             { Color.Black, ConsoleColor.Black },
             { Color.DarkBlue, ConsoleColor.DarkBlue },

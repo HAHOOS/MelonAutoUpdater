@@ -18,7 +18,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Default values of properties
         /// </summary>
-        public static readonly Dictionary<string, string> Defaults = new Dictionary<string, string>()
+        public static readonly Dictionary<string, string> Defaults = new()
         {
             { "LinkColor",  "#00FFFF"},
             { "ExtensionNameDefaultColor", "#FF00FF" },

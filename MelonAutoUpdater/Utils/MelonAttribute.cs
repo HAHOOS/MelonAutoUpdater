@@ -47,7 +47,7 @@ namespace MelonAutoUpdater.Utils
             if (attributes.Any())
             {
                 MelonAutoUpdater.logger.DebugMsg("Found attribute(s)");
-                List<T> result = new List<T>();
+                List<T> result = [];
                 foreach (var attr in attributes)
                 {
                     MelonAutoUpdater.logger.DebugMsg("Adding attribute to list");
@@ -68,7 +68,7 @@ namespace MelonAutoUpdater.Utils
                         MelonAutoUpdater.logger.DebugError($"Cannot find constructor for {typeof(T).Name}, exception:\n{ex}");
                     }
                 }
-                return result.ToArray();
+                return [.. result];
             }
             else
             {
@@ -85,7 +85,6 @@ namespace MelonAutoUpdater.Utils
         {
             foreach (var attr in assembly.CustomAttributes)
             {
-#pragma warning disable CS0618 // Type or member is obsolete
                 if (attr.AttributeType.Name == nameof(MelonInfoAttribute)
                     || attr.AttributeType.Name == "MelonModInfoAttribute"
                     || attr.AttributeType.Name == "MelonPluginInfoAttribute")
@@ -101,7 +100,6 @@ namespace MelonAutoUpdater.Utils
 
                     return new MelonInfoAttribute(type: type, name: Name, version: Version, author: Author, downloadLink: DownloadLink);
                 }
-#pragma warning restore CS0618 // Type or member is obsolete
             }
             assembly.Dispose();
             return null;
@@ -165,10 +163,9 @@ namespace MelonAutoUpdater.Utils
         /// <returns>If present, returns a <see cref="MelonGameAttribute"/></returns>
         internal static MelonGameAttribute[] GetMelonGameAttribute(this AssemblyDefinition assembly)
         {
-            List<MelonGameAttribute> games = new List<MelonGameAttribute>();
+            List<MelonGameAttribute> games = [];
             foreach (var attr in assembly.CustomAttributes)
             {
-#pragma warning disable CS0618 // Type or member is obsolete
                 if (attr.AttributeType.Name == nameof(MelonGameAttribute)
                     || attr.AttributeType.Name == "MelonModGameAttribute"
                     || attr.AttributeType.Name == "MelonPluginGameAttribute")
@@ -177,10 +174,9 @@ namespace MelonAutoUpdater.Utils
                     string name = Get<string>(attr, 1);
                     games.Add(new MelonGameAttribute(developer, name));
                 }
-#pragma warning restore CS0618 // Type or member is obsolete
             }
             assembly.Dispose();
-            return games.ToArray();
+            return [.. games];
         }
 
         /// <summary>
@@ -190,7 +186,7 @@ namespace MelonAutoUpdater.Utils
         /// <returns>If present, returns a <see cref="MelonProcessAttribute"/></returns>
         internal static MelonProcessAttribute[] GetMelonProcessAttribute(this AssemblyDefinition assembly)
         {
-            List<MelonProcessAttribute> games = new List<MelonProcessAttribute>();
+            List<MelonProcessAttribute> games = [];
             foreach (var attr in assembly.CustomAttributes)
             {
                 if (attr.AttributeType.Name == nameof(MelonProcessAttribute))
@@ -200,7 +196,7 @@ namespace MelonAutoUpdater.Utils
                 }
             }
             assembly.Dispose();
-            return games.ToArray();
+            return [.. games];
         }
 
         /// <summary>
@@ -270,7 +266,7 @@ namespace MelonAutoUpdater.Utils
         /// <returns>If present, returns a <see cref="MelonGameAttribute"/></returns>
         internal static MelonGameVersionAttribute[] GetMelonGameVersionAttribute(this AssemblyDefinition assembly)
         {
-            List<MelonGameVersionAttribute> versions = new List<MelonGameVersionAttribute>();
+            List<MelonGameVersionAttribute> versions = [];
             foreach (var attr in assembly.CustomAttributes)
             {
                 if (attr.AttributeType.Name == nameof(MelonGameVersionAttribute))
@@ -280,7 +276,7 @@ namespace MelonAutoUpdater.Utils
                 }
             }
             assembly.Dispose();
-            return versions.ToArray();
+            return [.. versions];
         }
 
         /// <summary>

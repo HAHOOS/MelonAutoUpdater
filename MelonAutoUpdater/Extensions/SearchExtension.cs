@@ -1,9 +1,9 @@
 ﻿extern alias ml070;
 
-using ml070.Semver;
-using ml070.MelonLoader;
-using MelonAutoUpdater.Helper;
 using System;
+
+using ml070.MelonLoader;
+using ml070.Semver;
 
 namespace MelonAutoUpdater.Extensions
 {

@@ -1,18 +1,22 @@
 ﻿extern alias ml070;
 
-using ml070::MelonLoader;
-using ml070::Semver;
-using MelonAutoUpdater.Utils;
-using Mono.Cecil;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using static MelonAutoUpdater.MelonUpdater;
-using System.Collections.Generic;
 using System.Runtime.Versioning;
-using static ml070::MelonLoader.MelonPlatformDomainAttribute;
+
 using MelonAutoUpdater.Config;
+using MelonAutoUpdater.Utils;
+
+using ml070::MelonLoader;
+using ml070::Semver;
+
+using Mono.Cecil;
+
+using static MelonAutoUpdater.MelonUpdater;
+using static ml070::MelonLoader.MelonPlatformDomainAttribute;
 
 namespace MelonAutoUpdater.Extensions
 {
@@ -91,7 +95,7 @@ namespace MelonAutoUpdater.Extensions
         public static (bool handled, int success, int failed) HandleFile(string path)
         {
             var file = new FileInfo(path);
-            List<InstallExtension> installExtensions = new List<InstallExtension>();
+            List<InstallExtension> installExtensions = [];
             if (file.Exists)
             {
                 var extension = file.Extension;
@@ -330,8 +334,8 @@ namespace MelonAutoUpdater.Extensions
             if (paths == null || paths.Length == 0) throw new ArgumentNullException(nameof(paths));
             if (paths.Length == 1) return paths[0];
 
-            List<string> list = new List<string>();
-            list = paths.ToList();
+            List<string> list = [];
+            list = [.. paths];
             list.Sort((x, y) =>
             {
                 int xPoints = 0;

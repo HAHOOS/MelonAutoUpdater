@@ -1,6 +1,8 @@
-﻿using MelonAutoUpdater.Utils;
-using System;
+﻿using System;
 using System.Drawing;
+
+using MelonAutoUpdater.Utils;
+
 using static MelonAutoUpdater.Logger;
 
 namespace MelonAutoUpdater

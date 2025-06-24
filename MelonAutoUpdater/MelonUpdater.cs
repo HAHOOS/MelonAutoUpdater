@@ -1,23 +1,27 @@
 ﻿extern alias ml070;
 
-using MelonAutoUpdater.Extensions;
-using MelonAutoUpdater.Utils;
-using ml070.MelonLoader;
-using ml070.MelonLoader.TinyJSON;
-using Mono.Cecil;
-using ml070.Semver;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Diagnostics;
 using System.Net.Http;
+using System.Reflection;
+
+using MelonAutoUpdater.Config;
+using MelonAutoUpdater.Extensions;
+using MelonAutoUpdater.Utils;
+
+using ml070.MelonLoader;
+using ml070.Semver;
+
+using Mono.Cecil;
+
+using Newtonsoft.Json.Linq;
+
 using static ml070::MelonLoader.MelonPlatformAttribute;
 using static ml070::MelonLoader.MelonPlatformDomainAttribute;
-using MelonAutoUpdater.Config;
-using Newtonsoft.Json.Linq;
 
 namespace MelonAutoUpdater
 {
@@ -48,7 +52,7 @@ namespace MelonAutoUpdater
 
         internal static Logger logger;
 
-        public static Dictionary<string, MelonInfoAttribute> Melons { get; internal set; } = new Dictionary<string, MelonInfoAttribute>();
+        public static Dictionary<string, MelonInfoAttribute> Melons { get; internal set; } = [];
 
         internal MelonUpdater(string userAgent, Theme _theme, List<string> ignoreMelons, Logger _logger, bool bruteCheck = false)
         {
@@ -139,7 +143,7 @@ namespace MelonAutoUpdater
                 logger.Msg("No download link was provided with the melon");
                 return null;
             }
-            List<SearchExtension> extensions = new List<SearchExtension>();
+            List<SearchExtension> extensions = [];
             foreach (var _ext in ExtensionBase.LoadedExtensions)
             {
                 if (_ext.Type == typeof(SearchExtension))
@@ -187,7 +191,7 @@ namespace MelonAutoUpdater
                 logger.Msg("Name/Author was not provided with the melon");
                 return null;
             }
-            List<SearchExtension> extensions = new List<SearchExtension>();
+            List<SearchExtension> extensions = [];
             foreach (var _ext in ExtensionBase.LoadedExtensions)
             {
                 if (_ext.Type == typeof(SearchExtension))
@@ -279,7 +283,7 @@ namespace MelonAutoUpdater
         /// <returns>Array of all incompatibilities</returns>
         public static Incompatibility[] CheckCompatibility(AssemblyDefinition assembly, bool printmsg = true)
         {
-            if (!GetEntryValue<bool>(MelonAutoUpdater.Entry_checkCompatibility)) return new Incompatibility[] { };
+            if (!GetEntryValue<bool>(MelonAutoUpdater.Entry_checkCompatibility)) return [];
             var result = new List<Incompatibility>();
             var modInfo = assembly.GetMelonInfo();
             if (modInfo == null)
@@ -334,11 +338,10 @@ namespace MelonAutoUpdater
                         result.Add(Incompatibility.NETVersion);
                     }
                 }
-#pragma warning disable CS0618 // Type or member is obsolete
+
                 var gameName = ml070.MelonLoader.InternalUtils.UnityInformationHandler.GameName;
                 var gameDev = ml070.MelonLoader.InternalUtils.UnityInformationHandler.GameDeveloper;
                 var gameVer = ml070.MelonLoader.InternalUtils.UnityInformationHandler.GameVersion;
-#pragma warning restore CS0618 // Type or member is obsolete
                 if (!(game.Length == 0 || game.Any(x => x.IsCompatible(gameDev, gameName))))
                 {
                     if (printmsg) logger.Warning($"{modInfo.Name} {modInfo.Version} is not compatible with the running game: {gameName} (by {gameDev})");
@@ -392,7 +395,7 @@ namespace MelonAutoUpdater
                     }
                 }
             }
-            return result.ToArray();
+            return [.. result];
         }
 
         /// <summary>
@@ -455,8 +458,7 @@ namespace MelonAutoUpdater
         {
             var random = new Random();
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
+            return new string([.. Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)])]);
         }
 
         /// <summary>
@@ -472,15 +474,15 @@ namespace MelonAutoUpdater
                 sw = Stopwatch.StartNew();
             }
 
-            List<string> files = Directory.GetFiles(directory, "*.dll").ToList();
+            List<string> files = [.. Directory.GetFiles(directory, "*.dll")];
 
             List<string> ignore = ignoreMelons;
 
-            List<string> fileNameIgnore = new List<string>();
+            List<string> fileNameIgnore = [];
 
             (int success, int warn, int error, List<(string name, SemVersion oldVersion, SemVersion newVersion, bool threwError, int success, int failed)> updates) result = (0, 0, 0, new List<(string name, SemVersion oldVersion, SemVersion newVersion, bool threwError, int success, int failed)>());
 
-            List<(string name, SemVersion oldVer, SemVersion newVer, Uri downloadLink)> manualUpdate = new List<(string name, SemVersion oldVer, SemVersion newVer, Uri downloadLink)>();
+            List<(string name, SemVersion oldVer, SemVersion newVer, Uri downloadLink)> manualUpdate = [];
 
             files.ForEach(x =>
             {
@@ -561,7 +563,7 @@ namespace MelonAutoUpdater
                                         int success = 0;
                                         int failed = 0;
                                         const bool threwError = false;
-                                        List<string> downloadedFiles = new List<string>();
+                                        List<string> downloadedFiles = [];
                                         foreach (var retFile in data.DownloadFiles)
                                         {
                                             string pathToSave = "";
@@ -677,7 +679,7 @@ namespace MelonAutoUpdater
                                                 MelonAutoUpdater.ElapsedTime.Add($"DownloadFile-{name}", sw.ElapsedMilliseconds);
                                             }
                                         }
-                                        Dictionary<string, bool> instList = new Dictionary<string, bool>();
+                                        Dictionary<string, bool> instList = [];
                                         downloadedFiles.ForEach(x => instList.Add(x, true));
                                         InstallExtension.InstallList = instList;
                                         InstallExtension.MelonCurrentVersion = currentVersion;

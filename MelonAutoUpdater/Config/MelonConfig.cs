@@ -1,17 +1,15 @@
 ﻿extern alias ml070;
 
-using MelonAutoUpdater.Extensions;
-using MelonAutoUpdater.Utils;
-
-using ml070.MelonLoader.TinyJSON;
-
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
+using MelonAutoUpdater.Extensions;
+using MelonAutoUpdater.Utils;
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace MelonAutoUpdater.Config
 {

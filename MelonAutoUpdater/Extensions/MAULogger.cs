@@ -1,10 +1,9 @@
 extern alias ml070;
 
-using ml070.MelonLoader;
-using System.Drawing;
 using System;
+using System.Drawing;
+
 using MelonAutoUpdater.Utils;
-using MelonAutoUpdater.Helper;
 
 namespace MelonAutoUpdater.Extensions
 {

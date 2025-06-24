@@ -1,11 +1,5 @@
 ﻿extern alias ml070;
 
-using ml070.MelonLoader;
-using ml070.MelonLoader.TinyJSON;
-using ml070.Semver;
-
-using Newtonsoft.Json.Linq;
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,13 +8,17 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+using ml070.Semver;
+
+using Newtonsoft.Json.Linq;
+
 namespace MelonAutoUpdater.Extensions.Search.Thunderstore
 {
     internal class Thunderstore : SearchExtension
     {
         public override string Name => "Thunderstore";
 
-        public override SemVersion Version => new SemVersion(1, 0, 1);
+        public override SemVersion Version => new(1, 0, 1);
 
         public override string Author => "HAHOOS";
 
@@ -32,11 +30,11 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
         private long apiReset;
 
         private readonly char[] disallowedChars =
-            { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '=', '[', '{', '}', ']', ':', ';', '\'', '\"', '|', '\\', '<', ',', '>', '.', '/', '?', '~', '`', ' ' };
+            ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '=', '[', '{', '}', ']', ':', ';', '\'', '\"', '|', '\\', '<', ',', '>', '.', '/', '?', '~', '`', ' '];
 
         internal MelonData Check(string packageName, string namespaceName)
         {
-            HttpClient request = new HttpClient();
+            HttpClient request = new();
             request.DefaultRequestHeaders.Add("User-Agent", UserAgent);
             if (disableAPI && DateTimeOffset.UtcNow.ToUnixTimeSeconds() > apiReset) disableAPI = false;
             if (!disableAPI)
@@ -55,9 +53,9 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                         response.Dispose();
                         body.Dispose();
 
-                        List<FileData> files = new List<FileData>();
+                        List<FileData> files = [];
 
-                        FileData fileData = new FileData
+                        FileData fileData = new()
                         {
                             FileName = packageName,
                             URL = (string)_data["latest"]["download_url"]
@@ -73,7 +71,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
                         }
                         var communityListings = _data["community_listings"];
                         string community = communityListings.First()["community"].ToObject<string>();
-                        return new MelonData(semver, files, new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}"), new MelonInstallSettings() { IgnoreFiles = new string[] { "icon.png", "README.md", "CHANGELOG.md", "manifest.json" } });
+                        return new MelonData(semver, files, new Uri($"https://thunderstore.io/c/{community}/p/{namespaceName}/{packageName}"), new MelonInstallSettings() { IgnoreFiles = ["icon.png", "README.md", "CHANGELOG.md", "manifest.json"] });
                     }
                     else
                     {
@@ -119,7 +117,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
         {
             Stopwatch stopwatch = null;
             if (MelonAutoUpdater.Debug) stopwatch = Stopwatch.StartNew();
-            Regex regex = new Regex(@"thunderstore.io(?:/c/[\w]+/p/|/package/)(?!_)([\w]+)(?!_)/(?!_)([\w]+)(?!_)");
+            Regex regex = new(@"thunderstore.io(?:/c/[\w]+/p/|/package/)(?!_)([\w]+)(?!_)/(?!_)([\w]+)(?!_)");
             var match = regex.Match(url);
             if (match.Success && match.Length >= 1 && match.Groups.Count == 3)
             {
@@ -145,8 +143,7 @@ namespace MelonAutoUpdater.Extensions.Search.Thunderstore
         {
             var random = new Random();
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
+            return new string([.. Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)])]);
         }
 
         private bool IsValid(string nameOrAuthor)

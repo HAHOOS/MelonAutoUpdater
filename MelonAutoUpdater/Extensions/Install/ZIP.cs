@@ -23,11 +23,11 @@ namespace MelonAutoUpdater.Extensions.Install
 {
     internal class ZIP : InstallExtension
     {
-        public override string[] FileExtensions => new string[] { ".zip" };
+        public override string[] FileExtensions => [".zip"];
 
         public override string Name => "ZIP";
 
-        public override SemVersion Version => new SemVersion(1, 0, 0);
+        public override SemVersion Version => new(1, 0, 0);
 
         public override string Author => "HAHOOS";
 
@@ -76,10 +76,8 @@ namespace MelonAutoUpdater.Extensions.Install
                     {
                         continue;
                     }
-                    using (FileStream streamWriter = File.Create(fullZipToPath))
-                    {
-                        ICSharpCode.SharpZipLib.Core.StreamUtils.Copy(zipInputStream, streamWriter, buffer);
-                    }
+                    using FileStream streamWriter = File.Create(fullZipToPath);
+                    ICSharpCode.SharpZipLib.Core.StreamUtils.Copy(zipInputStream, streamWriter, buffer);
                 }
             }
             if (MelonAutoUpdater.Debug)
@@ -93,8 +91,7 @@ namespace MelonAutoUpdater.Extensions.Install
         {
             var random = new Random();
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
+            return new string([.. Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)])]);
         }
 
         /// <summary>
@@ -179,7 +176,7 @@ namespace MelonAutoUpdater.Extensions.Install
             if (MelonAutoUpdater.Debug)
             {
                 sw.Stop();
-                MelonAutoUpdater.ElapsedTime.Add($"MoveFiles-{GetDirName(path)}", sw.ElapsedMilliseconds);
+                MelonAutoUpdater.ElapsedTime.Add($"MoveFiles-{GetDirName(path)}-{RandomString(5)}", sw.ElapsedMilliseconds);
             }
             return (success, failed);
         }
@@ -219,14 +216,14 @@ namespace MelonAutoUpdater.Extensions.Install
                     if (Directory.Exists(extPath))
                     {
                         string dirName = GetDirName(extPath);
-                        List<string> SubDirCheck = new List<string>
-                                                                {
+                        List<string> SubDirCheck =
+                                                                [
                                                                     "Mods",
                                                                     "Plugins",
                                                                     "MelonLoader",
                                                                     "UserData",
                                                                     "UserLibs"
-                                                                };
+                                                                ];
                         int checkedDirs = 0;
                         foreach (var subdir in SubDirCheck)
                         {

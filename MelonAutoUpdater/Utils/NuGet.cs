@@ -1,17 +1,20 @@
 ﻿extern alias ml070;
 
-using Mono.Cecil;
-using ml070.Semver;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 
+using ml070.Semver;
+
+using Mono.Cecil;
+
+using Newtonsoft.Json.Linq;
+
 using static MelonAutoUpdater.Utils.NuGet;
 
 using ZipInputStream = ICSharpCode.SharpZipLib.Zip.ZipInputStream;
-using Newtonsoft.Json.Linq;
 
 namespace MelonAutoUpdater.Utils
 {
@@ -242,7 +245,7 @@ namespace MelonAutoUpdater.Utils
             {
                 OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.DEBUG);
                 var dllFile = tempDir.GetFiles("*.dll")[0].FullName;
-                List<string> allFiles = new List<string>();
+                List<string> allFiles = [];
                 tempDir.GetFiles().ToList().ForEach(x => allFiles.Add(x.FullName));
                 return (dllFile, allFiles);
             }
@@ -252,7 +255,7 @@ namespace MelonAutoUpdater.Utils
             {
                 OnLog($"Found {name.Pastel(Theme.Instance.FileNameColor)} in cache", LogSeverity.DEBUG);
                 var dllFile = tempDir2.GetFiles("*.dll")[0].FullName;
-                List<string> allFiles = new List<string>();
+                List<string> allFiles = [];
                 tempDir2.GetFiles().ToList().ForEach(x => allFiles.Add(x.FullName));
                 return (dllFile, allFiles);
             }
@@ -265,7 +268,7 @@ namespace MelonAutoUpdater.Utils
 
             (string DLLFile, List<string> AllFiles) result;
             result.DLLFile = string.Empty;
-            result.AllFiles = new List<string>();
+            result.AllFiles = [];
             string path = Path.Combine(tempDir.FullName, $"{name}.{version}.nupkg");
             OnLog("Downloading file", LogSeverity.DEBUG);
             var webClient = new WebClient();
@@ -273,7 +276,7 @@ namespace MelonAutoUpdater.Utils
             if (File.Exists(path))
             {
                 OnLog("Downloaded successfully, extracting files", LogSeverity.DEBUG);
-                FileInfo fileInfo = new FileInfo(path);
+                FileInfo fileInfo = new(path);
                 string zip_Path = Path.ChangeExtension(path, "zip");
                 fileInfo.MoveTo(zip_Path, true);
                 string dirPath = Path.Combine(tempDir.FullName, $"{name}.{version}");
@@ -290,7 +293,7 @@ namespace MelonAutoUpdater.Utils
                     var libDir = new DirectoryInfo(Path.Combine(dirPath, "lib"));
                     if (libDir.Exists)
                     {
-                        List<string> dependencyFiles = new List<string>();
+                        List<string> dependencyFiles = [];
                         OnLog("Found lib directory", LogSeverity.DEBUG);
                         var dllFiles = libDir.GetFiles();
                         if (dllFiles.Length > 0)
@@ -509,7 +512,7 @@ namespace MelonAutoUpdater.Utils
         /// <param name="severity"><see cref="LogEventArgs.Severity"/></param>
         protected virtual void OnLog(string message, LogSeverity severity)
         {
-            LogEventArgs e = new LogEventArgs(message, severity);
+            LogEventArgs e = new(message, severity);
             Log?.Invoke(this, e);
         }
 

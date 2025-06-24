@@ -1,21 +1,24 @@
-﻿extern alias ml070;
-extern alias ml057;
+﻿extern alias ml057;
+extern alias ml070;
 
-using ml070::MelonLoader;
-using Mono.Cecil;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using ml070::Semver;
-using ml070::MelonLoader.Preferences;
+using System.Net;
+using System.Reflection;
+
 using MelonAutoUpdater.Extensions;
 using MelonAutoUpdater.Helper;
-using System.Reflection;
 using MelonAutoUpdater.Utils;
-using System.Net;
-using System.Diagnostics;
-using MelonAutoUpdater.Config;
+
+using ml070::MelonLoader;
+using ml070::MelonLoader.Preferences;
+using ml070::Semver;
+
+using Mono.Cecil;
+
 using static ml070::MelonLoader.MelonPlatformAttribute;
 using static ml070::MelonLoader.MelonPlatformDomainAttribute;
 
@@ -73,7 +76,7 @@ namespace MelonAutoUpdater
         /// <summary>
         /// Variable used to debug how long it took for certain processes to complete
         /// </summary>
-        public static Dictionary<string, long> ElapsedTime = new Dictionary<string, long>();
+        public static Dictionary<string, long> ElapsedTime = [];
 
         #region Melon Preferences
 
@@ -145,7 +148,7 @@ namespace MelonAutoUpdater
 
             LoggerInstance.DebugMsg("Added Enabled to config.cfg");
 
-            Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", new List<string>(), "Ignore List",
+            Entry_ignore = MainCategory.CreateEntry<List<string>>("IgnoreList", [], "Ignore List",
                 description: "List of all file names (without extension) of Mods & Plugins that will be ignored when checking for updates");
 
             LoggerInstance.DebugMsg("Added IgnoreList to config.cfg");
@@ -321,8 +324,6 @@ namespace MelonAutoUpdater
    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private bool IsMLDebug057() => ml057.MelonLoader.MelonLaunchOptions.Debug.Enabled;
 
-        private static NuGet NuGet = new();
-
         // Note to self: Don't use async
         /// <summary>
         /// Runs before MelonLoader fully initializes
@@ -397,13 +398,9 @@ namespace MelonAutoUpdater
             }
 
             LoggerInstance.Msg("Adding placeholders for config");
-
-#pragma warning disable CS0618 // Type or member is obsolete
             var gameName = ml070.MelonLoader.InternalUtils.UnityInformationHandler.GameName;
             var gameDev = ml070.MelonLoader.InternalUtils.UnityInformationHandler.GameDeveloper;
             var gameVer = ml070.MelonLoader.InternalUtils.UnityInformationHandler.GameVersion;
-#pragma warning restore CS0618 // Type or member is obsolete
-
             CompatiblePlatforms CurrentPlatform = MelonUtils.IsGame32Bit() ? CompatiblePlatforms.WINDOWS_X86 : CompatiblePlatforms.WINDOWS_X64; // Temporarily
             CompatibleDomains CurrentDomain = MelonUtils.IsGameIl2Cpp() ? CompatibleDomains.IL2CPP : CompatibleDomains.MONO;
 
