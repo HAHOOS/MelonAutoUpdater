@@ -88,42 +88,42 @@ namespace MelonAutoUpdater
         /// <summary>
         /// A Melon Preferences entry of a list of mods/plugins that will not be updated
         /// </summary>
-        internal static MelonPreferences_Entry Entry_ignore { get; private set; }
+        internal static MelonPreferences_Entry<List<string>> Entry_ignore { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin work
         /// </summary>
-        internal static MelonPreferences_Entry Entry_enabled { get; private set; }
+        internal static MelonPreferences_Entry<bool> Entry_enabled { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not it should forcefully check the API for the mod/plugins if no download link was provided with it
         /// </summary>
-        internal static MelonPreferences_Entry Entry_bruteCheck { get; private set; }
+        internal static MelonPreferences_Entry<bool> Entry_bruteCheck { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should the melons be updated if available
         /// </summary>
-        internal static MelonPreferences_Entry Entry_dontUpdate { get; private set; }
+        internal static MelonPreferences_Entry<bool> Entry_dontUpdate { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should incompatible melons be removed if not updated
         /// </summary>
-        internal static MelonPreferences_Entry Entry_removeIncompatible { get; private set; }
+        internal static MelonPreferences_Entry<bool> Entry_removeIncompatible { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should melons be checked for compatibility
         /// </summary>
-        internal static MelonPreferences_Entry Entry_checkCompatibility { get; private set; }
+        internal static MelonPreferences_Entry<bool> Entry_checkCompatibility { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin use Pastel (ANSI colors)
         /// </summary>
-        internal static MelonPreferences_Entry Entry_usePastel { get; private set; }
+        internal static MelonPreferences_Entry<bool> Entry_usePastel { get; private set; }
 
         /// <summary>
         /// A Melon Preferences entry of a boolean value indicating whether or not should the plugin be in Debug mode
         /// </summary>
-        internal static MelonPreferences_Entry Entry_debug { get; private set; }
+        internal static MelonPreferences_Entry<bool> Entry_debug { get; private set; }
 
         /// <summary>
         /// Themes Category in Preferences

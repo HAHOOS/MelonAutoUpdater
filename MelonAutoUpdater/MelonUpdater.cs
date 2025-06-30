@@ -54,6 +54,39 @@ namespace MelonAutoUpdater
 
         public static Dictionary<string, MelonInfoAttribute> Melons { get; internal set; } = [];
 
+        internal void CacheMelonInfo(string directory)
+        {
+            foreach (var file in Directory.GetFiles(directory, "*.dll"))
+            {
+                var assembly = AssemblyDefinition.ReadAssembly(file);
+                try
+                {
+                    if (assembly != null)
+                    {
+                        var info = assembly.GetMelonInfo();
+                        if (info != null)
+                        {
+                            Melons.Add(file, info);
+                            logger.DebugMsg($"{file}: {info.Name} (by {info.Author}) v{info.Version}");
+                        }
+                        else
+                        {
+                            logger.DebugWarning($"{file}: is not a Melon");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Failed to get Melon Info from {file}");
+                    logger.DebugError(ex);
+                }
+                finally
+                {
+                    assembly.Dispose();
+                }
+            }
+        }
+
         internal MelonUpdater(string userAgent, Theme _theme, List<string> ignoreMelons, Logger _logger, bool bruteCheck = false)
         {
             UserAgent = userAgent;
@@ -63,69 +96,9 @@ namespace MelonAutoUpdater
             logger = _logger;
             logger.DebugMsg("Getting all mods and plugins info");
             logger.DebugMsg("Mods:");
-
-            foreach (var file in Directory.GetFiles(Files.ModsDirectory, "*.dll"))
-            {
-                var assembly = AssemblyDefinition.ReadAssembly(file);
-                if (assembly != null)
-                {
-                    var info = assembly.GetMelonInfo();
-                    if (info != null)
-                    {
-                        Melons.Add(file, info);
-                        logger.DebugMsg($"{file}: {info.Name} (by {info.Author}) v{info.Version}");
-                    }
-                    else
-                    {
-                        logger.DebugWarning($"{file}: is not a Melon");
-                    }
-                    assembly.Dispose();
-                }
-            }
-
+            CacheMelonInfo(Files.ModsDirectory);
             logger.DebugMsg("Plugins:");
-
-            foreach (var file in Directory.GetFiles(Files.PluginsDirectory, "*.dll"))
-            {
-                var assembly = AssemblyDefinition.ReadAssembly(file);
-                if (assembly != null)
-                {
-                    var info = assembly.GetMelonInfo();
-                    if (info != null)
-                    {
-                        Melons.Add(file, info);
-                        logger.DebugMsg($"{file}: {info.Name} (by {info.Author}) v{info.Version}");
-                    }
-                    else
-                    {
-                        logger.DebugWarning($"{file}: is not a Melon");
-                    }
-                    assembly.Dispose();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get value of an entry in Melon Preferences
-        /// </summary>
-        /// <typeparam name="T">A type that will be returned as value of entry</typeparam>
-        /// <param name="entry">The Melon Preferences Entry to retrieve value from</param>
-        /// <returns>Value of entry with inputted type</returns>
-        internal static T GetEntryValue<T>(MelonPreferences_Entry entry)
-        {
-            if (entry?.BoxedValue != null)
-            {
-                try
-                {
-                    return (T)entry.BoxedValue;
-                }
-                catch (InvalidCastException)
-                {
-                    logger.Error($"Preference '{entry.DisplayName}' is of incorrect type");
-                    return default;
-                }
-            }
-            return default;
+            CacheMelonInfo(Files.PluginsDirectory);
         }
 
         /// <summary>
@@ -283,7 +256,7 @@ namespace MelonAutoUpdater
         /// <returns>Array of all incompatibilities</returns>
         public static Incompatibility[] CheckCompatibility(AssemblyDefinition assembly, bool printmsg = true)
         {
-            if (!GetEntryValue<bool>(MelonAutoUpdater.Entry_checkCompatibility)) return [];
+            if (!MelonAutoUpdater.Entry_checkCompatibility.Value) return [];
             var result = new List<Incompatibility>();
             var modInfo = assembly.GetMelonInfo();
             if (modInfo == null)
@@ -753,7 +726,7 @@ namespace MelonAutoUpdater
                                 }
                             }
                         }
-                        if (needUpdate && GetEntryValue<bool>(MelonAutoUpdater.Entry_removeIncompatible))
+                        if (needUpdate && MelonAutoUpdater.Entry_removeIncompatible.Value)
                         {
                             logger.Msg($"Removing {fileName.Pastel(theme.FileNameColor)}, due to it being incompatible and not being updated");
                             if (melonAssemblyInfo.GetFileType() == FileType.MelonMod)
